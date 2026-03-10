@@ -1,0 +1,97 @@
+package com.byke.controller;
+
+import com.byke.model.entity.Booking;
+import com.byke.model.enums.BookingStatus;
+import com.byke.service.BookingService;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/bookings")
+@RequiredArgsConstructor
+public class BookingController {
+
+    private final BookingService bookingService;
+
+    @PostMapping
+    public ResponseEntity<?> createBooking(@RequestBody Booking booking, HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            Booking createdBooking = bookingService.createBooking(userId, booking);
+            return ResponseEntity.ok(createdBooking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getBooking(@PathVariable Long id) {
+        try {
+            Booking booking = bookingService.getBookingById(id);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/user/my-bookings")
+    public ResponseEntity<?> getMyBookings(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            List<Booking> bookings = bookingService.getUserBookings(userId);
+            return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/rider/my-bookings")
+    public ResponseEntity<?> getRiderBookings(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            List<Booking> bookings = bookingService.getRiderBookings(userId);
+            return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> updateBookingStatus(@PathVariable Long id, @RequestParam BookingStatus status) {
+        try {
+            Booking booking = bookingService.updateBookingStatus(id, status);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelBooking(@PathVariable Long id, @RequestParam String reason, 
+                                           @RequestParam boolean byUser) {
+        try {
+            Booking booking = bookingService.cancelBooking(id, reason, byUser);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/rate")
+    public ResponseEntity<?> rateBooking(@PathVariable Long id, 
+                                         @RequestParam(required = false) Integer userRating,
+                                         @RequestParam(required = false) String userReview,
+                                         @RequestParam(required = false) Integer riderRating,
+                                         @RequestParam(required = false) String riderReview) {
+        try {
+            Booking booking = bookingService.rateBooking(id, userRating, userReview, riderRating, riderReview);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+}

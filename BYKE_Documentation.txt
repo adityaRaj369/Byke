@@ -1,0 +1,660 @@
+
+BYKE
+Two-Wheeler Ride & Errand Platform
+
+PRODUCT REQUIREMENTS & TECHNICAL DOCUMENTATION
+Version 1.0  |  Confidential
+
+Prepared for Internal Development Use
+
+Table of Contents
+
+
+
+1. Executive Summary
+Byke is a two-wheeler ride-hailing and errand/delivery platform connecting riders (bike/scooter owners) with users who need transportation, personal errand services, and parcel delivery. Unlike traditional platforms charging per-ride commissions, Byke operates on a flat monthly subscription of ₹500 per rider, giving them unlimited ride acceptance capacity and full platform feature access.
+
+1.1 Business Model
+Aspect
+Details
+Revenue Model
+₹500/month flat subscription per active rider
+Primary Users
+Commuters, individuals needing errands, parcel senders
+Primary Riders
+Registered two-wheeler owners willing to earn
+Key Differentiator
+Errands/personal tasks + parcel delivery in addition to rides
+Platforms
+Android & iOS apps (User App, Rider App), Admin Web Dashboard
+Authentication
+Mobile number OTP only — no passwords
+
+2. App Overview & Platform Architecture
+Byke consists of three separate applications operating on a shared backend:
+
+2.1 User App
+Installed by customers. Allows booking rides, requesting errands, scheduling parcel deliveries, and tracking orders in real time.
+2.2 Rider App
+Installed by registered riders. Provides ride/errand request alerts, navigation, earnings summary, subscription management, and profile tools.
+2.3 Admin Dashboard (Web)
+Used exclusively by the platform owner. Provides full visibility into all operations, user/rider management, complaint resolution, financials, and platform configuration.
+
+2.4 Technology Stack (Recommended)
+Layer
+Technology
+Mobile Apps
+React Native (cross-platform iOS + Android)
+Admin Dashboard
+React.js (web)
+Backend API
+Node.js + Express or Django REST Framework
+Database
+PostgreSQL (primary) + Redis (caching/sessions)
+Real-time
+Socket.IO or Firebase Realtime DB
+Maps & Navigation
+Google Maps Platform (Places, Directions, Distance Matrix)
+OTP Service
+Twilio / MSG91 / AWS SNS
+Push Notifications
+Firebase Cloud Messaging (FCM)
+Cloud Storage
+AWS S3 / Google Cloud Storage (documents, photos)
+Payment Gateway
+Razorpay / Stripe (subscription billing)
+
+3. User Registration, Login & Profile
+3.1 Registration Flow (Users)
+	•	User opens the app and enters their mobile number.
+	•	System sends a 6-digit OTP via SMS.
+	•	User enters OTP within 60 seconds (with resend option after 30 sec).
+	•	On first login: user completes their profile — Name, optional profile photo.
+	•	Subsequent logins: OTP only, profile auto-loads.
+
+3.2 User Profile Data Stored
+	•	Full name
+	•	Mobile number (primary key / unique identifier)
+	•	Profile photo (optional)
+	•	Date of registration
+	•	Total rides/errands booked
+	•	Average rating given to riders
+	•	Saved home/work addresses
+	•	Preferred payment method
+	•	Account status: Active / Suspended / Banned
+	•	Complaint history
+	•	Notification preferences
+
+3.3 User Rating System
+After every completed ride or errand, the user is prompted to rate the rider (1–5 stars + optional comment). This rating is averaged and displayed publicly on the rider's profile. Users can also be rated by riders for behavior (internal metric visible to admin only).
+4. Rider Registration, Onboarding & Verification
+4.1 Rider Application Flow
+	•	Rider downloads the Rider App and enters mobile number.
+	•	OTP verification (same flow as user).
+	•	Rider fills in the application form (see 4.2).
+	•	Documents uploaded for review.
+	•	Application enters 'Pending Approval' state.
+	•	Admin reviews application, checks documents, approves or rejects.
+	•	On approval, rider receives notification and can activate subscription.
+	•	After payment of ₹500/month, rider is 'Active' and can receive rides.
+
+4.2 Rider Profile & Application Data
+Personal Info
+Vehicle Info
+Documents
+Full name
+Vehicle type (bike/scooter)
+Driving License (front+back photo)
+Date of birth
+Vehicle make & model
+Aadhar Card
+Gender
+Year of manufacture
+PAN Card
+Profile photo
+Registration number (plate)
+Vehicle Registration Certificate (RC)
+Mobile number
+Vehicle color
+Vehicle Insurance
+Home address
+Vehicle photo
+Pollution Certificate (PUC)
+Bank account details (for payouts)
+
+Selfie with vehicle
+
+4.3 Rider Subscription Model
+Riders pay a flat ₹500/month to remain active on the platform. There is no per-ride commission deducted. Riders keep 100% of the fare they charge (fare is set by the platform, not negotiated).
+	•	Payment is auto-renewed monthly via Razorpay/Stripe.
+	•	Riders get a 3-day grace period if payment fails before suspension.
+	•	Subscription can be paused (rider goes 'inactive') and resumed anytime.
+	•	No refund for partial months.
+
+4.4 Rider Status States
+	•	Pending — Application submitted, awaiting admin review
+	•	Approved / Active — Subscription paid, ready to receive rides
+	•	Inactive — Subscription lapsed or voluntarily paused
+	•	Suspended — Temporarily restricted by admin (with reason)
+	•	Banned — Permanently removed from platform
+	•	On Ride — Currently serving a booking
+	•	Available — Online and accepting rides
+	•	Offline — Not accepting rides (rider toggled offline)
+5. Booking Types & Service Catalog
+Byke supports three core service types under a single booking flow:
+
+5.1 Ride Booking
+The user requests a two-wheeler ride from Point A to Point B. The rider acts as a driver for the user (pillion ride).
+	•	Pickup and drop location entered via map or search.
+	•	Estimated fare shown before confirmation.
+	•	Estimated time of arrival (ETA) shown.
+	•	Rider navigates using in-app map to pickup, then to destination.
+
+5.2 Errand Booking
+The user asks the rider to complete a personal errand on their behalf. Examples include picking up groceries, collecting medicines, picking up dry cleaning, paying a bill, etc.
+	•	User describes the task in a text box (free form + pre-set categories).
+	•	User can attach a list or image (e.g., photo of a shopping list).
+	•	User sets an estimated budget for purchases (if buying items).
+	•	Option to add item-by-item shopping list within the app.
+	•	User specifies pickup location (e.g., a market) and drop-off (home).
+	•	Rider gets full errand instructions on their app.
+	•	Rider can message/call user for clarifications.
+	•	Cash advance for purchases: User can send money via UPI to rider before task.
+	•	Rider marks items as 'collected' as they go (optional checklist).
+
+5.3 Parcel Delivery
+The user sends a parcel from one address to another using the rider as a courier.
+	•	Sender address and recipient address entered.
+	•	Parcel description entered (type, approximate weight).
+	•	Recipient name and phone number entered.
+	•	Recipient receives an SMS/notification with rider details and ETA.
+	•	Rider picks up parcel, confirms via photo, and delivers.
+	•	Delivery confirmation: Recipient OTP or photo proof at drop.
+	•	Sender notified when parcel is picked up and when delivered.
+
+5.4 Booking Flow (Common)
+	•	User selects service type (Ride / Errand / Parcel).
+	•	User fills in relevant details (locations, description, items).
+	•	System calculates and shows fare estimate + ETA.
+	•	User confirms booking.
+	•	System broadcasts request to nearby available riders.
+	•	First rider to accept gets the booking.
+	•	User notified: 'Rider Found — [Name] is on the way'.
+	•	Live tracking begins.
+	•	Rider completes the task.
+	•	Both parties rate each other.
+	•	Booking marked Complete. Receipt generated.
+
+5.5 Fare Estimation
+Fares are calculated based on:
+	•	Base fare (flat amount per booking type)
+	•	Distance-based rate (per km)
+	•	Time-based rate (per minute, for errands / waiting)
+	•	Surge pricing during high-demand periods (admin configurable)
+	•	Additional charges for parcel weight category (admin configurable)
+6. Maps, Navigation & Location Features
+Byke integrates Google Maps Platform to deliver a feature-rich map experience comparable to Rapido and similar platforms.
+
+6.1 User-Side Map Features
+	•	Interactive map to set pickup and drop-off points
+	•	Auto-suggest places via Google Places API
+	•	Detect current location (GPS)
+	•	Drag pin to adjust location precisely
+	•	View route preview before booking
+	•	Live tracking of rider on map after booking
+	•	ETA countdown displayed
+	•	Rider's real-time location updated every 3–5 seconds
+	•	Map shows rider's name, photo, vehicle number on pin
+
+6.2 Rider-Side Map Features
+	•	Full navigation with turn-by-turn directions (Google Maps Navigation)
+	•	Route to pickup point displayed immediately after acceptance
+	•	Route switches to destination after pickup confirmed
+	•	Offline map caching for frequently used areas
+	•	Heat map showing demand zones (high booking areas)
+	•	Rider can view nearby active bookings on the map
+	•	One-tap to open Google Maps for navigation if preferred
+	•	Geofence alerts for entering/leaving service zones
+
+6.3 Location Permissions
+	•	Riders: Always-on location required while online/on ride
+	•	Users: Location required while actively booking or tracking
+	•	Background location tracked for rider (while app is open)
+	•	Location data retained per ride for dispute resolution
+7. Notifications System
+All notifications are delivered via Firebase Cloud Messaging (FCM) as push notifications, with in-app banners and a notification inbox.
+
+7.1 User Notifications
+Trigger
+Notification Message
+Booking confirmed
+Your booking is confirmed! Finding a rider...
+Rider assigned
+Rider found! [Name] is heading to you (ETA X mins)
+Rider is nearby
+Your rider [Name] is less than 500m away!
+Rider arrived at pickup
+Your rider has arrived at the pickup location.
+Ride started
+Your ride/errand has started. Estimated arrival: X mins.
+Errand item update
+Rider has collected your items and is on the way.
+Ride completed
+You have arrived! Please rate [Rider Name].
+Booking cancelled by rider
+Your booking was cancelled by the rider. Rebooking...
+Booking cancelled by user
+Your booking has been cancelled.
+No rider found
+Sorry, no riders available nearby. Try again shortly.
+Parcel delivered
+Your parcel has been successfully delivered.
+Rating reminder
+Don't forget to rate your recent ride!
+Complaint update
+Your complaint #[ID] has been updated by support.
+
+7.2 Rider Notifications
+Trigger
+Notification Message
+New ride/errand request
+New booking nearby! [Type] — X km away. Accept?
+Booking accepted
+Booking confirmed. Navigate to pickup.
+User cancelled
+User [Name] has cancelled the booking.
+Subscription expiring
+Your subscription expires in 3 days. Renew to stay active.
+Subscription renewed
+Subscription renewed successfully. You're active!
+Subscription failed
+Payment failed. Renew within 3 days to avoid suspension.
+Account approved
+Congratulations! Your rider account has been approved.
+Account suspended
+Your account has been suspended. Contact support.
+New rating received
+You received a [X]-star rating from [User Name].
+Complaint filed against
+A complaint has been filed. Admin will review shortly.
+
+7.3 Notification Settings
+	•	Users can toggle: Ride updates, Promotions, Complaint updates
+	•	Riders can toggle: New booking alerts, Subscription reminders, Rating notifications
+	•	Critical notifications (cancellation, account suspension) cannot be disabled
+	•	All notifications stored in an in-app Notification Centre (last 30 days)
+8. Cancellation Policy
+8.1 User Cancellation
+	•	User can cancel at any time before rider arrives at pickup.
+	•	Free cancellation within 2 minutes of booking.
+	•	After 2 minutes: a cancellation fee may apply (admin configurable, e.g., ₹10–₹30).
+	•	If user cancels after rider is en route, rider earns a partial compensation fee.
+	•	3 cancellations in 24 hours: user receives a warning notification.
+	•	Excessive cancellations may result in temporary booking restriction (admin decision).
+
+8.2 Rider Cancellation
+	•	Rider can cancel before reaching the pickup point.
+	•	Cancellation reason is mandatory (pre-set options + free text).
+	•	Cancelled booking is re-broadcasted to other available riders.
+	•	Rider cancellation is logged. Repeated cancellations reduce rider's acceptance rate score.
+	•	Admin can view rider cancellation history and take action if needed.
+	•	Rider cannot cancel after pickup has been confirmed (booking is in progress).
+
+8.3 Cancellation Reasons (Pre-set Options)
+For Riders: Vehicle issue, Personal emergency, User not responding, Wrong location, Other
+For Users: Changed plans, Wrong location entered, Taking too long, Found alternate transport, Other
+9. Ratings & Reviews
+9.1 Rating Flow
+	•	After every completed booking, both user and rider are prompted to rate.
+	•	Rating window: 24 hours after completion. After that, option expires.
+	•	1–5 star rating required. Comment is optional.
+	•	Rating is published immediately; comments are reviewed for abuse.
+
+9.2 Rider Public Rating
+	•	Displayed on rider profile (visible to users when booking).
+	•	Calculated as rolling average of last 500 ratings (or all if fewer).
+	•	Riders with average below 3.0 receive a warning from admin.
+	•	Riders below 2.5 average may be suspended pending review.
+
+9.3 User Internal Rating
+	•	Users rated by riders (1–5 stars) — this is NOT publicly displayed.
+	•	Visible to admin only; used to identify problematic users.
+	•	Admin can flag or suspend users with consistently low rider ratings.
+
+9.4 Review Moderation
+	•	Abusive, offensive, or spam reviews can be reported.
+	•	Admin can remove a review with a reason logged.
+	•	Removed reviews do not count toward the average.
+10. Admin Dashboard
+The Admin Dashboard is a web application accessible only by the platform owner(s). It provides complete visibility and control over every aspect of the platform.
+
+10.1 Dashboard Home — Overview Panel
+	•	Total active users (today / this month / all time)
+	•	Total active riders (online now / subscribed)
+	•	Total bookings today (rides / errands / parcels)
+	•	Total revenue today and this month (subscriptions collected)
+	•	Active bookings live map (all ongoing rides pinned on map)
+	•	Pending rider applications count
+	•	Open complaints count
+	•	Recent cancellation rate
+	•	Notifications center for admin alerts
+
+10.2 Rider Management
+10.2.1 Rider Application Review
+	•	List of pending applications with filters: Date, City, Status
+	•	Click on any applicant to view full profile and all uploaded documents
+	•	View: Profile photo, Selfie, Driving License, Aadhar, PAN, RC, Insurance, PUC
+	•	Admin can: Approve, Reject (with reason), or Request more documents
+	•	Rejection sends automated notification with reason to rider
+	•	Approval triggers subscription payment link/flow
+10.2.2 Active Rider Management
+	•	Search/filter by name, phone, rating, status, subscription status
+	•	View full profile, all documents, rating history, booking history
+	•	View live location of any rider on map
+	•	Actions: Suspend (with reason + duration), Unsuspend, Ban, Adjust rating note
+	•	Subscription override: Admin can manually activate/deactivate a rider
+	•	Bulk export rider data (CSV)
+
+10.3 User Management
+	•	List of all registered users with search and filters
+	•	View user profile: name, phone, registration date, total bookings, ratings given
+	•	View ride/errand/parcel history
+	•	View complaints filed by or against user
+	•	Actions: Warn, Suspend, Ban, Lift suspension
+	•	Bulk export user data (CSV)
+
+10.4 Booking Management
+	•	View all bookings: live, completed, cancelled
+	•	Filter by: type (ride/errand/parcel), date range, status, rider, user
+	•	Full booking detail: pickup, drop, route taken, fare, duration, timestamps
+	•	Replay route on map (for disputes)
+	•	Manually mark a booking as cancelled/resolved if needed
+	•	Export bookings data
+
+10.5 Complaints & Support
+10.5.1 Complaint Types
+	•	Rider complaint about user (behavior, payment issue)
+	•	User complaint about rider (behavior, route deviation, overcharging)
+	•	App/technical issue reports
+	•	Parcel damage or missing complaint
+	•	Errand task not completed correctly
+10.5.2 Complaint Management
+	•	Complaints queue with priority flags (High/Medium/Low)
+	•	Assign complaint to admin sub-account (if multiple admins)
+	•	View full booking associated with complaint, including route replay
+	•	Chat with user or rider directly from complaint thread
+	•	Actions: Resolve (with note), Escalate, Issue refund, Take action on account
+	•	All actions logged with timestamps for audit trail
+
+10.6 Financial Dashboard
+	•	Monthly subscription revenue summary
+	•	Active subscriptions count vs. lapsed subscriptions
+	•	Subscription renewal calendar (upcoming renewals)
+	•	Failed payment list (follow-up required)
+	•	Revenue trends chart (monthly/weekly)
+	•	Export financial reports (CSV/PDF)
+
+10.7 Platform Configuration
+	•	Set base fares and per-km rates per service type
+	•	Configure surge pricing rules (time-based, demand-based)
+	•	Set cancellation fee amounts
+	•	Set OTP expiry time, resend cooldown
+	•	Set service availability zones (define cities/areas served)
+	•	Manage pre-set cancellation and errand category lists
+	•	Set rating thresholds for auto-warnings
+	•	Banner/announcement: push a message to all users or all riders
+	•	Manage app version enforcement (force update settings)
+
+10.8 Analytics & Reports
+	•	Bookings per day/week/month (chart)
+	•	Booking type split (rides vs errands vs parcels)
+	•	Peak hours heatmap
+	•	Top riders by bookings completed
+	•	User retention and churn rate
+	•	Average ride/errand duration
+	•	Cancellation rate trends
+	•	Geographic demand heatmap
+	•	All reports exportable as PDF or CSV
+11. In-App Communication
+11.1 Rider–User Chat
+	•	In-app text messaging available once booking is accepted.
+	•	Pre-set quick messages available (e.g., 'On my way', 'Please share exact location').
+	•	Chat history retained per booking for 30 days.
+	•	No direct exchange of personal phone numbers required.
+
+11.2 Call Masking
+	•	Users and riders can call each other via a masked number service.
+	•	Neither party sees the other's real phone number.
+	•	Calling is available only during active booking window.
+
+11.3 Admin Communication
+	•	Admin can send direct message to any user or rider from the dashboard.
+	•	System messages sent automatically for: account approval, suspension, warnings.
+	•	Broadcast message to all users or all riders (for announcements).
+12. Safety Features
+12.1 SOS / Emergency Button
+	•	Prominent SOS button available during any active booking.
+	•	Tapping SOS shares live location with emergency contacts.
+	•	Option to call local emergency services (112).
+	•	SOS event is flagged immediately on admin dashboard.
+
+12.2 Trip Sharing
+	•	Users can share live trip link with trusted contacts (via WhatsApp/SMS).
+	•	Link shows real-time rider location and ETA.
+	•	No app download required for contact to view the link.
+
+12.3 Rider Background Verification
+	•	All document verification done before activation.
+	•	Admin can request re-verification of documents annually.
+	•	Admin notes on rider's profile for any flagged incidents.
+
+12.4 Route Deviation Detection
+	•	System monitors rider route against planned Google Maps route.
+	•	If rider deviates significantly (>500m off route), a warning ping is sent to user.
+	•	Admin is also alerted for major deviations (configurable threshold).
+
+12.5 Parcel Security
+	•	Photo proof required at pickup and delivery for parcel bookings.
+	•	Recipient OTP confirmation to close parcel booking.
+	•	Dispute raised if OTP not confirmed within 10 minutes of delivery attempt.
+13. Payments & Wallet
+13.1 User Payment for Bookings
+	•	Cash — user pays rider directly (default option at launch)
+	•	UPI — in-app UPI payment via Razorpay/Stripe
+	•	Digital wallet — optional wallet top-up for quick payments
+	•	For errands: user can also transfer purchase funds to rider via UPI
+
+13.2 Rider Subscription Payment
+	•	₹500/month auto-deducted via saved card/UPI mandate
+	•	Payment receipt available in rider's app
+	•	3-day grace on failure, then account goes inactive
+	•	Subscription page shows current status, next due date, and payment history
+
+13.3 Fare Transparency
+	•	Fare breakdown shown before booking (base + distance + extras)
+	•	Final fare shown on completion receipt
+	•	Discrepancies can be reported as a complaint immediately post-ride
+
+13.4 Refund Policy
+	•	Refund for overpayment: processed within 5–7 business days
+	•	Cancelled bookings with advance payment: instant refund to source
+	•	Disputes resolved by admin; refund issued at admin discretion
+14. App Screens Summary
+14.1 User App Screens
+Screen
+Purpose
+Splash / Onboarding
+App intro, value proposition slides
+Login / OTP
+Mobile number entry + OTP verification
+Profile Setup
+Name, photo (first-time only)
+Home (Map)
+Main map, service selector, recent locations
+Book Ride
+Pickup/drop, fare estimate, confirm
+Book Errand
+Task description, location, budget, items list
+Book Parcel
+Sender/recipient details, parcel info
+Active Booking
+Live map, rider info, chat, SOS, cancel
+Booking Complete
+Receipt, rating prompt
+History
+Past bookings list with details
+Profile
+Edit name/photo, saved addresses, payment methods
+Notifications
+All past notifications inbox
+Support
+Raise complaint, FAQ, contact admin
+Settings
+Notification preferences, language, privacy
+
+14.2 Rider App Screens
+Screen
+Purpose
+Login / OTP
+Mobile number + OTP
+Registration Form
+Multi-step: personal info, vehicle, documents
+Pending Approval
+Status screen while admin reviews application
+Subscription
+Subscribe / renew ₹500 plan, payment history
+Home (Online/Offline)
+Toggle availability, map, incoming requests
+Booking Request
+Incoming request popup with 15s timer to accept/decline
+Active Booking
+Navigation, chat, booking details, complete/cancel
+Errand Checklist
+Item-by-item checklist for errand bookings
+Earnings
+Today, weekly, monthly earnings summary
+Ride History
+Past completed bookings
+Profile
+View/edit personal info, documents, rating
+Notifications
+All alerts inbox
+Support
+File complaint, contact admin
+
+15. Non-Functional Requirements
+15.1 Performance
+	•	App launch time: under 3 seconds on mid-range devices
+	•	Booking confirmation: under 5 seconds from user confirmation
+	•	Live location update latency: under 5 seconds
+	•	API response time: under 1 second for 95th percentile
+
+15.2 Scalability
+	•	Architecture must support horizontal scaling (containerized microservices)
+	•	Database designed to handle 100,000+ active users from Day 1 schema design
+	•	CDN for static assets and document storage
+
+15.3 Security
+	•	All API calls authenticated via JWT tokens
+	•	HTTPS enforced everywhere
+	•	OTP expires in 60 seconds; max 3 failed attempts then 10-min lockout
+	•	Document uploads scanned for malware before storage
+	•	Admin dashboard protected with 2FA
+	•	Role-based access control (RBAC) on all admin endpoints
+	•	PII data encrypted at rest
+
+15.4 Compliance
+	•	GDPR/PDPA-style data privacy: user can request data deletion
+	•	Driver document data stored securely with access logs
+	•	Payment data: PCI-DSS compliant (handled by Razorpay/Stripe, not stored internally)
+	•	App store compliance: Google Play and Apple App Store guidelines
+
+15.5 Availability
+	•	Target uptime: 99.9% (less than 9 hours downtime per year)
+	•	Maintenance windows scheduled during lowest-demand hours (3–5 AM)
+	•	Automated health checks and alerting for backend services
+16. Future Enhancements (Phase 2+)
+	•	Scheduled bookings — book a ride or errand for a future time
+	•	Subscription tiers for riders — e.g., Premium at ₹800 with priority listing
+	•	Loyalty program for users — reward points redeemable as fare discounts
+	•	Multi-stop rides — user can add intermediate stops
+	•	Group errands — batch multiple user errands to one rider in a zone
+	•	Women-only rider option for female users
+	•	Corporate accounts — businesses can create team accounts for employee commutes
+	•	In-app UPI payments for fare (Phase 1 is cash-first)
+	•	Rider insurance add-on product partnership
+	•	Auto-assignment AI — smarter matching based on rider rating, past behavior, proximity
+	•	Customer Referral Program — invite friends, earn wallet credit
+	•	Chatbot for common support queries
+	•	Multi-language support (Hindi, regional languages)
+	•	Dark mode for both apps
+17. Rider Bidding System
+Byke uses a competitive bidding model instead of auto-assigning rides at a fixed fare. When a user posts a booking request, nearby riders can view it and submit their price bid. The user then reviews all bids and selects the rider they prefer. This gives users pricing transparency and choice, while motivating riders to offer competitive and fair rates.
+
+17.1 How Bidding Works — Full Flow
+	•	User fills in booking details (service type, pickup, drop, errand description, etc.) and submits the request.
+	•	System broadcasts the request to all available riders within the service radius.
+	•	A bidding window opens — riders have 30 to 60 seconds (admin configurable) to place their bid.
+	•	Each rider sees: booking type, pickup area, drop area, estimated distance, and the platform-set price range (min–max allowed bid).
+	•	Rider enters their offered price (within the allowed range) and submits.
+	•	User's app shows all incoming bids in real time as riders submit them.
+	•	Each bid card displays: Rider name, profile photo, star rating, vehicle type, vehicle number, and bid amount.
+	•	User reviews all bids and taps 'Accept' on their preferred rider.
+	•	Accepted rider is notified immediately and navigation begins.
+	•	All other bidding riders are notified that the booking was taken.
+
+17.2 Bidding Window Rules
+Rule
+Detail
+Bidding window duration
+30–60 seconds (set by admin in platform config)
+Minimum bid
+Set by admin per service type and distance band (e.g. min ₹40 for rides under 3 km)
+Maximum bid
+Set by admin to prevent price gouging (e.g. max ₹200 for rides under 10 km)
+One bid per rider
+Each rider can submit only one bid per booking request
+Bid editing
+Rider can revise their bid once before the window closes
+No bids received
+If no riders bid within the window, user is notified and can repost
+User inaction
+If user does not select any bid before window expires, request is rebroadcast once automatically
+Surge override
+During surge periods, admin can temporarily raise the max bid ceiling
+
+17.3 What the User Sees (Bid Selection Screen)
+After submitting a booking, the user lands on the Bid Selection Screen which updates live as bids come in:
+	•	Countdown timer showing how much bidding time remains
+	•	List of all bids received, each showing:
+	•	Rider photo and full name
+	•	Star rating (e.g. ★ 4.7 — 312 rides)
+	•	Vehicle type, make, and registration number
+	•	Bid amount prominently displayed (e.g. ₹85)
+	•	'Accept' button on each bid card
+	•	Bids are sortable by: Lowest Price, Highest Rating, Nearest Rider
+	•	User can tap any rider's name to view their full profile before deciding
+	•	Once user taps Accept, booking is locked — no further bids shown
+
+17.4 What the Rider Sees (Bidding Screen)
+	•	Incoming booking alert with: service type, pickup area (neighbourhood, not exact address), drop area, and estimated distance
+	•	Platform-set price range displayed (e.g. 'Bid between ₹50 – ₹150')
+	•	Countdown timer showing time remaining to bid
+	•	Numeric input to enter bid amount
+	•	'Submit Bid' button — becomes 'Edit Bid' after first submission
+	•	Rider can see if their bid was accepted or if booking was taken by another rider
+	•	Exact user address is revealed only after bid is accepted
+
+17.5 Admin Configuration for Bidding
+	•	Set bidding window duration (30s / 45s / 60s) — global or per service type
+	•	Set minimum and maximum bid per service type (ride, errand, parcel)
+	•	Set distance bands with different min/max ranges (e.g. 0–3 km, 3–10 km, 10+ km)
+	•	Toggle surge mode: temporarily raise max bid ceiling during peak hours
+	•	View bid history per booking (which riders bid, amounts, who was selected)
+	•	Monitor average accepted bid price to calibrate price ranges over time
+
+17.6 Bidding — Edge Cases & Rules
+	•	If a rider accepts a booking (bid accepted) and then cancels, their cancellation rate score is penalised more heavily since they actively chose that ride.
+	•	Riders with account warnings or rating below 3.0 may be shown lower in the bid list (admin configurable ranking penalty).
+	•	Users cannot collude with riders to accept inflated bids repeatedly — admin analytics can flag anomalous bid acceptance patterns.
+	•	For parcel and errand bookings, the bid covers the rider's service fee only — purchase costs for errands are handled separately.

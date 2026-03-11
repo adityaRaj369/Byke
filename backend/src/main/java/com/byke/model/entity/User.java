@@ -40,21 +40,26 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private AccountStatus status = AccountStatus.ACTIVE;
     
     private String homeAddress;
     private String workAddress;
     
     @Column(nullable = false)
+    @Builder.Default
     private Integer totalBookings = 0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Double averageRatingGiven = 0.0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Double averageRatingReceived = 0.0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Boolean notificationsEnabled = true;
     
     @CreatedDate

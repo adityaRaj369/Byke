@@ -56,25 +56,32 @@ public class Rider {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private RiderStatus status = RiderStatus.PENDING;
     
     private LocalDateTime subscriptionStartDate;
     private LocalDateTime subscriptionEndDate;
+    @Builder.Default
     private Boolean subscriptionActive = false;
     
     @Column(nullable = false)
+    @Builder.Default
     private Integer totalRides = 0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Double averageRating = 0.0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Integer totalRatings = 0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Integer cancellationCount = 0;
     
     @Column(nullable = false)
+    @Builder.Default
     private Double acceptanceRate = 100.0;
     
     private Double currentLatitude;

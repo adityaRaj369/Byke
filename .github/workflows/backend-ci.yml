@@ -167,7 +167,20 @@ jobs:
           username: ${{ secrets.PRODUCTION_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            mkdir -p /opt/byke
             cd /opt/byke
+            
+            # Create the .env file from GitHub Secrets
+            echo "${{ secrets.PRODUCTION_ENV_FILE }}" > .env
+            
+            # Create the Firebase service account JSON from GitHub Secrets
+            echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > firebase-service-account.json
+            
+            # Pull the latest backend image
             docker-compose pull backend
-            docker-compose up -d backend
+            
+            # Restart the services in detached mode
+            docker-compose up -d
+            
+            # Clean up old unused images
             docker system prune -f

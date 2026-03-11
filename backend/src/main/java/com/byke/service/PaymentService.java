@@ -3,9 +3,6 @@ package com.byke.service;
 import com.byke.model.entity.Payment;
 import com.byke.model.entity.Rider;
 import com.byke.repository.PaymentRepository;
-import com.stripe.Stripe;
-import com.stripe.model.Subscription;
-import com.stripe.param.SubscriptionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,9 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
+/**
+ * PaymentService - Stripe is currently disabled.
+ * All riders get a free subscription that is valid indefinitely.
+ * Re-enable Stripe later once you are ready for production payments.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -24,63 +25,61 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final RiderService riderService;
 
-    @Value("${stripe.api-key}")
-    private String stripeApiKey;
-
-    @Value("${stripe.subscription-price-id}")
-    private String subscriptionPriceId;
-
     @Value("${app.subscription.amount}")
     private Double subscriptionAmount;
 
+    /**
+     * Grants the rider a free subscription immediately without any payment.
+     */
     @Transactional
-    public Payment createSubscription(Long riderId, String stripeCustomerId) {
+    public Payment createFreeSubscription(Long riderId) {
         Rider rider = riderService.getRiderById(riderId);
-        
-        try {
-            Stripe.apiKey = stripeApiKey;
 
-            SubscriptionCreateParams params = SubscriptionCreateParams.builder()
-                    .setCustomer(stripeCustomerId)
-                    .addItem(SubscriptionCreateParams.Item.builder()
-                            .setPrice(subscriptionPriceId)
-                            .build())
-                    .build();
+        LocalDateTime now = LocalDateTime.now();
+        // Grant subscription for 100 years (effectively permanent for free tier)
+        LocalDateTime forever = now.plusYears(100);
 
-            Subscription subscription = Subscription.create(params);
+        Payment payment = Payment.builder()
+                .rider(rider)
+                .amount(0.0)
+                .paymentMethod("FREE")
+                .transactionId("FREE-" + riderId + "-" + System.currentTimeMillis())
+                .stripeSubscriptionId(null)
+                .stripeCustomerId(null)
+                .status("ACTIVE")
+                .periodStart(now)
+                .periodEnd(forever)
+                .build();
 
-            LocalDateTime periodStart = LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochSecond(subscription.getCurrentPeriodStart()),
-                    ZoneId.systemDefault());
-            
-            LocalDateTime periodEnd = LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochSecond(subscription.getCurrentPeriodEnd()),
-                    ZoneId.systemDefault());
+        Payment savedPayment = paymentRepository.save(payment);
+        riderService.activateSubscription(riderId, now, forever);
 
-            Payment payment = Payment.builder()
-                    .rider(rider)
-                    .amount(subscriptionAmount)
-                    .paymentMethod("STRIPE")
-                    .transactionId(subscription.getId())
-                    .stripeSubscriptionId(subscription.getId())
-                    .stripeCustomerId(stripeCustomerId)
-                    .status("ACTIVE")
-                    .periodStart(periodStart)
-                    .periodEnd(periodEnd)
-                    .build();
-
-            Payment savedPayment = paymentRepository.save(payment);
-
-            riderService.activateSubscription(riderId, periodStart, periodEnd);
-
-            log.info("Subscription created for rider {}: {}", riderId, subscription.getId());
-            return savedPayment;
-
-        } catch (Exception e) {
-            log.error("Failed to create subscription for rider {}: {}", riderId, e.getMessage());
-            throw new RuntimeException("Failed to create subscription: " + e.getMessage());
-        }
+        log.info("Free subscription activated for rider {}", riderId);
+        return savedPayment;
     }
+
+    // --- PaymentController stubs (used by REST API) ---
+
+    public String createSubscriptionIntent(Long riderId) {
+        // Auto-activate for free and return a dummy token
+        createFreeSubscription(riderId);
+        return "FREE_SUBSCRIPTION_ACTIVATED";
+    }
+
+    public Payment confirmSubscription(Long riderId, String paymentIntentId) {
+        return createFreeSubscription(riderId);
+    }
+
+    public void handleStripeWebhook(String payload, String signature) {
+        // Stripe is disabled - webhooks are ignored
+        log.info("Stripe webhook received but Stripe is disabled. Ignoring.");
+    }
+
+    public String getSubscriptionStatus(Long userId) {
+        return "ACTIVE";
+    }
+
+    // --- Query methods ---
 
     public List<Payment> getRiderPayments(Long riderId) {
         return paymentRepository.findByRiderId(riderId);
@@ -90,54 +89,8 @@ public class PaymentService {
         return paymentRepository.findByStatus("FAILED");
     }
 
-    @Transactional
-    public void handleSubscriptionRenewal(String stripeSubscriptionId, String status) {
-        Payment payment = paymentRepository.findAll().stream()
-                .filter(p -> stripeSubscriptionId.equals(p.getStripeSubscriptionId()))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Payment not found for subscription"));
-
-        if ("active".equals(status)) {
-            LocalDateTime newPeriodEnd = payment.getPeriodEnd().plusMonths(1);
-            
-            Payment newPayment = Payment.builder()
-                    .rider(payment.getRider())
-                    .amount(subscriptionAmount)
-                    .paymentMethod("STRIPE")
-                    .transactionId(stripeSubscriptionId)
-                    .stripeSubscriptionId(stripeSubscriptionId)
-                    .stripeCustomerId(payment.getStripeCustomerId())
-                    .status("ACTIVE")
-                    .periodStart(payment.getPeriodEnd())
-                    .periodEnd(newPeriodEnd)
-                    .build();
-
-            paymentRepository.save(newPayment);
-
-            riderService.activateSubscription(
-                    payment.getRider().getId(),
-                    payment.getPeriodEnd(),
-                    newPeriodEnd);
-
-            log.info("Subscription renewed for rider {}", payment.getRider().getId());
-        } else {
-            payment.setStatus("FAILED");
-            payment.setFailureReason("Renewal failed");
-            paymentRepository.save(payment);
-
-            riderService.deactivateSubscription(payment.getRider().getId());
-
-            log.warn("Subscription renewal failed for rider {}", payment.getRider().getId());
-        }
-    }
-
     public long getTotalRevenueToday() {
-        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
-        
-        return paymentRepository.findByCreatedAtBetween(startOfDay, endOfDay).stream()
-                .filter(p -> "ACTIVE".equals(p.getStatus()))
-                .mapToLong(p -> p.getAmount().longValue())
-                .sum();
+        // No revenue while Stripe is disabled
+        return 0;
     }
 }

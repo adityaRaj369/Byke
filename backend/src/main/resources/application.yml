@@ -47,9 +47,9 @@ jwt:
 
 
 stripe:
-  api-key: ${STRIPE_API_KEY}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
-  subscription-price-id: ${STRIPE_SUBSCRIPTION_PRICE_ID}
+  api-key: ${STRIPE_API_KEY:disabled}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:disabled}
+  subscription-price-id: ${STRIPE_SUBSCRIPTION_PRICE_ID:disabled}
 
 aws:
   access-key: ${AWS_ACCESS_KEY}
@@ -60,7 +60,10 @@ aws:
 
 google:
   maps:
-    api-key: ${GOOGLE_MAPS_API_KEY}
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
 
 app:
   bidding:

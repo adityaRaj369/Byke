@@ -18,6 +18,7 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final FirebaseOtpService firebaseOtpService;
 
     @PostMapping("/verify-firebase-token")
     public ResponseEntity<?> verifyFirebaseToken(@RequestBody AuthRequest request) {

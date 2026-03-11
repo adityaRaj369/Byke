@@ -1,0 +1,36 @@
+# Environment files — NEVER commit these
+.env
+*.env
+backend/.env
+
+# Firebase service account — contains private keys
+firebase-service-account.json
+*-service-account.json
+
+# Build outputs
+backend/build/
+backend/.gradle/
+*.jar
+*.class
+
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (mobile app)
+node_modules/
+.expo/

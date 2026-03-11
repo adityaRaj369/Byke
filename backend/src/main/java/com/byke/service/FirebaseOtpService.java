@@ -2,7 +2,7 @@ package com.byke.service;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.SessionCookie;
+import com.google.firebase.auth.SessionCookieOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,8 @@ public class FirebaseOtpService {
     public String verifyIdToken(String idToken) {
         try {
             var decodedToken = firebaseAuth.verifyIdToken(idToken);
-            String phoneNumber = decodedToken.getPhoneNumber();
+            // In Firebase Admin SDK, phone_number is inside the claims
+            String phoneNumber = (String) decodedToken.getClaims().get("phone_number");
             String uid = decodedToken.getUid();
             
             log.info("Firebase token verified for phone: {}, UID: {}", phoneNumber, uid);
@@ -40,7 +41,8 @@ public class FirebaseOtpService {
 
     public String createSessionCookie(String idToken, long expiresIn) {
         try {
-            SessionCookie sessionCookie = firebaseAuth.createSessionCookie(idToken, expiresIn);
+            SessionCookieOptions options = SessionCookieOptions.builder().setExpiresIn(expiresIn).build();
+            String sessionCookie = firebaseAuth.createSessionCookie(idToken, options);
             log.info("Session cookie created successfully");
             return sessionCookie;
         } catch (FirebaseAuthException e) {

@@ -41,6 +41,7 @@ public class Notification {
     private Booking booking;
     
     @Column(nullable = false)
+    @Builder.Default
     private Boolean isRead = false;
     
     @CreatedDate

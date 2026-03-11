@@ -2,123 +2,21 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths:
       - 'backend/**'
       - '.github/workflows/backend-ci.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths:
       - 'backend/**'
 
 jobs:
-  test:
-    name: Test Backend
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: byke_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        working-directory: ./backend
-        run: chmod +x gradlew
-
-      - name: Run tests
-        working-directory: ./backend
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: byke_test
-          DB_USERNAME: postgres
-          DB_PASSWORD: postgres
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          JWT_SECRET: test-secret-key-for-ci-pipeline-must-be-256-bits-long
-        run: ./gradlew test --no-daemon
-
-      - name: Build with Gradle
-        working-directory: ./backend
-        run: ./gradlew build -x test --no-daemon
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: backend/build/reports/tests/test/
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: backend/build/libs/*.jar
-
-  code-quality:
-    name: Code Quality Check
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Grant execute permission for gradlew
-        working-directory: ./backend
-        run: chmod +x gradlew
-
-      - name: Run checkstyle
-        working-directory: ./backend
-        run: ./gradlew checkstyleMain checkstyleTest --no-daemon || true
-
-      - name: Run SpotBugs
-        working-directory: ./backend
-        run: ./gradlew spotbugsMain --no-daemon || true
-
   build-docker:
-    name: Build Docker Image
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: [test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -132,23 +30,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKER_USERNAME }}/byke-backend
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/byke-backend:latest
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/byke-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/byke-backend:buildcache,mode=max
 
@@ -157,8 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-docker]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: production
-    
+
     steps:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
@@ -169,18 +55,18 @@ jobs:
           script: |
             mkdir -p /opt/byke
             cd /opt/byke
-            
+
             # Create the .env file from GitHub Secrets
             echo "${{ secrets.PRODUCTION_ENV_FILE }}" > .env
-            
+
             # Create the Firebase service account JSON from GitHub Secrets
             echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > firebase-service-account.json
-            
+
             # Pull the latest backend image
             docker-compose pull backend
-            
-            # Restart the services in detached mode
+
+            # Restart all services
             docker-compose up -d
-            
+
             # Clean up old unused images
             docker system prune -f

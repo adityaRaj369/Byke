@@ -48,7 +48,7 @@ services:
       - byke-network
 
   backend:
-    image: ${DOCKER_USERNAME}/byke-backend:latest
+    image: aditya2004123/byke-backend:latest
     container_name: byke-backend
     ports:
       - "8080:8080"

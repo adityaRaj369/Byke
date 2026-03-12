@@ -1,5 +1,7 @@
 package com.byke.config;
 
+// Trigger build: 2026-03-12 23:56
+
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;

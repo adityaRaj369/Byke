@@ -3,7 +3,7 @@
 ## AWS EC2 Server Details
 | Item | Value |
 |------|-------|
-| **EC2 Public IP** | `56.228.31.92` |
+| **EC2 Public IP** | `16.170.226.253` |
 | **EC2 Region** | `eu-north-1` (Stockholm) |
 | **EC2 Instance Type** | `t2.micro` / `t3.micro` |
 | **OS** | Ubuntu 24.04 LTS |
@@ -18,12 +18,12 @@
 
 ## SSH Into Server
 ```powershell
-ssh -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" ubuntu@56.228.31.92
+ssh -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" ubuntu@16.170.226.253
 ```
 
 ## Copy a file to Server (from Windows)
 ```powershell
-scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" <localfile> ubuntu@56.228.31.92:/opt/byke/
+scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" <localfile> ubuntu@16.170.226.253:/opt/byke/
 ```
 
 ---
@@ -34,7 +34,7 @@ scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" <localfile> ubuntu@56.228
 |---|---|
 | `DOCKER_USERNAME` | `aditya2004123` (Docker Hub username) |
 | `DOCKER_PASSWORD` | Docker Hub password/token |
-| `PRODUCTION_HOST` | `56.228.31.92` |
+| `PRODUCTION_HOST` | `16.170.226.253` |
 | `PRODUCTION_USER` | `ubuntu` |
 | `SSH_PRIVATE_KEY` | Full content of `ec2-byke.pem` file |
 | `PRODUCTION_ENV_FILE` | Full content of `backend/.env` file |
@@ -52,7 +52,7 @@ scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" <localfile> ubuntu@56.228
 4. Creates `/opt/byke/.env` from `PRODUCTION_ENV_FILE` secret
 5. Creates `/opt/byke/firebase-service-account.json` from `FIREBASE_SERVICE_ACCOUNT_JSON` secret
 6. Runs `docker-compose pull backend` + `docker-compose up -d`
-7. Backend is live at `http://56.228.31.92:8080`
+7. Backend is live at `http://16.170.226.253:8080`
 
 ---
 
@@ -61,10 +61,10 @@ scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" <localfile> ubuntu@56.228
 From your Windows PC, run:
 ```powershell
 # 1. Copy docker-compose.yml to server
-scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" docker-compose.yml ubuntu@56.228.31.92:/opt/byke/
+scp -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" docker-compose.yml ubuntu@16.170.226.253:/opt/byke/
 
 # 2. SSH into server
-ssh -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" ubuntu@56.228.31.92
+ssh -i "D:\BYKE-SECRETS=PROD\EC2=SECRETS\ec2-byke.pem" ubuntu@16.170.226.253
 ```
 
 Then inside the SSH session (Linux terminal):
@@ -87,7 +87,7 @@ docker-compose down && docker-compose up -d       # full restart
 
 ## Verify Backend is Running (from browser or terminal)
 ```
-http://56.228.31.92:8080/swagger-ui.html
+http://16.170.226.253:8080/swagger-ui.html
 ```
 
 ---

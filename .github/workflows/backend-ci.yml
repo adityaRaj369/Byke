@@ -108,10 +108,10 @@ jobs:
             echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > firebase-service-account.json
             
             # Pull the latest backend image from Docker Hub
-            docker-compose pull backend
+            docker compose pull backend
             
             # Restart all services
-            docker-compose up -d
+            docker compose up -d
             
             # Clean up old images to save disk space
             docker system prune -f

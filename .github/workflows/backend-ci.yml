@@ -79,6 +79,18 @@ jobs:
     needs: [dockerize]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yml to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "/opt/byke/"
+
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -88,18 +100,18 @@ jobs:
           script: |
             mkdir -p /opt/byke
             cd /opt/byke
-
+            
             # Write the .env file from GitHub Secret
             echo "${{ secrets.PRODUCTION_ENV_FILE }}" > .env
-
+            
             # Write the Firebase service account JSON from GitHub Secret
             echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > firebase-service-account.json
-
+            
             # Pull the latest backend image from Docker Hub
             docker-compose pull backend
-
+            
             # Restart all services
             docker-compose up -d
-
+            
             # Clean up old images to save disk space
             docker system prune -f

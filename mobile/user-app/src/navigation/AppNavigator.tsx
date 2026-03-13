@@ -13,6 +13,7 @@ import TrackingScreen from '../screens/TrackingScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import RatingScreen from '../screens/RatingScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -89,6 +90,11 @@ const AppNavigator = () => {
               name="MyBookings" 
               component={MyBookingsScreen}
               options={{ headerShown: true, title: 'My Bookings' }}
+            />
+            <Stack.Screen 
+              name="Notifications" 
+              component={NotificationsScreen}
+              options={{ headerShown: false }}
             />
           </>
         )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking, Share } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -36,6 +36,32 @@ const TrackingScreen = ({ route, navigation }: any) => {
   const handleCallRider = () => {
     if (booking?.rider?.user?.mobileNumber) {
       Linking.openURL(`tel:${booking.rider.user.mobileNumber}`);
+    }
+  };
+
+  const handleSOS = () => {
+    Alert.alert(
+      'EMERGENCY SOS',
+      'This will call emergency services (112). Only use in case of real danger.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'CALL 112', 
+          style: 'destructive',
+          onPress: () => Linking.openURL('tel:112')
+        }
+      ]
+    );
+  };
+
+  const handleShareTrip = async () => {
+    try {
+      const shareMessage = `I'm on a BYKE ride! Tracking ID: ${bookingId}. Rider: ${booking.rider?.user?.fullName || 'Rider'}. Services: ${booking.serviceType}.`;
+      await Share.share({
+        message: shareMessage,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', 'Failed to share trip');
     }
   };
 
@@ -131,6 +157,27 @@ const TrackingScreen = ({ route, navigation }: any) => {
           />
         )}
       </MapView>
+
+      <TouchableOpacity
+        className="absolute top-12 left-6 bg-white p-3 rounded-full shadow-md"
+        onPress={() => navigation.goBack()}
+      >
+        <Text className="text-gray-900 font-bold text-lg">←</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        className="absolute top-12 right-6 bg-red-600 px-5 py-3 rounded-full shadow-lg"
+        onPress={handleSOS}
+      >
+        <Text className="text-white font-bold">🚨 SOS</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        className="absolute top-28 right-6 bg-white px-4 py-3 rounded-full shadow-lg flex-row items-center"
+        onPress={handleShareTrip}
+      >
+        <Text className="text-blue-600 font-bold">📤 Share</Text>
+      </TouchableOpacity>
 
       <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg">
         <Text className="text-2xl font-bold text-gray-900 mb-2">{getStatusText()}</Text>

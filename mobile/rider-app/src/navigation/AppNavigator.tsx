@@ -15,6 +15,7 @@ import EarningsScreen from '../screens/EarningsScreen';
 import MyRidesScreen from '../screens/MyRidesScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -114,6 +115,11 @@ const AppNavigator = () => {
           name="Subscription"
           component={SubscriptionScreen}
           options={{ title: 'Subscription' }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

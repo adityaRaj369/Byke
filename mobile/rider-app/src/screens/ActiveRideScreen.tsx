@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import { View, Text, TouchableOpacity, Alert, Linking, ScrollView } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import api from '../config/api';
-import MapViewDirections from 'react-native-maps-directions';
 
 const ActiveRideScreen = ({ route, navigation }: any) => {
   const { bookingId } = route.params;
   const [booking, setBooking] = useState<any>(null);
   const [currentLocation, setCurrentLocation] = useState({ latitude: 0, longitude: 0 });
+  const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetchBookingDetails();
@@ -99,6 +99,14 @@ const ActiveRideScreen = ({ route, navigation }: any) => {
     }
   };
 
+  const errandItems: string[] = booking?.errandItemsList
+    ? booking.errandItemsList.split(',').map((s: string) => s.trim()).filter(Boolean)
+    : [];
+
+  const toggleItem = (index: number) => {
+    setCheckedItems(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
   if (!booking) {
     return (
       <View className="flex-1 justify-center items-center">
@@ -107,12 +115,12 @@ const ActiveRideScreen = ({ route, navigation }: any) => {
     );
   }
 
-  const destination = booking.status === 'IN_PROGRESS' 
+  const destination = booking.status === 'IN_PROGRESS'
     ? { latitude: booking.dropLatitude, longitude: booking.dropLongitude }
     : { latitude: booking.pickupLatitude, longitude: booking.pickupLongitude };
 
   return (
-    <View className="flex-1">
+    <View className="flex-1" style={{ flex: 1 }}>
       <MapView
         className="flex-1"
         region={{
@@ -150,9 +158,26 @@ const ActiveRideScreen = ({ route, navigation }: any) => {
         )}
       </MapView>
 
-      <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg">
+      <TouchableOpacity
+        className="absolute top-12 right-6 bg-red-600 px-5 py-3 rounded-full shadow-lg"
+        onPress={() => {
+          Alert.alert(
+            'EMERGENCY SOS',
+            'Call emergency services (112)?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Call', style: 'destructive', onPress: () => Linking.openURL('tel:112') }
+            ]
+          );
+        }}
+      >
+        <Text className="text-white font-bold">🚨 SOS</Text>
+      </TouchableOpacity>
+
+      <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg" style={{ maxHeight: '60%' }}>
+        <ScrollView showsVerticalScrollIndicator={false}>
         <Text className="text-2xl font-bold text-gray-900 mb-2">{getStatusText()}</Text>
-        
+
         <View className="mb-4">
           <Text className="text-gray-600 mb-1">
             {booking.user?.fullName || 'User'}
@@ -164,6 +189,45 @@ const ActiveRideScreen = ({ route, navigation }: any) => {
             Fare: ₹{booking.finalFare || booking.estimatedFare}
           </Text>
         </View>
+
+        {/* Errand Checklist */}
+        {booking.serviceType === 'ERRAND' && errandItems.length > 0 && (
+          <View className="mb-4 bg-yellow-50 rounded-xl p-4">
+            <Text className="text-yellow-900 font-bold mb-2">📋 Errand Items</Text>
+            {errandItems.map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                className="flex-row items-center py-2"
+                onPress={() => toggleItem(idx)}
+              >
+                <View
+                  className={`w-6 h-6 rounded border-2 mr-3 items-center justify-center ${
+                    checkedItems[idx] ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300'
+                  }`}
+                >
+                  {checkedItems[idx] && <Text className="text-white text-xs font-bold">✓</Text>}
+                </View>
+                <Text
+                  className={`flex-1 ${
+                    checkedItems[idx] ? 'text-gray-400 line-through' : 'text-gray-800'
+                  }`}
+                >
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {booking.errandDescription && (
+          <View className="mb-4 bg-blue-50 rounded-xl p-4">
+            <Text className="text-blue-900 font-bold mb-1">📝 Errand Details</Text>
+            <Text className="text-blue-800 text-sm">{booking.errandDescription}</Text>
+            {booking.estimatedBudget ? (
+              <Text className="text-blue-600 font-semibold mt-1">Budget: ₹{booking.estimatedBudget}</Text>
+            ) : null}
+          </View>
+        )}
 
         <View className="flex-row space-x-3 mb-3">
           <TouchableOpacity
@@ -210,6 +274,7 @@ const ActiveRideScreen = ({ route, navigation }: any) => {
             <Text className="text-white font-semibold text-base">Complete Ride</Text>
           </TouchableOpacity>
         )}
+        </ScrollView>
       </View>
     </View>
   );

@@ -105,12 +105,20 @@ const RiderHomeScreen = ({ navigation }: any) => {
               <Text className="text-blue-100">{isAvailable ? 'Available' : 'Offline'}</Text>
             </View>
           </View>
-          <Switch
-            value={isAvailable}
-            onValueChange={handleToggleAvailability}
-            trackColor={{ false: '#cbd5e1', true: '#10b981' }}
-            thumbColor={isAvailable ? '#ffffff' : '#f4f4f5'}
-          />
+          <View className="flex-row items-center">
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Notifications')}
+              className="mr-3 bg-blue-500 p-2 rounded-full"
+            >
+              <Text className="text-xl">🔔</Text>
+            </TouchableOpacity>
+            <Switch
+              value={isAvailable}
+              onValueChange={handleToggleAvailability}
+              trackColor={{ false: '#cbd5e1', true: '#10b981' }}
+              thumbColor={isAvailable ? '#ffffff' : '#f4f4f5'}
+            />
+          </View>
         </View>
 
         <View className="flex-row items-center">

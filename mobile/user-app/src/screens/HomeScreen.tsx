@@ -17,9 +17,17 @@ const HomeScreen = () => {
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
-      <View className="bg-blue-600 px-6 pt-12 pb-8">
-        <Text className="text-white text-2xl font-bold">Hello, User!</Text>
-        <Text className="text-blue-100 mt-1">Where would you like to go?</Text>
+      <View className="bg-blue-600 px-6 pt-12 pb-8 flex-row justify-between items-center">
+        <View>
+          <Text className="text-white text-2xl font-bold">Hello, User!</Text>
+          <Text className="text-blue-100 mt-1">Where would you like to go?</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Notifications')}
+          className="bg-blue-500 p-2 rounded-full"
+        >
+          <Text className="text-2xl">🔔</Text>
+        </TouchableOpacity>
       </View>
 
       <View className="px-6 py-6">

@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:8080/api' 
+  ? 'http://16.170.226.253:8080/api' 
   : 'https://api.byke.com/api';
 
 const api = axios.create({

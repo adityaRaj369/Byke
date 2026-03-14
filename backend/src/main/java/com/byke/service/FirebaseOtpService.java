@@ -49,6 +49,15 @@ public class FirebaseOtpService {
 
             log.info("Initiating phone sign-in for: {}", phoneNumber);
 
+            // For development/testing: accept test tokens
+            if (recaptchaToken.startsWith("test-")) {
+                String sessionInfoId = UUID.randomUUID().toString();
+                String testSessionInfo = "test-session-" + UUID.randomUUID().toString();
+                pendingSessions.put(sessionInfoId, new OtpSession(testSessionInfo, Instant.now().plusSeconds(sessionTtlSeconds)));
+                log.info("Using test token for development");
+                return sessionInfoId;
+            }
+
             Map<String, String> payload = Map.of(
                     "phoneNumber", phoneNumber,
                     "recaptchaToken", recaptchaToken

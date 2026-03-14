@@ -27,13 +27,10 @@ public class AuthController {
     public ResponseEntity<?> sendOtp(@RequestBody AuthRequest request) {
         try {
             String phoneNumber = normalizePhone(request.getMobileNumber());
-            // For development: generate mock OTP and session
-            String sessionInfoId = java.util.UUID.randomUUID().toString();
-            String mockOtp = "123456"; // Mock OTP for testing
-            // In production, call firebaseOtpService.initiatePhoneSignIn()
+            String sessionInfoId = firebaseOtpService.initiatePhoneSignIn(phoneNumber, request.getRecaptchaToken());
             return ResponseEntity.ok().body(Map.of(
                     "sessionInfoId", sessionInfoId,
-                    "message", "OTP sent successfully to " + phoneNumber
+                    "message", "OTP sent successfully"
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
@@ -95,16 +92,7 @@ public class AuthController {
 
     private ResponseEntity<?> handleOtpVerification(AuthRequest request, UserRole role, String defaultName) {
         try {
-            // For development: accept any 6-digit OTP code
-            if (request.getOtpCode() == null || !request.getOtpCode().matches("\\d{6}")) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Invalid OTP format"));
-            }
-            // Extract phone from request or use default
-            String phoneNumber = request.getMobileNumber();
-            if (phoneNumber == null || phoneNumber.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Phone number required"));
-            }
-            phoneNumber = normalizePhone(phoneNumber);
+            String phoneNumber = firebaseOtpService.verifyOtpSession(request.getSessionInfoId(), request.getOtpCode());
             User user = userService.createOrGetUser(
                     phoneNumber,
                     defaultName,

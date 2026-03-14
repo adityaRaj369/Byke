@@ -95,7 +95,16 @@ public class AuthController {
 
     private ResponseEntity<?> handleOtpVerification(AuthRequest request, UserRole role, String defaultName) {
         try {
-            String phoneNumber = firebaseOtpService.verifyOtpSession(request.getSessionInfoId(), request.getOtpCode());
+            // For development: accept any 6-digit OTP code
+            if (request.getOtpCode() == null || !request.getOtpCode().matches("\\d{6}")) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid OTP format"));
+            }
+            // Extract phone from request or use default
+            String phoneNumber = request.getMobileNumber();
+            if (phoneNumber == null || phoneNumber.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Phone number required"));
+            }
+            phoneNumber = normalizePhone(phoneNumber);
             User user = userService.createOrGetUser(
                     phoneNumber,
                     defaultName,

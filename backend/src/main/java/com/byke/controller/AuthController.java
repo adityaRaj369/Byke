@@ -10,6 +10,7 @@ import com.byke.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 
 @RestController
@@ -24,13 +25,12 @@ public class AuthController {
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody AuthRequest request) {
         try {
-            String phoneNumber = request.getMobileNumber();
-            if (!phoneNumber.startsWith("+91")) {
-                phoneNumber = "+91" + phoneNumber;
-            }
-            
-            String result = firebaseOtpService.initiatePhoneSignIn(phoneNumber);
-            return ResponseEntity.ok().body(Map.of("message", result));
+            String phoneNumber = normalizePhone(request.getMobileNumber());
+            String sessionInfoId = firebaseOtpService.initiatePhoneSignIn(phoneNumber, request.getRecaptchaToken());
+            return ResponseEntity.ok().body(Map.of(
+                    "sessionInfoId", sessionInfoId,
+                    "message", "OTP sent successfully"
+            ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -38,77 +38,40 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody AuthRequest request) {
-        try {
-            // For demo purposes, accept any 6-digit OTP
-            if (request.getOtpCode() == null || request.getOtpCode().length() != 6) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Invalid OTP"));
-            }
-            
-            String phoneNumber = request.getMobileNumber();
-            if (!phoneNumber.startsWith("+91")) {
-                phoneNumber = "+91" + phoneNumber;
-            }
-            
-            User user = userService.createOrGetUser(
-                    phoneNumber,
-                    request.getFullName() != null ? request.getFullName() : "User",
-                    UserRole.USER
-            );
-
-            String accessToken = jwtUtil.generateToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            String refreshToken = jwtUtil.generateRefreshToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            AuthResponse response = AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .userId(user.getId())
-                    .role(user.getRole().name())
-                    .message("Login successful")
-                    .build();
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
+        return handleOtpVerification(request, UserRole.USER, request.getFullName() != null ? request.getFullName() : "User");
     }
 
     @PostMapping("/rider/verify-otp")
     public ResponseEntity<?> verifyRiderOtp(@RequestBody AuthRequest request) {
+        return handleOtpVerification(request, UserRole.RIDER, request.getFullName() != null ? request.getFullName() : "Rider");
+    }
+
+    @PostMapping("/verify-firebase-token")
+    public ResponseEntity<?> verifyFirebaseToken(@RequestBody AuthRequest request) {
+        return handleIdTokenVerification(request, UserRole.USER, request.getFullName() != null ? request.getFullName() : "User");
+    }
+
+    @PostMapping("/rider/verify-firebase-token")
+    public ResponseEntity<?> verifyRiderFirebaseToken(@RequestBody AuthRequest request) {
+        return handleIdTokenVerification(request, UserRole.RIDER, request.getFullName() != null ? request.getFullName() : "Rider");
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
         try {
-            // For demo purposes, accept any 6-digit OTP
-            if (request.getOtpCode() == null || request.getOtpCode().length() != 6) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Invalid OTP"));
+            String refreshToken = request.getRefreshToken();
+            String mobileNumber = jwtUtil.extractMobileNumber(refreshToken);
+            if (!jwtUtil.validateToken(refreshToken, mobileNumber)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Invalid refresh token"));
             }
-            
-            String phoneNumber = request.getMobileNumber();
-            if (!phoneNumber.startsWith("+91")) {
-                phoneNumber = "+91" + phoneNumber;
-            }
-            
-            User user = userService.createOrGetUser(
-                    phoneNumber,
-                    request.getFullName() != null ? request.getFullName() : "Rider",
-                    UserRole.RIDER
-            );
+
+            Long userId = jwtUtil.extractUserId(refreshToken);
+            String role = jwtUtil.extractRole(refreshToken);
+            User user = userService.getUserById(userId);
 
             String accessToken = jwtUtil.generateToken(
                     user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            String refreshToken = jwtUtil.generateRefreshToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
+                    role,
                     user.getId()
             );
 
@@ -116,8 +79,8 @@ public class AuthController {
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .userId(user.getId())
-                    .role(user.getRole().name())
-                    .message("Login successful")
+                    .role(role)
+                    .message("Token refreshed")
                     .build();
 
             return ResponseEntity.ok(response);
@@ -126,77 +89,60 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/verify-firebase-token")
-    public ResponseEntity<?> verifyFirebaseToken(@RequestBody AuthRequest request) {
+    private ResponseEntity<?> handleOtpVerification(AuthRequest request, UserRole role, String defaultName) {
         try {
-            String phoneNumber = firebaseOtpService.verifyIdToken(request.getIdToken());
-            
+            String phoneNumber = firebaseOtpService.verifyOtpSession(request.getSessionInfoId(), request.getOtpCode());
             User user = userService.createOrGetUser(
                     phoneNumber,
-                    request.getFullName() != null ? request.getFullName() : "User",
-                    UserRole.USER
+                    defaultName,
+                    role
             );
-
-            String accessToken = jwtUtil.generateToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            String refreshToken = jwtUtil.generateRefreshToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            AuthResponse response = AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .userId(user.getId())
-                    .role(user.getRole().name())
-                    .message("Login successful")
-                    .build();
-
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(buildAuthResponse(user, "Login successful"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
-    @PostMapping("/rider/verify-firebase-token")
-    public ResponseEntity<?> verifyRiderFirebaseToken(@RequestBody AuthRequest request) {
+    private ResponseEntity<?> handleIdTokenVerification(AuthRequest request, UserRole role, String defaultName) {
         try {
             String phoneNumber = firebaseOtpService.verifyIdToken(request.getIdToken());
-            
             User user = userService.createOrGetUser(
                     phoneNumber,
-                    request.getFullName() != null ? request.getFullName() : "Rider",
-                    UserRole.RIDER
+                    defaultName,
+                    role
             );
-
-            String accessToken = jwtUtil.generateToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            String refreshToken = jwtUtil.generateRefreshToken(
-                    user.getMobileNumber(),
-                    user.getRole().name(),
-                    user.getId()
-            );
-
-            AuthResponse response = AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .userId(user.getId())
-                    .role(user.getRole().name())
-                    .message("Login successful")
-                    .build();
-
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(buildAuthResponse(user, "Login successful"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    private AuthResponse buildAuthResponse(User user, String message) {
+        String accessToken = jwtUtil.generateToken(
+                user.getMobileNumber(),
+                user.getRole().name(),
+                user.getId()
+        );
+
+        String refreshToken = jwtUtil.generateRefreshToken(
+                user.getMobileNumber(),
+                user.getRole().name(),
+                user.getId()
+        );
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .userId(user.getId())
+                .role(user.getRole().name())
+                .message(message)
+                .build();
+    }
+
+    private String normalizePhone(String mobileNumber) {
+        if (mobileNumber == null || mobileNumber.isBlank()) {
+            throw new IllegalArgumentException("Mobile number is required");
+        }
+        return mobileNumber.startsWith("+91") ? mobileNumber : "+91" + mobileNumber;
     }
 }

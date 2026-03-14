@@ -5,7 +5,16 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.SessionCookieOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -13,14 +22,96 @@ import org.springframework.stereotype.Service;
 public class FirebaseOtpService {
 
     private final FirebaseAuth firebaseAuth;
+    private final RestTemplateBuilder restTemplateBuilder;
 
-    public String initiatePhoneSignIn(String phoneNumber) {
+    @Value("${firebase.api-key}")
+    private String firebaseApiKey;
+
+    @Value("${firebase.session-ttl-seconds:300}")
+    private long sessionTtlSeconds;
+
+    private RestTemplate restTemplate;
+
+    private final Map<String, OtpSession> pendingSessions = new ConcurrentHashMap<>();
+
+    private RestTemplate restTemplate() {
+        if (restTemplate == null) {
+            restTemplate = restTemplateBuilder.build();
+        }
+        return restTemplate;
+    }
+
+    public String initiatePhoneSignIn(String phoneNumber, String recaptchaToken) {
         try {
+            if (recaptchaToken == null || recaptchaToken.isBlank()) {
+                throw new IllegalArgumentException("recaptchaToken is required");
+            }
+
             log.info("Initiating phone sign-in for: {}", phoneNumber);
-            return "Phone sign-in initiated. User will receive OTP on their device via Firebase.";
+
+            Map<String, String> payload = Map.of(
+                    "phoneNumber", phoneNumber,
+                    "recaptchaToken", recaptchaToken
+            );
+
+            ResponseEntity<Map> response = restTemplate().postForEntity(
+                    "https://identitytoolkit.googleapis.com/v1/accounts:sendVerificationCode?key=" + firebaseApiKey,
+                    payload,
+                    Map.class
+            );
+
+            Map body = response.getBody();
+            String sessionInfo = body != null ? (String) body.get("sessionInfo") : null;
+
+            if (sessionInfo == null) {
+                throw new IllegalStateException("Failed to obtain sessionInfo from Firebase");
+            }
+
+            String sessionInfoId = UUID.randomUUID().toString();
+            pendingSessions.put(sessionInfoId, new OtpSession(sessionInfo, Instant.now().plusSeconds(sessionTtlSeconds)));
+
+            return sessionInfoId;
         } catch (Exception e) {
             log.error("Failed to initiate phone sign-in: {}", e.getMessage());
             throw new RuntimeException("Failed to initiate phone sign-in: " + e.getMessage());
+        }
+    }
+
+    public String verifyOtpSession(String sessionInfoId, String otpCode) {
+        if (sessionInfoId == null || sessionInfoId.isBlank()) {
+            throw new IllegalArgumentException("sessionInfoId is required");
+        }
+        if (otpCode == null || otpCode.length() != 6) {
+            throw new IllegalArgumentException("OTP must be a 6-digit value");
+        }
+
+        OtpSession session = pendingSessions.remove(sessionInfoId);
+        if (session == null || Instant.now().isAfter(session.expiresAt())) {
+            throw new IllegalStateException("OTP session expired or invalid");
+        }
+
+        try {
+            Map<String, String> payload = Map.of(
+                    "sessionInfo", session.sessionInfo(),
+                    "code", otpCode
+            );
+
+            ResponseEntity<Map> response = restTemplate().postForEntity(
+                    "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPhoneNumber?key=" + firebaseApiKey,
+                    payload,
+                    Map.class
+            );
+
+            Map body = response.getBody();
+            String idToken = body != null ? (String) body.get("idToken") : null;
+            if (idToken == null) {
+                throw new IllegalStateException("Firebase did not return an ID token");
+            }
+
+            return verifyIdToken(idToken);
+        } catch (Exception e) {
+            log.error("Failed to verify OTP session: {}", e.getMessage());
+            throw new RuntimeException("Failed to verify OTP: " + e.getMessage());
         }
     }
 
@@ -50,4 +141,6 @@ public class FirebaseOtpService {
             throw new RuntimeException("Failed to create session cookie: " + e.getMessage());
         }
     }
+
+    private record OtpSession(String sessionInfo, Instant expiresAt) { }
 }

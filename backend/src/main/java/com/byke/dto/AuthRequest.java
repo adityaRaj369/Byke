@@ -8,4 +8,6 @@ public class AuthRequest {
     private String otpCode;
     private String fullName;
     private String idToken;
+    private String recaptchaToken;
+    private String sessionInfoId;
 }

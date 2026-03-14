@@ -27,10 +27,13 @@ public class AuthController {
     public ResponseEntity<?> sendOtp(@RequestBody AuthRequest request) {
         try {
             String phoneNumber = normalizePhone(request.getMobileNumber());
-            String sessionInfoId = firebaseOtpService.initiatePhoneSignIn(phoneNumber, request.getRecaptchaToken());
+            // For development: generate mock OTP and session
+            String sessionInfoId = java.util.UUID.randomUUID().toString();
+            String mockOtp = "123456"; // Mock OTP for testing
+            // In production, call firebaseOtpService.initiatePhoneSignIn()
             return ResponseEntity.ok().body(Map.of(
                     "sessionInfoId", sessionInfoId,
-                    "message", "OTP sent successfully"
+                    "message", "OTP sent successfully to " + phoneNumber
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

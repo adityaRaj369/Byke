@@ -2,6 +2,7 @@ package com.byke.controller;
 
 import com.byke.dto.AuthRequest;
 import com.byke.dto.AuthResponse;
+import com.byke.dto.RefreshTokenRequest;
 import com.byke.model.entity.User;
 import com.byke.model.enums.UserRole;
 import com.byke.security.JwtUtil;

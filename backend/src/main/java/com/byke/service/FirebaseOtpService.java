@@ -33,6 +33,7 @@ public class FirebaseOtpService {
     private RestTemplate restTemplate;
 
     private final Map<String, OtpSession> pendingSessions = new ConcurrentHashMap<>();
+    private final Map<String, String> idTokenToPhoneMap = new ConcurrentHashMap<>();
 
     private RestTemplate restTemplate() {
         if (restTemplate == null) {
@@ -104,8 +105,15 @@ public class FirebaseOtpService {
 
             Map body = response.getBody();
             String idToken = body != null ? (String) body.get("idToken") : null;
+            String phoneNumber = body != null ? (String) body.get("phoneNumber") : null;
+            
             if (idToken == null) {
                 throw new IllegalStateException("Firebase did not return an ID token");
+            }
+            
+            // Store phone number for this ID token since Firebase doesn't include it in claims
+            if (phoneNumber != null) {
+                idTokenToPhoneMap.put(idToken, phoneNumber);
             }
 
             return verifyIdToken(idToken);
@@ -118,9 +126,19 @@ public class FirebaseOtpService {
     public String verifyIdToken(String idToken) {
         try {
             var decodedToken = firebaseAuth.verifyIdToken(idToken);
-            // In Firebase Admin SDK, phone_number is inside the claims
-            String phoneNumber = (String) decodedToken.getClaims().get("phone_number");
             String uid = decodedToken.getUid();
+            
+            // Try to get phone number from stored map first (from OTP verification)
+            String phoneNumber = idTokenToPhoneMap.remove(idToken);
+            
+            // If not found in map, try to get from claims (for direct Firebase auth)
+            if (phoneNumber == null) {
+                phoneNumber = (String) decodedToken.getClaims().get("phone_number");
+            }
+            
+            if (phoneNumber == null) {
+                throw new IllegalStateException("Phone number not found in token or claims");
+            }
             
             log.info("Firebase token verified for phone: {}, UID: {}", phoneNumber, uid);
             return phoneNumber;

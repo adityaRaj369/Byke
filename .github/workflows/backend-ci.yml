@@ -76,13 +76,29 @@ jobs:
   deploy:
     name: 3. Deploy (EC2 Production)
     runs-on: ubuntu-latest
-    needs: [dockerize]
+    needs: [build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: ./backend-jar/
+
+      - name: Deploy JAR to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "backend-jar/byke-backend-1.0.0.jar"
+          target: "/tmp/"
+          strip_components: 1
+
+      - name: Start backend on EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -91,33 +107,23 @@ jobs:
           script: |
             set -e
             
-            # Navigate to app directory
-            cd /home/ec2-user
-            
-            # Clone or update repository
-            if [ -d "Byke" ]; then
-              cd Byke
-              git pull origin main
-            else
-              git clone https://github.com/adityaRaj369/Byke.git
-              cd Byke
-            fi
-            
-            # Build backend
-            cd backend
-            gradle clean build -x test --no-daemon
-            
             # Stop old backend process
             pkill -f "byke-backend" || true
             sleep 2
             
             # Start new backend
-            nohup java -jar build/libs/byke-backend-1.0.0.jar > /tmp/byke-backend.log 2>&1 &
+            nohup java -jar /tmp/byke-backend-1.0.0.jar > /tmp/byke-backend.log 2>&1 &
             
             # Wait for backend to start
             sleep 5
             
-            # Verify backend is running
-            curl -f http://localhost:8080/api/health || echo "Backend health check pending..."
-            
-            echo "Backend deployment completed successfully!"
+            # Check if process is running
+            if pgrep -f "byke-backend" > /dev/null; then
+              echo "✓ Backend started successfully"
+              sleep 2
+              curl -s http://localhost:8080/api/health || echo "Health check endpoint pending..."
+            else
+              echo "✗ Backend failed to start"
+              cat /tmp/byke-backend.log
+              exit 1
+            fi

@@ -93,14 +93,14 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
+        env:
+          PRODUCTION_ENV_FILE: ${{ secrets.PRODUCTION_ENV_FILE }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         with:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: PRODUCTION_ENV_FILE,FIREBASE_SERVICE_ACCOUNT_JSON
-          env:
-            PRODUCTION_ENV_FILE: ${{ secrets.PRODUCTION_ENV_FILE }}
-            FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           script: |
             mkdir -p /opt/byke
             cd /opt/byke

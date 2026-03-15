@@ -1,5 +1,6 @@
 package com.byke.service;
 
+import com.byke.dto.BookingRequest;
 import com.byke.model.entity.Booking;
 import com.byke.model.entity.Rider;
 import com.byke.model.entity.User;
@@ -66,6 +67,48 @@ public class BookingService {
         log.info("Booking created: {} for user: {}", savedBooking.getId(), userId);
 
         notificationService.notifyUser(userId, "Booking Confirmed", 
+                "Your booking is confirmed! Finding riders...");
+
+        return savedBooking;
+    }
+
+    @Transactional
+    public Booking createBookingFromRequest(Long userId, BookingRequest req) {
+        User user = userService.getUserById(userId);
+        ServiceType serviceType = ServiceType.valueOf(req.getServiceType().toUpperCase());
+        Double distance = req.getEstimatedDistance() != null ? req.getEstimatedDistance() : 5.0;
+
+        Double estimatedFare = calculateEstimatedFare(serviceType, distance);
+
+        Booking booking = Booking.builder()
+                .user(user)
+                .serviceType(serviceType)
+                .status(BookingStatus.BIDDING)
+                .pickupAddress(req.getPickupAddress())
+                .pickupLatitude(req.getPickupLatitude())
+                .pickupLongitude(req.getPickupLongitude())
+                .dropAddress(req.getDropAddress())
+                .dropLatitude(req.getDropLatitude())
+                .dropLongitude(req.getDropLongitude())
+                .errandDescription(req.getDescription())
+                .estimatedBudget(req.getEstimatedBudget())
+                .parcelDescription(req.getParcelDescription())
+                .parcelWeight(req.getParcelWeight())
+                .recipientName(req.getRecipientName())
+                .recipientPhone(req.getRecipientPhone())
+                .estimatedDistance(distance)
+                .estimatedDuration(req.getEstimatedDuration())
+                .estimatedFare(estimatedFare)
+                .vehicleType(req.getVehicleType())
+                .biddingWindowSeconds(biddingWindowSeconds)
+                .biddingStartTime(LocalDateTime.now())
+                .biddingEndTime(LocalDateTime.now().plusSeconds(biddingWindowSeconds))
+                .build();
+
+        Booking savedBooking = bookingRepository.save(booking);
+        log.info("Booking created: {} for user: {} vehicleType: {}", savedBooking.getId(), userId, req.getVehicleType());
+
+        notificationService.notifyUser(userId, "Booking Confirmed",
                 "Your booking is confirmed! Finding riders...");
 
         return savedBooking;

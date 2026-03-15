@@ -83,6 +83,8 @@ public class Booking {
     private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
     
+    private String vehicleType;
+    
     private String cancellationReason;
     private String cancellationReasonDetail;
     

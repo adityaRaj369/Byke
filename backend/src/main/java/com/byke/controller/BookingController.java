@@ -1,8 +1,10 @@
 package com.byke.controller;
 
+import com.byke.dto.BookingRequest;
 import com.byke.model.entity.Booking;
 import com.byke.model.enums.BookingStatus;
 import com.byke.service.BookingService;
+import com.byke.service.BiddingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +18,14 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final BiddingService biddingService;
 
     @PostMapping
-    public ResponseEntity<?> createBooking(@RequestBody Booking booking, HttpServletRequest request) {
+    public ResponseEntity<?> createBooking(@RequestBody BookingRequest bookingRequest, HttpServletRequest request) {
         try {
             Long userId = (Long) request.getAttribute("userId");
-            Booking createdBooking = bookingService.createBooking(userId, booking);
+            Booking createdBooking = bookingService.createBookingFromRequest(userId, bookingRequest);
+            biddingService.broadcastBookingToNearbyRiders(createdBooking.getId());
             return ResponseEntity.ok(createdBooking);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

@@ -189,6 +189,10 @@ public class RiderService {
         return riderRepository.findNearbyAvailableRiders(latitude, longitude, radiusKm, RiderStatus.AVAILABLE);
     }
 
+    public List<Rider> getNearbyAvailableRidersByVehicleType(Double latitude, Double longitude, Double radiusKm, String vehicleType) {
+        return riderRepository.findNearbyAvailableRidersByVehicleType(latitude, longitude, radiusKm, RiderStatus.AVAILABLE, vehicleType);
+    }
+
     public long getRiderCountByStatus(RiderStatus status) {
         return riderRepository.countByStatus(status);
     }

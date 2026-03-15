@@ -25,4 +25,16 @@ public interface RiderRepository extends JpaRepository<Rider, Long> {
                                            @Param("longitude") Double longitude,
                                            @Param("radiusKm") Double radiusKm,
                                            @Param("status") RiderStatus status);
+
+    @Query("SELECT r FROM Rider r WHERE r.status = :status AND " +
+           "r.vehicleType = :vehicleType AND " +
+           "r.currentLatitude IS NOT NULL AND r.currentLongitude IS NOT NULL AND " +
+           "(6371 * acos(cos(radians(:latitude)) * cos(radians(r.currentLatitude)) * " +
+           "cos(radians(r.currentLongitude) - radians(:longitude)) + " +
+           "sin(radians(:latitude)) * sin(radians(r.currentLatitude)))) <= :radiusKm")
+    List<Rider> findNearbyAvailableRidersByVehicleType(@Param("latitude") Double latitude,
+                                                        @Param("longitude") Double longitude,
+                                                        @Param("radiusKm") Double radiusKm,
+                                                        @Param("status") RiderStatus status,
+                                                        @Param("vehicleType") String vehicleType);
 }

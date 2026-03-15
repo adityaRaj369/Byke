@@ -106,11 +106,22 @@ public class BiddingService {
     public void broadcastBookingToNearbyRiders(Long bookingId) {
         Booking booking = bookingService.getBookingById(bookingId);
         
-        List<Rider> nearbyRiders = riderService.getNearbyAvailableRiders(
-                booking.getPickupLatitude(),
-                booking.getPickupLongitude(),
-                10.0
-        );
+        List<Rider> nearbyRiders;
+        String vehicleType = booking.getVehicleType();
+        if (vehicleType != null && !vehicleType.isEmpty()) {
+            nearbyRiders = riderService.getNearbyAvailableRidersByVehicleType(
+                    booking.getPickupLatitude(),
+                    booking.getPickupLongitude(),
+                    10.0,
+                    vehicleType
+            );
+        } else {
+            nearbyRiders = riderService.getNearbyAvailableRiders(
+                    booking.getPickupLatitude(),
+                    booking.getPickupLongitude(),
+                    10.0
+            );
+        }
 
         for (Rider rider : nearbyRiders) {
             notificationService.notifyRider(rider.getId(), 
@@ -120,7 +131,7 @@ public class BiddingService {
             messagingTemplate.convertAndSend("/topic/rider/" + rider.getId() + "/bookings", booking);
         }
 
-        log.info("Booking {} broadcasted to {} nearby riders", bookingId, nearbyRiders.size());
+        log.info("Booking {} broadcasted to {} nearby riders (vehicleType={})", bookingId, nearbyRiders.size(), vehicleType);
     }
 
     @Transactional

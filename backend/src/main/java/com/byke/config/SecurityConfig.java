@@ -33,8 +33,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/api/public/**", "/ws/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/rider/**").hasRole("RIDER")
-                .requestMatchers("/api/user/**").hasAnyRole("USER", "RIDER")
+                .requestMatchers("/api/rider/**").hasAnyRole("RIDER", "ADMIN")
+                .requestMatchers("/api/bookings/**").hasAnyRole("USER", "RIDER", "ADMIN")
+                .requestMatchers("/api/bids/**").hasAnyRole("USER", "RIDER", "ADMIN")
+                .requestMatchers("/api/complaints/**").hasAnyRole("USER", "RIDER", "ADMIN")
+                .requestMatchers("/api/payments/**").hasAnyRole("USER", "RIDER", "ADMIN")
+                .requestMatchers("/api/notifications/**").hasAnyRole("USER", "RIDER", "ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

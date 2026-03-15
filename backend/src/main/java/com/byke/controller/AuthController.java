@@ -106,7 +106,7 @@ public class AuthController {
 
     private ResponseEntity<?> handleIdTokenVerification(AuthRequest request, UserRole role, String defaultName) {
         try {
-            String phoneNumber = firebaseOtpService.verifyIdToken(request.getIdToken());
+            String phoneNumber = firebaseOtpService.verifyIdToken(request.getIdToken(), request.getMobileNumber());
             User user = userService.createOrGetUser(
                     phoneNumber,
                     defaultName,

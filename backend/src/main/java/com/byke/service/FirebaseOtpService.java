@@ -124,12 +124,22 @@ public class FirebaseOtpService {
     }
 
     public String verifyIdToken(String idToken) {
+        return verifyIdToken(idToken, null);
+    }
+
+    public String verifyIdToken(String idToken, String phoneNumber) {
         try {
             var decodedToken = firebaseAuth.verifyIdToken(idToken);
             String uid = decodedToken.getUid();
             
-            // Try to get phone number from stored map first (from OTP verification)
-            String phoneNumber = idTokenToPhoneMap.remove(idToken);
+            // If phone number provided in request, use it
+            if (phoneNumber != null && !phoneNumber.isBlank()) {
+                log.info("Firebase token verified for phone: {}, UID: {}", phoneNumber, uid);
+                return phoneNumber;
+            }
+            
+            // Try to get phone number from stored map (from OTP verification)
+            phoneNumber = idTokenToPhoneMap.remove(idToken);
             
             // If not found in map, try to get from claims (for direct Firebase auth)
             if (phoneNumber == null) {

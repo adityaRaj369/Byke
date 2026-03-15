@@ -97,19 +97,16 @@ jobs:
           host: ${{ secrets.PRODUCTION_HOST }}
           username: ${{ secrets.PRODUCTION_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: PRODUCTION_ENV_FILE,FIREBASE_SERVICE_ACCOUNT_JSON
           script: |
             mkdir -p /opt/byke
             cd /opt/byke
             
             # Write the .env file from GitHub Secret
-            cat << 'EOF' > .env
-            ${{ secrets.PRODUCTION_ENV_FILE }}
-            EOF
+            echo "$PRODUCTION_ENV_FILE" > .env
             
             # Write the Firebase service account JSON from GitHub Secret
-            cat << 'EOF' > firebase-service-account.json
-            ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-            EOF
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase-service-account.json
             
             # Pull the latest backend image from Docker Hub
             docker compose pull backend

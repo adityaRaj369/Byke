@@ -82,36 +82,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy docker-compose.yml to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml"
-          target: "/opt/byke/"
-
-      - name: Deploy to server
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            mkdir -p /opt/byke
-            cd /opt/byke
+            set -e
             
-            # Write the .env file from GitHub Secret
-            echo "${{ secrets.PRODUCTION_ENV_FILE }}" > .env
+            # Navigate to app directory
+            cd /home/ec2-user
             
-            # Write the Firebase service account JSON from GitHub Secret
-            echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > firebase-service-account.json
+            # Clone or update repository
+            if [ -d "Byke" ]; then
+              cd Byke
+              git pull origin main
+            else
+              git clone https://github.com/adityaRaj369/Byke.git
+              cd Byke
+            fi
             
-            # Pull the latest backend image from Docker Hub
-            docker compose pull backend
+            # Build backend
+            cd backend
+            gradle clean build -x test --no-daemon
             
-            # Restart all services
-            docker compose up -d
+            # Stop old backend process
+            pkill -f "byke-backend" || true
+            sleep 2
             
-            # Clean up old images to save disk space
-            docker system prune -f
+            # Start new backend
+            nohup java -jar build/libs/byke-backend-1.0.0.jar > /tmp/byke-backend.log 2>&1 &
+            
+            # Wait for backend to start
+            sleep 5
+            
+            # Verify backend is running
+            curl -f http://localhost:8080/api/health || echo "Backend health check pending..."
+            
+            echo "Backend deployment completed successfully!"

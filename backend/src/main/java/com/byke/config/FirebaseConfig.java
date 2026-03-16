@@ -14,15 +14,12 @@ import org.springframework.context.annotation.Configuration;
 import java.io.FileInputStream;  
 import java.io.IOException;
 
-
-
 @Configuration
 @Slf4j
 public class FirebaseConfig{ 
      
     @Value("${firebase.credentials-path:}")
     private String firebaseCredentialsPath;
-
     @Bean
     public FirebaseAuth firebaseAuth() throws IOException {
         if (FirebaseApp.getApps().isEmpty()) {

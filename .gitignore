@@ -3,9 +3,6 @@
 *.env
 backend/.env
 
-# Firebase service account — contains private keys
-firebase-service-account.json
-*-service-account.json
 
 # Build outputs
 backend/build/
@@ -30,6 +27,10 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
 
 # Explicitly include mobile app source despite local .gitignore
 !mobile/BykeUser/src/

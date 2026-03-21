@@ -10,6 +10,11 @@ interface User {
 
 interface AuthState {
   isAuthenticated: boolean;
+  needsRegistration: boolean;   // true when backend says isNewUser = true
+  pendingToken: string | null;  // holds the JWT while user fills in their name
+  pendingRefreshToken: string | null;
+  pendingUserId: string | null;
+  pendingPhone: string | null;
   user: User | null;
   token: string | null;
   refreshToken: string | null;
@@ -19,6 +24,11 @@ interface AuthState {
 
 const initialState: AuthState = {
   isAuthenticated: false,
+  needsRegistration: false,
+  pendingToken: null,
+  pendingRefreshToken: null,
+  pendingUserId: null,
+  pendingPhone: null,
   user: null,
   token: null,
   refreshToken: null,
@@ -35,13 +45,38 @@ const authSlice = createSlice({
     },
     loginSuccess: (state, action: PayloadAction<{ user: User; token: string; refreshToken?: string }>) => {
       state.isAuthenticated = true;
+      state.needsRegistration = false;
+      state.pendingToken = null;
+      state.pendingRefreshToken = null;
+      state.pendingUserId = null;
+      state.pendingPhone = null;
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.refreshToken = action.payload.refreshToken || null;
       state.isLoading = false;
     },
+    // Called when backend returns isNewUser = true
+    registrationRequired: (state, action: PayloadAction<{
+      token: string;
+      refreshToken?: string;
+      userId: string;
+      phone: string;
+    }>) => {
+      state.needsRegistration = true;
+      state.isAuthenticated = false;
+      state.pendingToken = action.payload.token;
+      state.pendingRefreshToken = action.payload.refreshToken || null;
+      state.pendingUserId = action.payload.userId;
+      state.pendingPhone = action.payload.phone;
+      state.isLoading = false;
+    },
     logout: (state) => {
       state.isAuthenticated = false;
+      state.needsRegistration = false;
+      state.pendingToken = null;
+      state.pendingRefreshToken = null;
+      state.pendingUserId = null;
+      state.pendingPhone = null;
       state.user = null;
       state.token = null;
       state.refreshToken = null;
@@ -58,5 +93,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setLoading, loginSuccess, logout, updateProfile, setInitialized } = authSlice.actions;
+export const { setLoading, loginSuccess, logout, updateProfile, setInitialized, registrationRequired } = authSlice.actions;
 export default authSlice.reducer;
+

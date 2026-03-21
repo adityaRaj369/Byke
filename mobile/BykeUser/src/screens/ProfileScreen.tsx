@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, SafeAreaView, Image } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { logout } from '../store/slices/authSlice';
@@ -44,11 +44,19 @@ const ProfileScreen = () => {
         {/* Header Section */}
         <View className="px-6 pt-10 pb-12 items-center bg-gray-50 rounded-b-[50px] border-b border-gray-100">
           <View className="relative">
-            <View className="w-28 h-28 bg-yellow-400 rounded-[40px] items-center justify-center shadow-2xl shadow-yellow-400/30">
-              <Text className="text-4xl font-black text-black">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            </View>
+            {user?.profilePhoto ? (
+              <Image
+                source={{ uri: user.profilePhoto }}
+                className="w-28 h-28 rounded-[40px]"
+                style={{ width: 112, height: 112, borderRadius: 40 }}
+              />
+            ) : (
+              <View className="w-28 h-28 bg-yellow-400 rounded-[40px] items-center justify-center shadow-2xl shadow-yellow-400/30">
+                <Text className="text-4xl font-black text-black">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )}
             <TouchableOpacity className="absolute -bottom-2 -right-2 bg-black p-3 rounded-2xl border-4 border-white">
               <Settings size={18} color="white" />
             </TouchableOpacity>

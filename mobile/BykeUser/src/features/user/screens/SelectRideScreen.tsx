@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet, SafeAreaView } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, MapStyleElement } from 'react-native-maps';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet, SafeAreaView, Dimensions } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import { GOOGLE_PLACES_API_KEY } from '../../../config/env';
 import { VEHICLE_TYPES } from '../../../data/mockData';
 import { createRideRequest } from '../../../services/rideService';
 import { ArrowLeft, Navigation, Clock, Info } from 'lucide-react-native';
 
+const { height } = Dimensions.get('window');
+const MAP_HEIGHT = height * 0.30;
 const FARE_STEPS = [0, 25, 50, 75, 100];
 
 const SelectRideScreen = ({ navigation, route }: any) => {
@@ -71,7 +73,7 @@ const SelectRideScreen = ({ navigation, route }: any) => {
               latitudeDelta: Math.abs(pickupCoords.latitude - dropCoords.latitude) * 1.8,
               longitudeDelta: Math.abs(pickupCoords.longitude - dropCoords.longitude) * 1.8,
             }}
-            customMapStyle={mapStyle}
+            customMapStyle={[]}
           >
             <Marker coordinate={pickupCoords} title="Pickup">
               <View style={styles.pickupMarker}>
@@ -232,12 +234,12 @@ const SelectRideScreen = ({ navigation, route }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'white' },
-  mapContainer: { position: 'absolute', top: 0, left: 0, right: 0, height: '55%' },
+  mapContainer: { height: MAP_HEIGHT, overflow: 'hidden' },
   loaderContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
   headerOverlay: { position: 'absolute', top: 0, left: 20, zIndex: 10 },
   backButton: { backgroundColor: 'white', width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, marginTop: 20 },
-  scrollContent: { flex: 1, marginTop: '45%' },
-  sheet: { backgroundColor: 'white', borderTopLeftRadius: 40, borderTopRightRadius: 40, paddingHorizontal: 24, paddingTop: 20, elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.15, shadowRadius: 20 },
+  scrollContent: { flex: 1 },
+  sheet: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingTop: 20, elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.15, shadowRadius: 20 },
   sheetHandle: { width: 48, height: 6, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
   sheetTitle: { fontSize: 28, fontWeight: '900', color: 'black', marginBottom: 24 },
   routeCard: { backgroundColor: '#F9FAFB', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 24 },
@@ -278,15 +280,5 @@ const styles = StyleSheet.create({
   dropMarker: { backgroundColor: '#EF4444', padding: 4, borderRadius: 10, borderWidth: 3, borderColor: 'white' },
   dropMarkerDot: { width: 6, height: 6, backgroundColor: 'white', borderRadius: 3 }
 });
-
-const mapStyle: MapStyleElement[] = [
-  { "elementType": "geometry", "stylers": [{"color": "#212121"}] },
-  { "elementType": "labels.icon", "stylers": [{"visibility": "off"}] },
-  { "elementType": "labels.text.fill", "stylers": [{"color": "#757575"}] },
-  { "elementType": "labels.text.stroke", "stylers": [{"color": "#212121"}] },
-  { "featureType": "administrative", "elementType": "geometry", "stylers": [{"color": "#757575"}] },
-  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{"color": "#2c2c2c"}] },
-  { "featureType": "water", "elementType": "geometry", "stylers": [{"color": "#000000"}] }
-];
 
 export default SelectRideScreen;

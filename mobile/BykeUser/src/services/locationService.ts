@@ -120,5 +120,21 @@ export const reverseGeocode = async (
   latitude: number,
   longitude: number
 ): Promise<string> => {
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyCFjre_DGMoR9jI5dN4Bc8-3CDeEq7ZTW4`
+    );
+    const data = await response.json();
+    if (data.status === 'OK' && data.results.length > 0) {
+      // Use the short formatted address (neighborhood + city level)
+      const components = data.results[0].address_components as any[];
+      const sub = components.find((c: any) => c.types.includes('sublocality_level_1') || c.types.includes('neighborhood'));
+      const city = components.find((c: any) => c.types.includes('locality'));
+      if (sub && city) return `${sub.long_name}, ${city.long_name}`;
+      return data.results[0].formatted_address.split(',').slice(0, 2).join(',').trim();
+    }
+  } catch (e) {
+    console.warn('Reverse geocode failed:', e);
+  }
   return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 };

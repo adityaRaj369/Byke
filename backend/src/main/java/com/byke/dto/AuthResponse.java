@@ -15,4 +15,8 @@ public class AuthResponse {
     private Long userId;
     private String role;
     private String message;
+    // true when the user just signed in for the first time and needs to complete their profile
+    private boolean isNewUser;
+    private String fullName;
+    private String profilePhotoUrl;
 }

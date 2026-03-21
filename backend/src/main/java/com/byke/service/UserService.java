@@ -4,6 +4,7 @@ import com.byke.model.entity.User;
 import com.byke.model.enums.AccountStatus;
 import com.byke.model.enums.UserRole;
 import com.byke.repository.UserRepository;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,12 +19,31 @@ public class UserService {
 
     private final UserRepository userRepository;
 
+    /** Wrapper that also exposes whether the user was just newly created. */
+    public static class UserResult {
+        private final User user;
+        private final boolean newlyCreated;
+
+        public UserResult(User user, boolean newlyCreated) {
+            this.user = user;
+            this.newlyCreated = newlyCreated;
+        }
+
+        public User getUser() { return user; }
+        public boolean isNewlyCreated() { return newlyCreated; }
+    }
+
+    /**
+     * Creates a minimal user record on first login (name is a placeholder until profile completion).
+     * If user already exists, returns the existing record.
+     */
     @Transactional
-    public User createOrGetUser(String mobileNumber, String fullName, UserRole role) {
+    public UserResult createOrGetUserWithStatus(String mobileNumber, String fullName, UserRole role) {
         Optional<User> existingUser = userRepository.findByMobileNumber(mobileNumber);
-        
+
         if (existingUser.isPresent()) {
-            return existingUser.get();
+            log.info("Existing user found for mobile={}", mobileNumber);
+            return new UserResult(existingUser.get(), false);
         }
 
         User newUser = User.builder()
@@ -33,9 +53,32 @@ public class UserService {
                 .status(AccountStatus.ACTIVE)
                 .build();
 
-        User savedUser = userRepository.save(newUser);
-        log.info("New user created: {} with role: {}", mobileNumber, role);
-        return savedUser;
+        User saved = userRepository.save(newUser);
+        log.info("New user created: mobile={}, role={}", mobileNumber, role);
+        return new UserResult(saved, true);
+    }
+
+    /** Legacy convenience wrapper used by remaining callers. */
+    @Transactional
+    public User createOrGetUser(String mobileNumber, String fullName, UserRole role) {
+        return createOrGetUserWithStatus(mobileNumber, fullName, role).getUser();
+    }
+
+    /**
+     * Completes user registration by setting full name and optional profile photo.
+     */
+    @Transactional
+    public User completeProfile(Long userId, String fullName, String profilePhotoUrl) {
+        User user = getUserById(userId);
+        if (fullName != null && !fullName.isBlank()) {
+            user.setFullName(fullName);
+        }
+        if (profilePhotoUrl != null && !profilePhotoUrl.isBlank()) {
+            user.setProfilePhotoUrl(profilePhotoUrl);
+        }
+        User saved = userRepository.save(user);
+        log.info("Profile completed for userId={}, name={}", userId, fullName);
+        return saved;
     }
 
     public User getUserById(Long userId) {
@@ -51,7 +94,7 @@ public class UserService {
     @Transactional
     public User updateUser(Long userId, User updatedUser) {
         User user = getUserById(userId);
-        
+
         if (updatedUser.getFullName() != null) {
             user.setFullName(updatedUser.getFullName());
         }
@@ -89,7 +132,7 @@ public class UserService {
     @Transactional
     public void updateAverageRating(Long userId, Double newRating, boolean isGiven) {
         User user = getUserById(userId);
-        
+
         if (isGiven) {
             double currentAvg = user.getAverageRatingGiven();
             int totalBookings = user.getTotalBookings();
@@ -101,7 +144,7 @@ public class UserService {
             double newAvg = ((currentAvg * (totalBookings - 1)) + newRating) / totalBookings;
             user.setAverageRatingReceived(newAvg);
         }
-        
+
         userRepository.save(user);
     }
 
@@ -113,3 +156,4 @@ public class UserService {
         return userRepository.countByRole(role);
     }
 }
+

@@ -102,20 +102,20 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: PRODUCTION_ENV_FILE,FIREBASE_SERVICE_ACCOUNT_JSON
           script: |
-            mkdir -p /opt/byke
+            sudo mkdir -p /opt/byke
             cd /opt/byke
-            
+
             # Write the .env file from GitHub Secret
-            echo "$PRODUCTION_ENV_FILE" > .env
-            
+            echo "$PRODUCTION_ENV_FILE" | sudo tee .env > /dev/null
+
             # Write the Firebase service account JSON from GitHub Secret
-            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" > firebase-service-account.json
-            
+            echo "$FIREBASE_SERVICE_ACCOUNT_JSON" | sudo tee firebase-service-account.json > /dev/null
+
             # Pull the latest backend image from Docker Hub
-            docker compose pull backend
-            
+            sudo docker compose pull backend
+
             # Restart all services
-            docker compose up -d
-            
+            sudo docker compose up -d
+
             # Clean up old images to save disk space
-            docker system prune -f
+            sudo docker system prune -f

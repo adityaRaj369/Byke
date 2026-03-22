@@ -4,8 +4,10 @@ import com.byke.model.entity.Bid;
 import com.byke.model.entity.Booking;
 import com.byke.model.entity.Rider;
 import com.byke.model.enums.BidStatus;
-import com.byke.model.enums.RiderStatus;  
+import com.byke.model.enums.BookingStatus;
+import com.byke.model.enums.RiderStatus;
 import com.byke.repository.BidRepository;
+import com.byke.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,8 +15,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List; 
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 @Service  
 @RequiredArgsConstructor 
@@ -22,10 +25,12 @@ import java.util.Optional;
 public class BiddingService {
 
     private final BidRepository bidRepository;
+    private final BookingRepository bookingRepository;
     private final BookingService bookingService;
     private final RiderService riderService;
     private final NotificationService notificationService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final Random random = new Random();
 
     @Value("${app.bidding.min-bid}")
     private Double minBid;
@@ -77,7 +82,7 @@ public class BiddingService {
     }
 
     @Transactional
-    public void acceptBid(Long bidId) {
+    public Booking acceptBid(Long bidId) {
         Bid bid = bidRepository.findById(bidId)
                 .orElseThrow(() -> new RuntimeException("Bid not found"));
 
@@ -96,10 +101,47 @@ public class BiddingService {
             }
         }
 
-        bookingService.acceptBid(bid.getBooking().getId(), bid.getRider().getId());
+        Booking booking = bookingService.acceptBid(bid.getBooking().getId(), bid.getRider().getId());
         riderService.updateRiderStatus(bid.getRider().getId(), RiderStatus.ON_RIDE);
 
-        log.info("Bid {} accepted for booking {}", bidId, bid.getBooking().getId());
+        // Generate 4-digit OTP for verification
+        String otp = String.format("%04d", random.nextInt(10000));
+        booking.setVerificationOtp(otp);
+        bookingRepository.save(booking);
+
+        // Notify rider that bid was accepted
+        notificationService.notifyRider(bid.getRider().getId(),
+                "Bid Accepted!", "User accepted your bid. OTP: " + otp);
+
+        log.info("Bid {} accepted for booking {}. OTP generated: {}", bidId, bid.getBooking().getId(), otp);
+        return booking;
+    }
+
+    @Transactional
+    public Booking verifyOtpAndStartRide(Long bookingId, Long riderId, String otp) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        if (booking.getRider() == null || !booking.getRider().getId().equals(riderId)) {
+            throw new RuntimeException("You are not assigned to this booking");
+        }
+
+        if (!booking.getStatus().equals(BookingStatus.ACCEPTED)) {
+            throw new RuntimeException("Booking is not in accepted state");
+        }
+
+        if (booking.getVerificationOtp() == null || !booking.getVerificationOtp().equals(otp)) {
+            throw new RuntimeException("Invalid OTP. Please check with the user and try again.");
+        }
+
+        // Clear OTP and start the ride
+        booking.setVerificationOtp(null);
+        booking.setStatus(BookingStatus.IN_PROGRESS);
+        booking.setStartedAt(java.time.LocalDateTime.now());
+        bookingRepository.save(booking);
+
+        log.info("OTP verified for booking {}. Ride started.", bookingId);
+        return booking;
     }
 
     @Transactional

@@ -8,6 +8,7 @@ import LoginScreen from '../features/auth/screens/LoginScreen';
 import RegisterScreen from '../features/auth/screens/RegisterScreen';
 import UserHomeScreen from '../features/user/screens/HomeScreen';
 import SelectRideScreen from '../features/user/screens/SelectRideScreen';
+import SetPriceScreen from '../features/user/screens/SetPriceScreen';
 import BidsScreen from '../features/user/screens/BidsScreen';
 import TrackingScreen from '../features/user/screens/TrackingScreen';
 import ChatScreen from '../features/user/screens/ChatScreen';
@@ -31,6 +32,7 @@ const AppNavigator = () => {
           <>
             <Stack.Screen name="UserHome" component={UserHomeScreen} />
             <Stack.Screen name="SelectRide" component={SelectRideScreen} />
+            <Stack.Screen name="SetPrice" component={SetPriceScreen} />
             <Stack.Screen name="UserBids" component={BidsScreen} />
             <Stack.Screen name="UserTracking" component={TrackingScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />

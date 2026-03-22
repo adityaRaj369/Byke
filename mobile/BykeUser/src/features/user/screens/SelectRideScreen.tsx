@@ -8,56 +8,28 @@ import { createRideRequest } from '../../../services/rideService';
 import { ArrowLeft, Navigation, Clock, Info } from 'lucide-react-native';
 
 const { height } = Dimensions.get('window');
-const MAP_HEIGHT = height * 0.30;
+const MAP_HEIGHT = height;
 const FARE_STEPS = [0, 25, 50, 75, 100];
 
 const SelectRideScreen = ({ navigation, route }: any) => {
   const { pickup, drop, distanceKm, pickupCoords, dropCoords } = route.params;
   const [selectedVehicle, setSelectedVehicle] = useState('auto');
-  const [fareStep, setFareStep] = useState(2);
-  const [loading, setLoading] = useState(false);
 
   const vehicle = VEHICLE_TYPES.find((v) => v.id === selectedVehicle);
-  const fareRange = vehicle ? vehicle.baseMax + Math.round((vehicle.baseMax * FARE_STEPS[fareStep]) / 100) : 220;
+  const fareRange = vehicle ? vehicle.baseMax + Math.round((vehicle.baseMax * 50) / 100) : 220;
   const maxFare = Math.round(fareRange * (distanceKm / 18));
 
-  const handleFindRiders = async () => {
-    if (!pickupCoords || !dropCoords) {
-      Alert.alert('Error', 'Location coordinates are missing');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { rideId } = await createRideRequest({
-        pickupLocation: {
-          latitude: pickupCoords.latitude,
-          longitude: pickupCoords.longitude,
-          address: pickup,
-        },
-        dropLocation: {
-          latitude: dropCoords.latitude,
-          longitude: dropCoords.longitude,
-          address: drop,
-        },
-        vehicleType: vehicle?.label || 'Auto',
-        maxFare,
-        distanceKm,
-      });
-
-      navigation.navigate('UserBids', {
-        rideId,
-        from: pickup,
-        to: drop,
-        maxFare,
-        vehicleType: vehicle?.label,
-        distanceKm,
-      });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create ride request');
-    } finally {
-      setLoading(false);
-    }
+  const handleVehicleSelect = (v: any) => {
+    setSelectedVehicle(v.id);
+    navigation.navigate('SetPrice', {
+      pickup,
+      drop,
+      distanceKm,
+      pickupCoords,
+      dropCoords,
+      vehicle: v,
+      maxFare,
+    });
   };
 
   return (
@@ -110,136 +82,83 @@ const SelectRideScreen = ({ navigation, route }: any) => {
         </TouchableOpacity>
       </SafeAreaView>
 
-      <ScrollView 
-        style={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        <View style={styles.sheet}>
-          <View style={styles.sheetHandle} />
-          
-          <Text style={styles.sheetTitle}>Confirm Ride</Text>
-
-          <View style={styles.routeCard}>
-            <View style={styles.routeRow}>
-              <View style={[styles.routeDot, { backgroundColor: '#22C55E' }]} />
-              <Text style={styles.routeText} numberOfLines={1}>
-                {pickup}
-              </Text>
-            </View>
-            <View style={styles.routeLine} />
-            <View style={styles.routeRow}>
-              <View style={[styles.routeDot, { backgroundColor: '#EF4444' }]} />
-              <Text style={styles.routeText} numberOfLines={1}>
-                {drop}
-              </Text>
-            </View>
+      <View style={styles.overlayContainer}>
+        <ScrollView 
+          style={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
             
-            <View style={styles.routeStats}>
-              <Navigation size={14} color="#EAB308" />
-              <Text style={styles.statText}>{distanceKm} km</Text>
-              <View style={styles.statDivider} />
-              <Clock size={14} color="#EAB308" />
-              <Text style={styles.statText}>~{Math.round(distanceKm * 1.4)} min</Text>
-            </View>
-          </View>
+            <Text style={styles.sheetTitle}>Confirm Ride</Text>
 
-          <Text style={styles.sectionLabel}>Vehicle Type</Text>
-          <View style={styles.vehicleList}>
-            {VEHICLE_TYPES.map((v) => (
-              <TouchableOpacity
-                key={v.id}
-                activeOpacity={0.85}
-                onPress={() => setSelectedVehicle(v.id)}
-                style={[
-                  styles.vehicleCard,
-                  selectedVehicle === v.id ? styles.vehicleCardActive : styles.vehicleCardInactive
-                ]}
-              >
-                <View style={[
-                  styles.vehicleIconContainer,
-                  selectedVehicle === v.id ? { backgroundColor: '#EAB308' } : { backgroundColor: '#F3F4F6' }
-                ]}>
-                  <Text style={{ fontSize: 30 }}>{v.icon}</Text>
-                </View>
-                <View style={styles.vehicleInfo}>
-                  <Text style={styles.vehicleLabel}>{v.label}</Text>
-                  <Text style={styles.vehicleDesc}>{v.desc}</Text>
-                </View>
-                <Text style={styles.vehiclePrice}>
-                  ₹{Math.round((v.baseMin * distanceKm) / 18)}
+            <View style={styles.routeCard}>
+              <View style={styles.routeRow}>
+                <View style={[styles.routeDot, { backgroundColor: '#22C55E' }]} />
+                <Text style={styles.routeText} numberOfLines={1}>
+                  {pickup}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.fareCard}>
-            <View style={styles.fareHeader}>
-              <View>
-                <Text style={styles.fareTitle}>Set Your Price</Text>
-                <Text style={styles.fareSubtitle}>Drivers will bid around this</Text>
               </View>
-              <TouchableOpacity style={styles.infoButton}>
-                <Info size={20} color="white" />
-              </TouchableOpacity>
+              <View style={styles.routeLine} />
+              <View style={styles.routeRow}>
+                <View style={[styles.routeDot, { backgroundColor: '#EF4444' }]} />
+                <Text style={styles.routeText} numberOfLines={1}>
+                  {drop}
+                </Text>
+              </View>
+              
+              <View style={styles.routeStats}>
+                <Navigation size={14} color="#EAB308" />
+                <Text style={styles.statText}>{distanceKm} km</Text>
+                <View style={styles.statDivider} />
+                <Clock size={14} color="#EAB308" />
+                <Text style={styles.statText}>~{Math.round(distanceKm * 1.4)} min</Text>
+              </View>
             </View>
 
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceText}>₹{maxFare}</Text>
-              <Text style={styles.priceLabel}>Recommended Max Fare</Text>
-            </View>
-
-            <View style={styles.stepContainer}>
-              {FARE_STEPS.map((step, idx) => (
+            <Text style={styles.sectionLabel}>Vehicle Type</Text>
+            <View style={styles.vehicleGrid}>
+              {VEHICLE_TYPES.map((v) => (
                 <TouchableOpacity
-                  key={idx}
+                  key={v.id}
                   activeOpacity={0.85}
-                  onPress={() => setFareStep(idx)}
+                  onPress={() => handleVehicleSelect(v)}
                   style={[
-                    styles.stepButton,
-                    fareStep === idx ? styles.stepButtonActive : styles.stepButtonInactive
+                    styles.vehicleCard,
+                    selectedVehicle === v.id ? styles.vehicleCardActive : styles.vehicleCardInactive
                   ]}
                 >
-                  <Text style={[
-                    styles.stepText,
-                    fareStep === idx ? { color: 'black' } : { color: 'white' }
+                  <View style={[
+                    styles.vehicleIconContainer,
+                    selectedVehicle === v.id ? { backgroundColor: '#EAB308' } : { backgroundColor: '#F3F4F6' }
                   ]}>
-                    {idx === 0 ? 'SAVER' : idx === 4 ? 'FAST' : idx === 2 ? 'FAIR' : `+${step}%`}
+                    <Text style={{ fontSize: 30 }}>{v.icon}</Text>
+                  </View>
+                  <Text style={styles.vehicleLabel}>{v.label}</Text>
+                  <Text style={styles.vehicleDesc}>{v.desc}</Text>
+                  <Text style={styles.vehiclePrice}>
+                    ₹{Math.round((v.baseMin * distanceKm) / 18)}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleFindRiders}
-            disabled={loading}
-            style={[
-              styles.ctaButton,
-              loading ? { backgroundColor: '#E5E7EB' } : { backgroundColor: '#EAB308' }
-            ]}
-          >
-            {loading ? (
-              <ActivityIndicator color="black" />
-            ) : (
-              <Text style={styles.ctaText}>Request Ride • ₹{maxFare}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  mapContainer: { height: MAP_HEIGHT, overflow: 'hidden' },
+  container: { flex: 1, position: 'relative' },
+  mapContainer: { ...StyleSheet.absoluteFillObject },
   loaderContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
   headerOverlay: { position: 'absolute', top: 0, left: 20, zIndex: 10 },
   backButton: { backgroundColor: 'white', width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, marginTop: 20 },
-  scrollContent: { flex: 1 },
-  sheet: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingTop: 20, elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.15, shadowRadius: 20 },
+  overlayContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, height: height * 0.65, zIndex: 5 },
+  scrollContent: { flex: 1, backgroundColor: 'transparent' },
+  sheet: { backgroundColor: 'white', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 24, paddingTop: 20, elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.15, shadowRadius: 20, flex: 1 },
   sheetHandle: { width: 48, height: 6, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
   sheetTitle: { fontSize: 28, fontWeight: '900', color: 'black', marginBottom: 24 },
   routeCard: { backgroundColor: '#F9FAFB', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 24 },
@@ -251,30 +170,14 @@ const styles = StyleSheet.create({
   statText: { marginLeft: 8, fontSize: 13, fontWeight: '900', color: '#4B5563' },
   statDivider: { width: 1, height: 12, backgroundColor: '#E5E7EB', marginHorizontal: 12 },
   sectionLabel: { fontSize: 11, fontWeight: '900', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, marginLeft: 4 },
-  vehicleList: { gap: 12, marginBottom: 32 },
-  vehicleCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 24, borderWidth: 2 },
+  vehicleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 32 },
+  vehicleCard: { width: '48%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 24, borderWidth: 2 },
   vehicleCardActive: { backgroundColor: '#FFFBEB', borderColor: '#EAB308' },
   vehicleCardInactive: { backgroundColor: 'white', borderColor: '#F3F4F6' },
-  vehicleIconContainer: { width: 60, height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  vehicleInfo: { flex: 1, marginLeft: 16 },
-  vehicleLabel: { fontSize: 18, fontWeight: '900', color: 'black' },
-  vehicleDesc: { fontSize: 12, color: '#9CA3AF', fontWeight: '600', marginTop: 2 },
-  vehiclePrice: { fontSize: 18, fontWeight: '900', color: 'black' },
-  fareCard: { backgroundColor: '#111827', borderRadius: 32, padding: 24, marginBottom: 32 },
-  fareHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  fareTitle: { color: 'white', fontSize: 20, fontWeight: '900' },
-  fareSubtitle: { color: '#9CA3AF', fontSize: 12, fontWeight: '600', marginTop: 2 },
-  infoButton: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 8, borderRadius: 12 },
-  priceContainer: { backgroundColor: '#EAB308', borderRadius: 24, paddingVertical: 24, alignItems: 'center', marginBottom: 24 },
-  priceText: { fontSize: 50, fontWeight: '900', color: 'black' },
-  priceLabel: { fontSize: 11, color: 'rgba(0,0,0,0.5)', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 },
-  stepContainer: { flexDirection: 'row', gap: 8 },
-  stepButton: { flex: 1, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-  stepButtonActive: { backgroundColor: 'white', borderColor: 'white' },
-  stepButtonInactive: { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.1)' },
-  stepText: { fontSize: 11, fontWeight: '900' },
-  ctaButton: { height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#EAB308', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12 },
-  ctaText: { fontSize: 18, fontWeight: '900', color: 'black', textTransform: 'uppercase', letterSpacing: 1 },
+  vehicleIconContainer: { width: 60, height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  vehicleLabel: { fontSize: 16, fontWeight: '900', color: 'black', textAlign: 'center' },
+  vehicleDesc: { fontSize: 11, color: '#9CA3AF', fontWeight: '600', marginTop: 2, textAlign: 'center' },
+  vehiclePrice: { fontSize: 16, fontWeight: '900', color: 'black', marginTop: 4 },
   pickupMarker: { backgroundColor: '#22C55E', padding: 4, borderRadius: 10, borderWidth: 3, borderColor: 'white' },
   pickupMarkerDot: { width: 6, height: 6, backgroundColor: 'white', borderRadius: 3 },
   dropMarker: { backgroundColor: '#EF4444', padding: 4, borderRadius: 10, borderWidth: 3, borderColor: 'white' },

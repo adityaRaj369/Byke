@@ -73,6 +73,11 @@ public class Booking {
     private Double estimatedFare;
     private Double finalFare;
     
+    @Column(length = 4)
+    private String verificationOtp;
+    
+    private Double userEnteredAmount;
+    
     private Integer biddingWindowSeconds = 45;
     private LocalDateTime biddingStartTime;
     private LocalDateTime biddingEndTime;

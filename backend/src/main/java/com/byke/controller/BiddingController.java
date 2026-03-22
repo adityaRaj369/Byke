@@ -42,8 +42,21 @@ public class BiddingController {
     @PostMapping("/{bidId}/accept")
     public ResponseEntity<?> acceptBid(@PathVariable Long bidId) {
         try {
-            biddingService.acceptBid(bidId);
-            return ResponseEntity.ok("Bid accepted successfully");
+            var result = biddingService.acceptBid(bidId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtpAndStartRide(@RequestParam Long bookingId, 
+                                                    @RequestParam String otp,
+                                                    HttpServletRequest request) {
+        try {
+            Long riderId = (Long) request.getAttribute("userId");
+            var booking = biddingService.verifyOtpAndStartRide(bookingId, riderId, otp);
+            return ResponseEntity.ok(booking);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

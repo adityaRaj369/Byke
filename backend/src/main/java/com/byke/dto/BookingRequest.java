@@ -20,4 +20,5 @@ public class BookingRequest {
     private String recipientPhone;
     private Double estimatedDistance;
     private Integer estimatedDuration;
+    private Double userEnteredAmount;
 }

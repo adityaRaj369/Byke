@@ -11,7 +11,7 @@ import { loginSuccess, setLoading, registrationRequired } from '../../../store/s
 import { AppDispatch } from '../../../store';
 import api from '../../../config/api';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_PROFILE_KEY } from '../../../constants/storageKeys';
-import { Bike, ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { API_BASE_URL } from '../../../config/env';
 
 const LoginScreen = () => {
@@ -72,49 +72,61 @@ const LoginScreen = () => {
         <View style={styles.content}>
           {otpSent && (
             <TouchableOpacity onPress={() => { setOtpSent(false); setOtp(''); }} style={styles.backBtn}>
-              <ChevronLeft size={28} color="black" strokeWidth={3} />
+              <ChevronLeft size={24} color="#374151" />
             </TouchableOpacity>
           )}
-          <View style={styles.brand}>
-            <View style={styles.logoBox}><Bike size={50} color="black" strokeWidth={2.5} /></View>
-            <Text style={styles.appName}>BYKE</Text>
-            <Text style={styles.tagline}>India's Fastest Bike Taxi App</Text>
+          
+          <View style={styles.header}>
+            <Text style={styles.title}>{otpSent ? 'Verify OTP' : 'Login'}</Text>
+            <Text style={styles.subtitle}>
+              {otpSent ? `Code sent to +91 ${phone}` : 'Enter your mobile number to continue'}
+            </Text>
           </View>
-          <View style={styles.card}>
-            {!otpSent ? (
-              <>
-                <Text style={styles.cardTitle}>Login or Signup</Text>
-                <Text style={styles.cardSub}>Get moving with BYKE</Text>
+
+          {!otpSent ? (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Mobile Number</Text>
                 <View style={styles.phoneRow}>
-                  <Text style={styles.cc}>+91</Text>
-                  <View style={styles.divider} />
-                  <TextInput style={styles.phoneInput} placeholder="Enter Mobile Number" placeholderTextColor="#9CA3AF" keyboardType="number-pad" maxLength={10} value={phone} onChangeText={setPhone} />
+                  <Text style={styles.countryCode}>+91</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Enter 10-digit number" 
+                    placeholderTextColor="#9CA3AF" 
+                    keyboardType="number-pad" 
+                    maxLength={10} 
+                    value={phone} 
+                    onChangeText={setPhone} 
+                  />
                 </View>
-                <TouchableOpacity onPress={sendOTP} disabled={loading} style={[styles.btn, loading && { opacity: 0.6 }]}>
-                  {loading ? <ActivityIndicator color="black" /> : <Text style={styles.btnText}>PROCEED</Text>}
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={styles.cardTitle}>Verify OTP</Text>
-                <Text style={styles.cardSub}>Sent to +91 {phone}</Text>
-                <TouchableOpacity activeOpacity={1} onPress={() => otpInputRef.current?.focus()} style={styles.otpGrid}>
+              </View>
+              <TouchableOpacity onPress={sendOTP} disabled={loading} style={[styles.button, loading && { opacity: 0.5 }]}>
+                {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Send OTP</Text>}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Enter 6-Digit Code</Text>
+                <TouchableOpacity activeOpacity={1} onPress={() => otpInputRef.current?.focus()} style={styles.otpContainer}>
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <View key={i} style={[styles.otpBox, otp[i] ? styles.otpFilled : null]}>
-                      <Text style={styles.otpChar}>{otp[i] ?? ''}</Text>
+                    <View key={i} style={[styles.otpBox, otp[i] ? styles.otpBoxFilled : null]}>
+                      <Text style={styles.otpText}>{otp[i] ?? ''}</Text>
                     </View>
                   ))}
                 </TouchableOpacity>
-                <TextInput ref={otpInputRef} style={styles.hidden} value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6} autoFocus />
-                <TouchableOpacity onPress={verifyOTP} disabled={loading} style={[styles.btn, loading && { opacity: 0.6 }]}>
-                  {loading ? <ActivityIndicator color="black" /> : <Text style={styles.btnText}>VERIFY & LOGIN</Text>}
-                </TouchableOpacity>
-                <TouchableOpacity onPress={sendOTP} style={styles.resend}>
-                  <Text style={styles.resendText}>Resend OTP</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+                <TextInput ref={otpInputRef} style={styles.hiddenInput} value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6} autoFocus />
+              </View>
+              
+              <TouchableOpacity onPress={verifyOTP} disabled={loading} style={[styles.button, loading && { opacity: 0.5 }]}>
+                {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Verify & Continue</Text>}
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={sendOTP} style={styles.resendButton}>
+                <Text style={styles.resendText}>Didn't receive code? <Text style={styles.resendLink}>Resend</Text></Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -122,29 +134,27 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAFA' },
-  content: { flex: 1, paddingHorizontal: 28, justifyContent: 'center' },
-  backBtn: { position: 'absolute', top: 16, left: 0, padding: 8, zIndex: 10 },
-  brand: { alignItems: 'center', marginBottom: 40 },
-  logoBox: { width: 90, height: 90, borderRadius: 30, backgroundColor: '#EAB308', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#EAB308', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
-  appName: { fontSize: 42, fontWeight: '900', color: 'black', letterSpacing: -1 },
-  tagline: { fontSize: 14, color: '#6B7280', fontWeight: '600', marginTop: 4 },
-  card: { backgroundColor: 'white', borderRadius: 32, padding: 28, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 6 },
-  cardTitle: { fontSize: 22, fontWeight: '900', color: 'black', marginBottom: 4 },
-  cardSub: { fontSize: 14, color: '#9CA3AF', fontWeight: '600', marginBottom: 24 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 20 },
-  cc: { fontSize: 16, fontWeight: '900', color: '#374151', paddingHorizontal: 16, paddingVertical: 18 },
-  divider: { width: 1, height: 28, backgroundColor: '#E5E7EB' },
-  phoneInput: { flex: 1, fontSize: 16, fontWeight: '700', color: 'black', paddingHorizontal: 16, paddingVertical: 18 },
-  btn: { backgroundColor: '#EAB308', borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-  btnText: { fontSize: 16, fontWeight: '900', color: 'black', letterSpacing: 1 },
-  otpGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
-  otpBox: { width: 44, height: 56, borderRadius: 12, borderWidth: 2, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' },
-  otpFilled: { borderColor: '#EAB308', backgroundColor: '#FFFBEB' },
-  otpChar: { fontSize: 22, fontWeight: '900', color: 'black' },
-  hidden: { position: 'absolute', opacity: 0 },
-  resend: { alignItems: 'center', marginTop: 16 },
-  resendText: { fontSize: 14, color: '#6B7280', fontWeight: '700' },
+  container: { flex: 1, backgroundColor: 'white' },
+  content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center', paddingBottom: 40 },
+  backBtn: { position: 'absolute', top: 20, left: 24, zIndex: 10 },
+  header: { marginBottom: 48 },
+  title: { fontSize: 32, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#6B7280', lineHeight: 24 },
+  inputContainer: { marginBottom: 32 },
+  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, backgroundColor: '#F9FAFB' },
+  countryCode: { fontSize: 16, fontWeight: '600', color: '#111827', paddingLeft: 16, paddingRight: 12 },
+  input: { flex: 1, fontSize: 16, color: '#111827', paddingVertical: 16, paddingRight: 16 },
+  button: { backgroundColor: '#111827', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
+  buttonText: { fontSize: 16, fontWeight: '600', color: 'white' },
+  otpContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  otpBox: { width: 48, height: 56, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
+  otpBoxFilled: { borderColor: '#111827', backgroundColor: 'white' },
+  otpText: { fontSize: 24, fontWeight: '600', color: '#111827' },
+  hiddenInput: { position: 'absolute', opacity: 0 },
+  resendButton: { alignItems: 'center', marginTop: 24 },
+  resendText: { fontSize: 14, color: '#6B7280' },
+  resendLink: { color: '#111827', fontWeight: '600' },
 });
 
 export default LoginScreen;

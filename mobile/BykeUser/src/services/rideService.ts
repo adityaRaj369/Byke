@@ -12,7 +12,8 @@ export interface RideRequest {
     address: string;
   };
   vehicleType: string;
-  maxFare: number;
+  maxFare?: number;
+  userEnteredAmount?: number;
   distanceKm: number;
 }
 
@@ -65,6 +66,7 @@ export const createRideRequest = async (request: RideRequest): Promise<{ rideId:
       dropAddress: request.dropLocation.address,
       vehicleType: request.vehicleType,
       maxFare: request.maxFare,
+      userEnteredAmount: request.userEnteredAmount,
       distanceKm: request.distanceKm,
     });
     return response.data;

@@ -25,33 +25,44 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
   const fetchAvailableBookings = async () => {
     setLoading(true);
     try {
-      // Mock available bookings - in real app, fetch from backend
-      const mockBookings = [
-        {
-          id: '1',
-          type: 'ride',
-          status: 'bidding',
-          pickupLocation: { address: 'Connaught Place, Delhi', latitude: 28.6315, longitude: 77.2167 },
-          dropLocation: { address: 'India Gate, Delhi', latitude: 28.6129, longitude: 77.2295 },
-          estimatedFare: 120,
-          user: { id: '1', name: 'Rahul Sharma', phone: '+919876543210' },
-          createdAt: new Date().toISOString(),
+      // Fetch real bookings from backend
+      const response = await api.get('/bookings/available', {
+        params: {
+          latitude: 28.6139,
+          longitude: 77.2090,
+          radius: 50.0
+        }
+      });
+      
+      // Transform backend data to match app format
+      const bookings = response.data.map((booking: any) => ({
+        id: String(booking.id),
+        type: booking.serviceType?.toLowerCase() || 'ride',
+        status: booking.status?.toLowerCase() || 'bidding',
+        pickupLocation: {
+          address: booking.pickupAddress,
+          latitude: booking.pickupLatitude,
+          longitude: booking.pickupLongitude
         },
-        {
-          id: '2',
-          type: 'errand',
-          status: 'bidding',
-          pickupLocation: { address: 'Khan Market, Delhi', latitude: 28.5984, longitude: 77.2319 },
-          dropLocation: { address: 'Lajpat Nagar, Delhi', latitude: 28.5677, longitude: 77.2431 },
-          description: 'Buy groceries from Big Bazaar',
-          estimatedFare: 80,
-          user: { id: '2', name: 'Priya Singh', phone: '+919876543211' },
-          createdAt: new Date().toISOString(),
+        dropLocation: {
+          address: booking.dropAddress,
+          latitude: booking.dropLatitude,
+          longitude: booking.dropLongitude
         },
-      ];
-      dispatch(setAvailableBookings(mockBookings as any));
-    } catch (error) {
+        description: booking.errandDescription || booking.parcelDescription,
+        estimatedFare: booking.estimatedFare || 100,
+        user: {
+          id: String(booking.user?.id || ''),
+          name: booking.user?.fullName || 'User',
+          phone: booking.user?.mobileNumber || ''
+        },
+        createdAt: booking.createdAt || new Date().toISOString(),
+      }));
+      
+      dispatch(setAvailableBookings(bookings));
+    } catch (error: any) {
       console.log('Error fetching bookings:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to fetch available bookings');
     } finally {
       setLoading(false);
     }

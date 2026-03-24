@@ -1,14 +1,16 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config/env';
 
-const API_BASE_URL = 'http://51.21.190.61:8080/api';
-
+// Note: In production, use proper SSL certificates. This is only for development.
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
+  // For development - ignore SSL certificate errors
+  // Remove this in production and use proper HTTPS
 });
 
 api.interceptors.request.use(
@@ -28,7 +30,6 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Handle token expiry
       await AsyncStorage.removeItem('riderToken');
     }
     return Promise.reject(error);

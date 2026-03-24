@@ -10,11 +10,16 @@ const QUICK_INCREMENTS = [10, 20, 30];
 const SetPriceScreen = ({ navigation, route }: any) => {
   const { pickup, drop, distanceKm, pickupCoords, dropCoords, vehicle } = route.params;
   
+  // Safely get vehicle label
+  const vehicleLabel = vehicle?.label || vehicle?.name || 'Auto';
+  const vehicleType = vehicle?.type || vehicle?.id || 'auto';
+  
   const baseFare = Math.round(BASE_FARE_PER_KM * distanceKm);
   const [userAmount, setUserAmount] = useState(baseFare);
   const [manualInput, setManualInput] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   const handleQuickIncrement = (amount: number) => {
     setUserAmount(prev => prev + amount);
@@ -44,8 +49,10 @@ const SetPriceScreen = ({ navigation, route }: any) => {
     }
 
     try {
+      if (pressed) return; // prevent double press
+      setPressed(true);
       setLoading(true);
-      const { rideId } = await createRideRequest({
+      const result = await createRideRequest({
         pickupLocation: {
           latitude: pickupCoords.latitude,
           longitude: pickupCoords.longitude,
@@ -56,20 +63,39 @@ const SetPriceScreen = ({ navigation, route }: any) => {
           longitude: dropCoords.longitude,
           address: drop,
         },
-        vehicleType: vehicle.label,
+        vehicleType: vehicleLabel,
         userEnteredAmount: userAmount,
         distanceKm,
       });
 
-      navigation.navigate('UserBids', {
-        rideId,
-        from: pickup,
-        to: drop,
-        userAmount,
-        vehicleType: vehicle.label,
-        distanceKm,
-      });
+      console.log('createRideRequest result:', result);
+      const rideId = result?.rideId ?? null;
+      if (!rideId) {
+        console.error('Booking created but no rideId returned', result);
+        Alert.alert('Error', 'Booking created but server did not return booking id');
+        setPressed(false);
+        return;
+      }
+
+      // small delay to avoid potential navigation race conditions
+      try {
+        await new Promise((res) => setTimeout(res, 200));
+        navigation.navigate('UserBids', {
+          rideId: String(rideId),
+          from: pickup,
+          to: drop,
+          maxFare: userAmount,
+          vehicleType: vehicleLabel,
+          distanceKm,
+        });
+      } catch (navError) {
+        console.error('Navigation error to UserBids:', navError);
+        Alert.alert('Error', 'Unable to proceed to bids screen');
+      } finally {
+        setPressed(false);
+      }
     } catch (error: any) {
+      console.error('Create ride failed:', error);
       Alert.alert('Error', error.message || 'Failed to create ride request');
     } finally {
       setLoading(false);

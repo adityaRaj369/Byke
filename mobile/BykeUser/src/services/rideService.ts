@@ -57,22 +57,41 @@ export interface Ride {
 
 export const createRideRequest = async (request: RideRequest): Promise<{ rideId: string }> => {
   try {
-    const response = await api.post('/rides/request', {
+    // Backend expects BookingRequest at POST /api/bookings
+    const response = await api.post('/bookings', {
+      serviceType: 'RIDE',
+      vehicleType: request.vehicleType,
+      pickupAddress: request.pickupLocation.address,
       pickupLatitude: request.pickupLocation.latitude,
       pickupLongitude: request.pickupLocation.longitude,
-      pickupAddress: request.pickupLocation.address,
+      dropAddress: request.dropLocation.address,
       dropLatitude: request.dropLocation.latitude,
       dropLongitude: request.dropLocation.longitude,
-      dropAddress: request.dropLocation.address,
-      vehicleType: request.vehicleType,
-      maxFare: request.maxFare,
+      description: '',
+      estimatedBudget: request.userEnteredAmount ?? null,
+      estimatedDistance: request.distanceKm,
       userEnteredAmount: request.userEnteredAmount,
-      distanceKm: request.distanceKm,
     });
-    return response.data;
+
+    // Validate response
+    if (!response || !response.data) {
+      console.error('Invalid response from booking API', response);
+      throw new Error('Invalid response from server when creating booking');
+    }
+
+    const bookingId = response.data.id ?? response.data.bookingId ?? response.data.rideId;
+    if (!bookingId) {
+      console.error('Booking API did not return id:', response.data);
+      throw new Error(response.data?.message || 'Booking created but no id returned');
+    }
+
+    // BookingController returns created Booking object; return its id as rideId
+    return { rideId: String(bookingId) };
   } catch (error: any) {
-    console.error('Error creating ride request:', error);
-    throw new Error(error.response?.data?.message || 'Failed to create ride request');
+    console.error('Error creating ride request:', error?.response?.data || error.message || error);
+    // Surface backend message if available
+    const msg = error?.response?.data?.message || error?.message || 'Failed to create ride request';
+    throw new Error(msg);
   }
 };
 

@@ -114,7 +114,22 @@ const BidItem: React.FC<BidItemProps> = ({ item, onAccept, isNew, disabled }) =>
 export default function BidsScreen() {
   const route = useRoute<BidsScreenRouteProp>();
   const navigation = useNavigation<BidsScreenNavigationProp>();
-  const { rideId, from, to, maxFare, vehicleType, distanceKm } = route.params;
+  const rideId = route.params?.rideId ?? null;
+  const from = route.params?.from ?? '';
+  const to = route.params?.to ?? '';
+  const maxFare = route.params?.maxFare ?? 0;
+  const vehicleType = route.params?.vehicleType ?? '';
+  const distanceKm = route.params?.distanceKm ?? 0;
+
+  // If rideId is missing, don't attempt to load bids or join websocket room — show safe fallback
+  if (!rideId) {
+    console.error('BidsScreen opened without rideId:', route.params);
+    return (
+      <View className="flex-1 items-center justify-center bg-white">
+        <Text className="text-gray-700">Invalid booking. Please try again.</Text>
+      </View>
+    );
+  }
   const { token } = useSelector((state: RootState) => state.auth);
 
   const [bids, setBids] = useState<Bid[]>([]);
@@ -124,6 +139,7 @@ export default function BidsScreen() {
   const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
+    if (!rideId) return;
     loadBids();
     setupWebSocket();
 

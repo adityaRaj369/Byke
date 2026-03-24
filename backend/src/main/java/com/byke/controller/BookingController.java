@@ -64,6 +64,18 @@ public class BookingController {
         }
     }
 
+    @GetMapping("/available")
+    public ResponseEntity<?> getAvailableBookings(@RequestParam(required = false) Double latitude,
+                                                   @RequestParam(required = false) Double longitude,
+                                                   @RequestParam(defaultValue = "50.0") Double radius) {
+        try {
+            List<Booking> bookings = bookingService.getAvailableBookings(latitude, longitude, radius);
+            return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateBookingStatus(@PathVariable Long id, @RequestParam BookingStatus status) {
         try {

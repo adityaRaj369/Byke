@@ -226,6 +226,35 @@ public class BookingService {
         return savedBooking;
     }
 
+    public List<Booking> getAvailableBookings(Double latitude, Double longitude, Double radius) {
+        List<Booking> allBiddingBookings = bookingRepository.findByStatus(BookingStatus.BIDDING);
+        
+        if (latitude == null || longitude == null) {
+            return allBiddingBookings;
+        }
+        
+        return allBiddingBookings.stream()
+                .filter(booking -> {
+                    double distance = calculateDistance(
+                            latitude, longitude,
+                            booking.getPickupLatitude(), booking.getPickupLongitude()
+                    );
+                    return distance <= radius;
+                })
+                .toList();
+    }
+
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371;
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
     private Double calculateEstimatedFare(ServiceType serviceType, Double distance) {
         double baseFare = 40.0;
         double perKmRate = 10.0;

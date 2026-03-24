@@ -1,36 +1,54 @@
 {
   "project_info": {
-    "project_number": "123456789",
-    "project_id": "byke-app-demo",
-    "storage_bucket": "byke-app-demo.appspot.com"
+    "project_number": "411394964373",
+    "project_id": "byke-app-31cb3",
+    "storage_bucket": "byke-app-31cb3.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789:android:fedcba654321",
+        "mobilesdk_app_id": "1:411394964373:android:7e066f33474207c0ac149c",
         "android_client_info": {
           "package_name": "com.bykerider"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "123456789-fedcba.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDemoKeyForBykeRiderApp987654321"
+          "current_key": "AIzaSyB310m_HtNGQYcwAAqpfH_rvNs3aKpCERI"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "123456789-fedcba.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:411394964373:android:c0ce085c17ee7d8bac149c",
+        "android_client_info": {
+          "package_name": "com.bykeuser"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "411394964373-1oqdbe439aomgjuk6dmadaui9g14n0vv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bykeuser",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB310m_HtNGQYcwAAqpfH_rvNs3aKpCERI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
         }
       }
     }

@@ -15,6 +15,9 @@ import ChatScreen from '../features/user/screens/ChatScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import BookingScreen from '../screens/BookingScreen';
+import BidSelectionScreen from '../screens/BidSelectionScreen';
+import ActiveBookingScreen from '../screens/ActiveBookingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +33,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Register" component={RegisterScreen} />
         ) : (
           <>
+            <Stack.Screen name="Home" component={UserHomeScreen} />
             <Stack.Screen name="UserHome" component={UserHomeScreen} />
             <Stack.Screen name="SelectRide" component={SelectRideScreen} />
             <Stack.Screen name="SetPrice" component={SetPriceScreen} />
@@ -39,6 +43,9 @@ const AppNavigator = () => {
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="Booking" component={BookingScreen} options={{ headerShown: true, title: 'Book Service' }} />
+            <Stack.Screen name="BidSelection" component={BidSelectionScreen} options={{ headerShown: true, title: 'Select Rider' }} />
+            <Stack.Screen name="ActiveBooking" component={ActiveBookingScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

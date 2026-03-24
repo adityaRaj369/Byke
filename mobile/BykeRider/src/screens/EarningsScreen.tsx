@@ -33,11 +33,17 @@ const EarningsScreen = ({ navigation }: any) => {
   const fetchEarnings = async () => {
     setLoading(true);
     try {
-      // In real app: const response = await api.get('/rider/earnings');
-      // setEarnings(response.data);
-      setTimeout(() => setLoading(false), 800);
+      const response = await api.get('/rider/stats');
+      setEarnings({
+        today: response.data.earningsToday || 0,
+        week: response.data.earningsWeek || 0,
+        month: response.data.earningsMonth || 0,
+        trips: response.data.totalRides || 0,
+        rating: response.data.averageRating || 0
+      });
     } catch (error) {
       console.log('Error fetching earnings:', error);
+    } finally {
       setLoading(false);
     }
   };

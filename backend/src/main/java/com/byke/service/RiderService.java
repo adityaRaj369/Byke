@@ -1,7 +1,10 @@
 package com.byke.service;
 
 import com.byke.model.entity.Booking;
+import com.byke.model.entity.Rider;
+import com.byke.model.entity.User;
 import com.byke.model.enums.BookingStatus;
+import com.byke.model.enums.RiderStatus;
 import com.byke.repository.BookingRepository;
 import com.byke.repository.RiderRepository;
 import lombok.RequiredArgsConstructor;
@@ -191,17 +194,17 @@ public class RiderService {
 
         double earningsToday = completedBookings.stream()
                 .filter(b -> b.getUpdatedAt().isAfter(startOfDay))
-                .mapToDouble(b -> b.getFinalPrice() != null ? b.getFinalPrice() : 0.0)
+                .mapToDouble(b -> b.getFinalFare() != null ? b.getFinalFare() : 0.0)
                 .sum();
 
         double earningsWeek = completedBookings.stream()
                 .filter(b -> b.getUpdatedAt().isAfter(startOfWeek))
-                .mapToDouble(b -> b.getFinalPrice() != null ? b.getFinalPrice() : 0.0)
+                .mapToDouble(b -> b.getFinalFare() != null ? b.getFinalFare() : 0.0)
                 .sum();
 
         double earningsMonth = completedBookings.stream()
                 .filter(b -> b.getUpdatedAt().isAfter(startOfMonth))
-                .mapToDouble(b -> b.getFinalPrice() != null ? b.getFinalPrice() : 0.0)
+                .mapToDouble(b -> b.getFinalFare() != null ? b.getFinalFare() : 0.0)
                 .sum();
 
         Map<String, Object> stats = new HashMap<>();

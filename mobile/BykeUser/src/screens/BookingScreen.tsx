@@ -76,7 +76,7 @@ const BookingScreen = ({ route, navigation }: any) => {
 
       dispatch(createBooking(booking));
       
-      navigation.navigate('Bidding', { bookingId: booking.id });
+      navigation.navigate('BidSelection', { bookingId: booking.id });
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to create booking');
     } finally {

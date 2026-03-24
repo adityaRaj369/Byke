@@ -74,7 +74,7 @@ const MyBidsScreen = ({ navigation }: any) => {
         style={styles.bidCard}
         onPress={() => {
           if (item.status === 'ACCEPTED') {
-            navigation.navigate('Tracking', { bookingId: item.booking.id });
+            navigation.navigate('RideTracking', { bookingId: item.booking.id });
           }
         }}
       >

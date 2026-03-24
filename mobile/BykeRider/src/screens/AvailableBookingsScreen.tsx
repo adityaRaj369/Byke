@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
+import Geolocation from 'react-native-geolocation-service';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { setAvailableBookings, addBid } from '../store/slices/riderSlice';
@@ -29,19 +30,54 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [bidAmount, setBidAmount] = useState('');
+  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const { availableBookings } = useSelector((state: RootState) => state.rider) as any;
   const mapRef = useRef<MapView>(null);
 
   const currentBooking = availableBookings[currentIndex];
 
-  const fetchAvailableBookings = async () => {
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      if (Platform.OS === 'ios') {
+        const auth = await Geolocation.requestAuthorization('whenInUse');
+        if (auth === 'granted') {
+          getCurrentLocation();
+        }
+      } else {
+        getCurrentLocation();
+      }
+    };
+
+    requestLocationPermission();
+  }, []);
+
+  const getCurrentLocation = () => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ latitude, longitude });
+        fetchAvailableBookings(latitude, longitude);
+      },
+      (error) => {
+        console.log('Location Error:', error);
+        // Fallback to a default location if needed, or show error
+        fetchAvailableBookings(28.6139, 77.2090);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  };
+
+  const fetchAvailableBookings = async (lat?: number, lng?: number) => {
+    const latitude = lat || currentLocation?.latitude || 28.6139;
+    const longitude = lng || currentLocation?.longitude || 77.2090;
+
     setLoading(true);
     try {
       const response = await api.get('/bookings/available', {
         params: {
-          latitude: 28.6139, // In real app, use current location
-          longitude: 77.2090,
-          radius: 3.0 // 3km radius as requested
+          latitude,
+          longitude,
+          radius: 3.0
         }
       });
       
@@ -80,10 +116,6 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAvailableBookings();
-  }, []);
 
   useEffect(() => {
     if (currentBooking && mapRef.current) {
@@ -179,7 +211,7 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
           </View>
           <Text style={styles.emptyTitle}>All caught up!</Text>
           <Text style={styles.emptySubtitle}>No new requests within 3km. Stay online to get notified of new orders.</Text>
-          <TouchableOpacity onPress={fetchAvailableBookings} style={styles.refreshBtn}>
+          <TouchableOpacity onPress={() => fetchAvailableBookings()} style={styles.refreshBtn}>
             <Text style={styles.refreshText}>Refresh</Text>
           </TouchableOpacity>
         </View>

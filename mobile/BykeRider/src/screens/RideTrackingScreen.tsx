@@ -1,0 +1,621 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Dimensions,
+  Platform,
+  Linking,
+} from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapViewDirections from 'react-native-maps-directions';
+import Geolocation from 'react-native-geolocation-service';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import api from '../config/api';
+import { GOOGLE_PLACES_API_KEY } from '../config/env';
+import { 
+  Navigation, Phone, CheckCircle, MapPin, 
+  Clock, DollarSign, User, AlertCircle 
+} from 'lucide-react-native';
+
+const { width, height } = Dimensions.get('window');
+
+interface Booking {
+  id: number;
+  pickupAddress: string;
+  pickupLatitude: number;
+  pickupLongitude: number;
+  dropAddress: string;
+  dropLatitude: number;
+  dropLongitude: number;
+  user: {
+    fullName: string;
+    mobileNumber: string;
+  };
+  verificationOtp: string;
+  status: string;
+  finalFare?: number;
+  estimatedFare: number;
+}
+
+const RideTrackingScreen = () => {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { bookingId } = route.params as { bookingId: number };
+  
+  const mapRef = useRef<MapView>(null);
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [currentLocation, setCurrentLocation] = useState({
+    latitude: 28.6139,
+    longitude: 77.2090,
+  });
+  const [otp, setOtp] = useState('');
+  const [rideStatus, setRideStatus] = useState<'ACCEPTED' | 'RIDER_ARRIVED' | 'IN_PROGRESS' | 'COMPLETED'>('ACCEPTED');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchBookingDetails();
+    startLocationTracking();
+    const interval = setInterval(fetchBookingDetails, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (booking && mapRef.current) {
+      const coordinates = [
+        currentLocation,
+        rideStatus === 'ACCEPTED' || rideStatus === 'RIDER_ARRIVED'
+          ? { latitude: booking.pickupLatitude, longitude: booking.pickupLongitude }
+          : { latitude: booking.dropLatitude, longitude: booking.dropLongitude }
+      ];
+      
+      mapRef.current.fitToCoordinates(coordinates, {
+        edgePadding: { top: 100, right: 50, bottom: 300, left: 50 },
+        animated: true,
+      });
+    }
+  }, [booking, currentLocation, rideStatus]);
+
+  const startLocationTracking = () => {
+    Geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ latitude, longitude });
+        
+        api.patch('/rider/location', null, {
+          params: { latitude, longitude }
+        }).catch(console.log);
+      },
+      (error) => console.log('Location error:', error),
+      { enableHighAccuracy: true, distanceFilter: 10, interval: 5000 }
+    );
+  };
+
+  const fetchBookingDetails = async () => {
+    try {
+      const response = await api.get(`/bookings/${bookingId}`);
+      setBooking(response.data);
+      setRideStatus(response.data.status);
+    } catch (error) {
+      console.log('Error fetching booking:', error);
+    }
+  };
+
+  const handleArrived = async () => {
+    try {
+      setLoading(true);
+      await api.patch(`/bookings/${bookingId}/status`, null, {
+        params: { status: 'RIDER_ARRIVED' }
+      });
+      setRideStatus('RIDER_ARRIVED');
+      Alert.alert('Success', 'User has been notified of your arrival');
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.post('/bids/verify-otp', null, {
+        params: { bookingId, otp }
+      });
+      setRideStatus('IN_PROGRESS');
+      Alert.alert('Ride Started', 'Navigate to drop location');
+    } catch (error: any) {
+      Alert.alert('Invalid OTP', error.response?.data?.message || 'Please check the OTP and try again');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteRide = async () => {
+    Alert.alert(
+      'Complete Ride',
+      'Have you reached the drop location?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await api.patch(`/bookings/${bookingId}/status`, null, {
+                params: { status: 'COMPLETED' }
+              });
+              Alert.alert('Success', 'Ride completed successfully!', [
+                { text: 'OK', onPress: () => navigation.goBack() }
+              ]);
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to complete ride');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCallUser = () => {
+    if (booking?.user?.mobileNumber) {
+      Linking.openURL(`tel:${booking.user.mobileNumber}`);
+    }
+  };
+
+  if (!booking) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading booking details...</Text>
+      </View>
+    );
+  }
+
+  const destination = rideStatus === 'ACCEPTED' || rideStatus === 'RIDER_ARRIVED'
+    ? { latitude: booking.pickupLatitude, longitude: booking.pickupLongitude }
+    : { latitude: booking.dropLatitude, longitude: booking.dropLongitude };
+
+  return (
+    <View style={styles.container}>
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
+        style={styles.map}
+        initialRegion={{
+          ...currentLocation,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+        showsUserLocation
+        showsMyLocationButton={false}
+      >
+        <Marker coordinate={currentLocation} title="Your Location">
+          <View style={styles.riderMarker}>
+            <Navigation size={20} color="white" fill="white" />
+          </View>
+        </Marker>
+
+        {(rideStatus === 'ACCEPTED' || rideStatus === 'RIDER_ARRIVED') && (
+          <Marker
+            coordinate={{ latitude: booking.pickupLatitude, longitude: booking.pickupLongitude }}
+            title="Pickup Location"
+          >
+            <View style={styles.pickupMarker}>
+              <MapPin size={24} color="white" fill="#3B82F6" />
+            </View>
+          </Marker>
+        )}
+
+        {rideStatus === 'IN_PROGRESS' && (
+          <Marker
+            coordinate={{ latitude: booking.dropLatitude, longitude: booking.dropLongitude }}
+            title="Drop Location"
+          >
+            <View style={styles.dropMarker}>
+              <MapPin size={24} color="white" fill="#EF4444" />
+            </View>
+          </Marker>
+        )}
+
+        <MapViewDirections
+          origin={currentLocation}
+          destination={destination}
+          apikey={GOOGLE_PLACES_API_KEY}
+          strokeWidth={4}
+          strokeColor="#3B82F6"
+          onError={(error) => console.log('Directions error:', error)}
+        />
+      </MapView>
+
+      <View style={styles.bottomSheet}>
+        <View style={styles.statusBadge}>
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
+          <Text style={styles.statusText}>{getStatusText()}</Text>
+        </View>
+
+        <View style={styles.userCard}>
+          <View style={styles.userAvatar}>
+            <User size={24} color="#3B82F6" />
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{booking.user.fullName}</Text>
+            <Text style={styles.userPhone}>{booking.user.mobileNumber}</Text>
+          </View>
+          <TouchableOpacity style={styles.callBtn} onPress={handleCallUser}>
+            <Phone size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.locationCard}>
+          <View style={styles.locationRow}>
+            <View style={styles.locationDot} />
+            <View style={styles.locationDetails}>
+              <Text style={styles.locationLabel}>Pickup</Text>
+              <Text style={styles.locationAddress}>{booking.pickupAddress}</Text>
+            </View>
+          </View>
+          {booking.dropAddress && (
+            <View style={styles.locationRow}>
+              <View style={[styles.locationDot, { backgroundColor: '#EF4444' }]} />
+              <View style={styles.locationDetails}>
+                <Text style={styles.locationLabel}>Drop</Text>
+                <Text style={styles.locationAddress}>{booking.dropAddress}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {rideStatus === 'ACCEPTED' && (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
+            onPress={handleArrived}
+            disabled={loading}
+          >
+            <CheckCircle size={20} color="white" />
+            <Text style={styles.actionBtnText}>I've Arrived</Text>
+          </TouchableOpacity>
+        )}
+
+        {rideStatus === 'RIDER_ARRIVED' && (
+          <View style={styles.otpContainer}>
+            <Text style={styles.otpLabel}>Enter OTP from User</Text>
+            <View style={styles.otpInputRow}>
+              <TextInput
+                style={styles.otpInput}
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={4}
+                placeholder="0000"
+                placeholderTextColor="#9CA3AF"
+              />
+              <TouchableOpacity
+                style={styles.verifyBtn}
+                onPress={handleVerifyOtp}
+                disabled={loading || otp.length !== 4}
+              >
+                <Text style={styles.verifyBtnText}>Verify & Start</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.otpHint}>
+              <AlertCircle size={14} color="#6B7280" />
+              <Text style={styles.otpHintText}>Ask the user for the 4-digit OTP</Text>
+            </View>
+          </View>
+        )}
+
+        {rideStatus === 'IN_PROGRESS' && (
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
+            onPress={handleCompleteRide}
+            disabled={loading}
+          >
+            <CheckCircle size={20} color="white" />
+            <Text style={styles.actionBtnText}>Complete Ride</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.fareCard}>
+          <DollarSign size={18} color="#10B981" />
+          <Text style={styles.fareLabel}>Fare Amount</Text>
+          <Text style={styles.fareAmount}>₹{booking.finalFare || booking.estimatedFare}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  function getStatusColor() {
+    switch (rideStatus) {
+      case 'ACCEPTED': return '#3B82F6';
+      case 'RIDER_ARRIVED': return '#F59E0B';
+      case 'IN_PROGRESS': return '#10B981';
+      case 'COMPLETED': return '#6B7280';
+      default: return '#6B7280';
+    }
+  }
+
+  function getStatusText() {
+    switch (rideStatus) {
+      case 'ACCEPTED': return 'Navigate to Pickup';
+      case 'RIDER_ARRIVED': return 'Waiting for User';
+      case 'IN_PROGRESS': return 'Ride in Progress';
+      case 'COMPLETED': return 'Ride Completed';
+      default: return 'Unknown';
+    }
+  }
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  map: {
+    flex: 1,
+  },
+  riderMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pickupMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  dropMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 16,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#000',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  userAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#000',
+    marginBottom: 4,
+  },
+  userPhone: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  callBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  locationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3B82F6',
+    marginTop: 4,
+    marginRight: 12,
+  },
+  locationDetails: {
+    flex: 1,
+  },
+  locationLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  locationAddress: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+    lineHeight: 20,
+  },
+  otpContainer: {
+    marginBottom: 16,
+  },
+  otpLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#000',
+    marginBottom: 12,
+  },
+  otpInputRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  otpInput: {
+    flex: 1,
+    height: 56,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#000',
+    textAlign: 'center',
+    letterSpacing: 8,
+  },
+  verifyBtn: {
+    paddingHorizontal: 24,
+    height: 56,
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyBtnText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  otpHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+  },
+  otpHintText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: 16,
+    marginBottom: 16,
+    gap: 8,
+  },
+  actionBtnText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  fareCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    padding: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  fareLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  fareAmount: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#166534',
+  },
+});
+
+export default RideTrackingScreen;

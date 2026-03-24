@@ -97,4 +97,56 @@ public class Rider {
     
     @LastModifiedDate
     private LocalDateTime updatedAt;
+    
+    // Explicit getters and setters to fix Lombok issues
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+    
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    
+    public String getHomeAddress() { return homeAddress; }
+    public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+    
+    public String getVehicleType() { return vehicleType; }
+    public void setVehicleType(String vehicleType) { this.vehicleType = vehicleType; }
+    
+    public String getVehicleMake() { return vehicleMake; }
+    public void setVehicleMake(String vehicleMake) { this.vehicleMake = vehicleMake; }
+    
+    public String getVehicleModel() { return vehicleModel; }
+    public void setVehicleModel(String vehicleModel) { this.vehicleModel = vehicleModel; }
+    
+    public Integer getVehicleYear() { return vehicleYear; }
+    public void setVehicleYear(Integer vehicleYear) { this.vehicleYear = vehicleYear; }
+    
+    public String getVehicleRegistrationNumber() { return vehicleRegistrationNumber; }
+    public void setVehicleRegistrationNumber(String vehicleRegistrationNumber) { this.vehicleRegistrationNumber = vehicleRegistrationNumber; }
+    
+    public String getVehicleColor() { return vehicleColor; }
+    public void setVehicleColor(String vehicleColor) { this.vehicleColor = vehicleColor; }
+    
+    public String getBankAccountNumber() { return bankAccountNumber; }
+    public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
+    
+    public String getBankIfscCode() { return bankIfscCode; }
+    public void setBankIfscCode(String bankIfscCode) { this.bankIfscCode = bankIfscCode; }
+    
+    public RiderStatus getStatus() { return status; }
+    public void setStatus(RiderStatus status) { this.status = status; }
+    
+    public Integer getTotalRides() { return totalRides; }
+    public void setTotalRides(Integer totalRides) { this.totalRides = totalRides; }
+    
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+    
+    public Double getAcceptanceRate() { return acceptanceRate; }
+    public void setAcceptanceRate(Double acceptanceRate) { this.acceptanceRate = acceptanceRate; }
 }

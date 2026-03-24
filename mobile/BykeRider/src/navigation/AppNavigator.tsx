@@ -14,6 +14,7 @@ import EarningsScreen from '../screens/EarningsScreen';
 import DocumentsScreen from '../screens/DocumentsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import RideTrackingScreen from '../screens/RideTrackingScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -97,6 +98,11 @@ const AppNavigator = () => {
             <Stack.Screen 
               name="Notifications" 
               component={NotificationsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="RideTracking" 
+              component={RideTrackingScreen}
               options={{ headerShown: false }}
             />
           </>

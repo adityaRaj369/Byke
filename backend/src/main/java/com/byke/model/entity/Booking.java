@@ -107,4 +107,68 @@ public class Booking {
     
     @LastModifiedDate
     private LocalDateTime updatedAt;
+    
+    // Explicit getters and setters to fix Lombok issues
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    
+    public Rider getRider() { return rider; }
+    public void setRider(Rider rider) { this.rider = rider; }
+    
+    public BookingStatus getStatus() { return status; }
+    public void setStatus(BookingStatus status) { this.status = status; }
+    
+    public ServiceType getServiceType() { return serviceType; }
+    public void setServiceType(ServiceType serviceType) { this.serviceType = serviceType; }
+    
+    public Double getPickupLatitude() { return pickupLatitude; }
+    public void setPickupLatitude(Double pickupLatitude) { this.pickupLatitude = pickupLatitude; }
+    
+    public Double getPickupLongitude() { return pickupLongitude; }
+    public void setPickupLongitude(Double pickupLongitude) { this.pickupLongitude = pickupLongitude; }
+    
+    public String getPickupAddress() { return pickupAddress; }
+    public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
+    
+    public String getDropAddress() { return dropAddress; }
+    public void setDropAddress(String dropAddress) { this.dropAddress = dropAddress; }
+    
+    public Double getDropLatitude() { return dropLatitude; }
+    public void setDropLatitude(Double dropLatitude) { this.dropLatitude = dropLatitude; }
+    
+    public Double getDropLongitude() { return dropLongitude; }
+    public void setDropLongitude(Double dropLongitude) { this.dropLongitude = dropLongitude; }
+    
+    public Double getEstimatedFare() { return estimatedFare; }
+    public void setEstimatedFare(Double estimatedFare) { this.estimatedFare = estimatedFare; }
+    
+    public Double getFinalFare() { return finalFare; }
+    public void setFinalFare(Double finalFare) { this.finalFare = finalFare; }
+    
+    public Double getUserEnteredAmount() { return userEnteredAmount; }
+    public void setUserEnteredAmount(Double userEnteredAmount) { this.userEnteredAmount = userEnteredAmount; }
+    
+    public String getVerificationOtp() { return verificationOtp; }
+    public void setVerificationOtp(String verificationOtp) { this.verificationOtp = verificationOtp; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public LocalDateTime getAcceptedAt() { return acceptedAt; }
+    public void setAcceptedAt(LocalDateTime acceptedAt) { this.acceptedAt = acceptedAt; }
+    
+    public LocalDateTime getRiderArrivedAt() { return riderArrivedAt; }
+    public void setRiderArrivedAt(LocalDateTime riderArrivedAt) { this.riderArrivedAt = riderArrivedAt; }
+    
+    public LocalDateTime getStartedAt() { return startedAt; }
+    public void setStartedAt(LocalDateTime startedAt) { this.startedAt = startedAt; }
+    
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+    
+    public String getVehicleType() { return vehicleType; }
+    public void setVehicleType(String vehicleType) { this.vehicleType = vehicleType; }
 }

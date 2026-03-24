@@ -80,6 +80,8 @@ public class BookingService {
 
         Double estimatedFare = calculateEstimatedFare(serviceType, distance);
 
+        Double userAmount = req.getUserEnteredAmount() != null ? req.getUserEnteredAmount() : estimatedFare;
+
         Booking booking = Booking.builder()
                 .user(user)
                 .serviceType(serviceType)
@@ -99,6 +101,7 @@ public class BookingService {
                 .estimatedDistance(distance)
                 .estimatedDuration(req.getEstimatedDuration())
                 .estimatedFare(estimatedFare)
+                .userEnteredAmount(userAmount)
                 .vehicleType(req.getVehicleType())
                 .biddingWindowSeconds(biddingWindowSeconds)
                 .biddingStartTime(LocalDateTime.now())
@@ -229,6 +232,9 @@ public class BookingService {
     public List<Booking> getAvailableBookings(Double latitude, Double longitude, Double radius) {
         List<Booking> allBiddingBookings = bookingRepository.findByStatus(BookingStatus.BIDDING);
         
+        // Default radius to 3km if not provided
+        final double searchRadius = (radius != null) ? radius : 3.0;
+        
         if (latitude == null || longitude == null) {
             return allBiddingBookings;
         }
@@ -239,7 +245,7 @@ public class BookingService {
                             latitude, longitude,
                             booking.getPickupLatitude(), booking.getPickupLongitude()
                     );
-                    return distance <= radius;
+                    return distance <= searchRadius;
                 })
                 .toList();
     }

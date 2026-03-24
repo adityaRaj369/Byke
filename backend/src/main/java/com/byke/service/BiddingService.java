@@ -43,8 +43,14 @@ public class BiddingService {
         Booking booking = bookingService.getBookingById(bookingId);
         Rider rider = riderService.getRiderById(riderId);
 
-        if (bidAmount < minBid || bidAmount > maxBid) {
-            throw new RuntimeException("Bid amount must be between " + minBid + " and " + maxBid);
+        // Max bid limit: Rider's bid can be at most ₹80 more than the user's entered amount
+        Double userAmount = booking.getUserEnteredAmount() != null ? booking.getUserEnteredAmount() : booking.getEstimatedFare();
+        if (bidAmount > (userAmount + 80.0)) {
+            throw new RuntimeException("Bid amount cannot be more than ₹80 above the user's price (₹" + userAmount + ")");
+        }
+
+        if (bidAmount < (userAmount - 50.0)) { // Adding a reasonable lower limit too
+            throw new RuntimeException("Bid amount is too low");
         }
 
         Optional<Bid> existingBid = bidRepository.findByBookingIdAndRiderId(bookingId, riderId);

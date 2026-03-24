@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, RefreshControl, SafeAreaView } from 'react-native';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  RefreshControl, 
+  SafeAreaView, 
+  StyleSheet,
+  Dimensions,
+  Platform
+} from 'react-native';
 import api from '../config/api';
-import { Bell, ArrowLeft, CheckCircle2, Clock, Info, Inbox } from 'lucide-react-native';
+import { 
+  Bell, ArrowLeft, CheckCircle2, 
+  Clock, Info, Inbox, ChevronRight,
+  Trash2, MailOpen, Mail
+} from 'lucide-react-native';
 
 interface Notification {
   id: number;
@@ -43,11 +57,21 @@ const NotificationsScreen = ({ navigation }: any) => {
     }
   };
 
+  const markAllRead = async () => {
+    try {
+      // Assuming endpoint exists or we can map it
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.log('Error marking all as read:', error);
+    }
+  };
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'NEW_BOOKING': return { icon: Bell, color: '#EAB308' };
       case 'PAYMENT_RECEIVED': return { icon: CheckCircle2, color: '#10B981' };
-      default: return { icon: Info, color: '#3B82F6' };
+      case 'SYSTEM_ALERT': return { icon: Info, color: '#EF4444' };
+      default: return { icon: Inbox, color: '#3B82F6' };
     }
   };
 
@@ -56,30 +80,33 @@ const NotificationsScreen = ({ navigation }: any) => {
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        className={`flex-row p-5 mb-4 rounded-[32px] border ${
-          item.read ? 'bg-white border-gray-100' : 'bg-yellow-50/50 border-yellow-100'
-        }`}
+        style={[
+          styles.notifCard,
+          !item.read && styles.unreadCard
+        ]}
         onPress={() => markAsRead(item.id)}
       >
-        <View 
-          className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
-          style={{ backgroundColor: `${color}15` }}
-        >
+        <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
           <Icon size={20} color={color} strokeWidth={2.5} />
         </View>
         
-        <View className="flex-1">
-          <View className="flex-row justify-between items-start mb-1">
-            <Text className={`text-base flex-1 pr-2 ${item.read ? 'font-bold text-gray-700' : 'font-black text-black'}`}>
+        <View style={styles.notifContent}>
+          <View style={styles.notifHeader}>
+            <Text style={[styles.notifTitle, !item.read && styles.unreadTitle]}>
               {item.title}
             </Text>
-            {!item.read && <View className="w-2 h-2 rounded-full bg-yellow-500 mt-2" />}
+            {!item.read && <View style={styles.unreadDot} />}
           </View>
-          <Text className="text-sm font-bold text-gray-500 leading-5 mb-2" numberOfLines={2}>
+          <Text style={styles.notifMessage} numberOfLines={2}>
             {item.message}
           </Text>
-          <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-            {new Date(item.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          <Text style={styles.notifTime}>
+            {new Date(item.createdAt).toLocaleDateString(undefined, { 
+              day: '2-digit', 
+              month: 'short', 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
           </Text>
         </View>
       </TouchableOpacity>
@@ -87,21 +114,21 @@ const NotificationsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-6 pt-4 pb-6 flex-row items-center justify-between">
-        <View className="flex-row items-center">
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()}
-            className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mr-4"
+            style={styles.backBtn}
           >
             <ArrowLeft size={24} color="black" strokeWidth={2.5} />
           </TouchableOpacity>
-          <View>
-            <Text className="text-2xl font-black text-black">Notifications</Text>
-            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Captain Updates</Text>
-          </View>
+          <Text style={styles.headerTitle}>Inbox</Text>
+          <TouchableOpacity onPress={markAllRead} style={styles.actionBtn}>
+            <MailOpen size={20} color="#6B7280" />
+          </TouchableOpacity>
         </View>
+        <Text style={styles.headerSubtitle}>Captain Updates & Alerts</Text>
       </View>
 
       <FlatList
@@ -109,24 +136,164 @@ const NotificationsScreen = ({ navigation }: any) => {
         renderItem={renderNotification}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchNotifications} tintColor="#EAB308" />
+          <RefreshControl refreshing={loading} onRefresh={fetchNotifications} tintColor="#000" />
         }
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-24 px-10">
-            <View className="bg-gray-50 p-10 rounded-[50px] mb-8 border border-gray-100">
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconContainer}>
               <Inbox size={64} color="#D1D5DB" strokeWidth={1.5} />
             </View>
-            <Text className="text-xl font-black text-black mb-2">No updates yet</Text>
-            <Text className="text-gray-400 text-center font-bold leading-5">
-              New orders and account updates will appear here. Stay online!
+            <Text style={styles.emptyTitle}>Nothing here yet</Text>
+            <Text style={styles.emptySubtitle}>
+              New orders and account updates will appear here. Keep your app online to stay updated!
             </Text>
           </View>
         }
-        contentContainerStyle={{ padding: 24 }}
-        className="flex-1"
+        contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: 'black',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginLeft: 59, // Alignment with title
+  },
+  actionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  notifCard: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 24,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+  },
+  unreadCard: {
+    backgroundColor: '#FEFCE8',
+    borderColor: '#FEF9C3',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  notifContent: {
+    flex: 1,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  notifTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4B5563',
+    flex: 1,
+  },
+  unreadTitle: {
+    fontWeight: '900',
+    color: 'black',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EAB308',
+    marginLeft: 10,
+  },
+  notifMessage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  notifTime: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: 'black',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});
 
 export default NotificationsScreen;

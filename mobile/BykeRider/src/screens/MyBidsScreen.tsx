@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, RefreshControl, SafeAreaView, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  FlatList, 
+  RefreshControl, 
+  SafeAreaView, 
+  ActivityIndicator, 
+  StyleSheet,
+  Dimensions 
+} from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import api from '../config/api';
-import { Clock, MapPin, ChevronRight, ArrowLeft, Bike, ShoppingBag, Package, AlertCircle } from 'lucide-react-native';
+import { 
+  Clock, MapPin, ChevronRight, ArrowLeft, 
+  Bike, ShoppingBag, Package, AlertCircle,
+  CheckCircle2, XCircle, Timer
+} from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 const MyBidsScreen = ({ navigation }: any) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -27,92 +43,103 @@ const MyBidsScreen = ({ navigation }: any) => {
   }, []);
 
   const getServiceInfo = (type: string) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case 'ride': return { icon: Bike, color: '#EAB308', label: 'Ride' };
       case 'errand': return { icon: ShoppingBag, color: '#10B981', label: 'Errand' };
       case 'parcel': return { icon: Package, color: '#3B82F6', label: 'Parcel' };
-      default: return { icon: Bike, color: '#6B7280', label: type };
+      default: return { icon: Bike, color: '#6B7280', label: type || 'Ride' };
+    }
+  };
+
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'ACCEPTED':
+        return { color: '#10B981', bg: '#D1FAE5', icon: CheckCircle2, text: 'Accepted' };
+      case 'REJECTED':
+        return { color: '#EF4444', bg: '#FEE2E2', icon: XCircle, text: 'Rejected' };
+      case 'EXPIRED':
+        return { color: '#6B7280', bg: '#F3F4F6', icon: Clock, text: 'Expired' };
+      default:
+        return { color: '#3B82F6', bg: '#DBEAFE', icon: Timer, text: 'Pending' };
     }
   };
 
   const renderBid = ({ item }: any) => {
-    const service = getServiceInfo(item.booking?.type || 'ride');
+    const service = getServiceInfo(item.booking?.serviceType);
+    const status = getStatusInfo(item.status);
+    
     return (
       <TouchableOpacity
-        activeOpacity={0.7}
-        className="bg-white rounded-[32px] p-6 mb-6 border border-gray-100 shadow-sm shadow-black/5"
+        activeOpacity={0.8}
+        style={styles.bidCard}
         onPress={() => {
           if (item.status === 'ACCEPTED') {
-            navigation.navigate('Tracking', { rideId: item.bookingId });
+            navigation.navigate('Tracking', { bookingId: item.booking.id });
           }
         }}
       >
-        <View className="flex-row items-center justify-between mb-6">
-          <View className="flex-row items-center">
-            <View 
-              className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
-              style={{ backgroundColor: `${service.color}15` }}
-            >
-              <service.icon size={22} color={service.color} strokeWidth={2.5} />
+        <View style={styles.cardHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: `${service.color}15` }]}>
+              <service.icon size={20} color={service.color} strokeWidth={2.5} />
             </View>
             <View>
-              <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{service.label}</Text>
-              <Text className="text-base font-black text-black">₹{item.bidAmount}</Text>
+              <Text style={styles.serviceLabel}>{service.label}</Text>
+              <Text style={styles.bidAmount}>₹{item.bidAmount}</Text>
             </View>
           </View>
-          <View className={`px-3 py-1.5 rounded-xl ${
-            item.status === 'ACCEPTED' ? 'bg-green-100' : 
-            item.status === 'REJECTED' ? 'bg-red-100' : 'bg-blue-100'
-          }`}>
-            <Text className={`text-[10px] font-black uppercase tracking-widest ${
-              item.status === 'ACCEPTED' ? 'text-green-700' : 
-              item.status === 'REJECTED' ? 'text-red-700' : 'text-blue-700'
-            }`}>{item.status}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+            <status.icon size={12} color={status.color} strokeWidth={3} />
+            <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
           </View>
         </View>
 
-        <View className="mb-6">
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-green-500 mr-4 shadow-sm shadow-green-500" />
-            <Text className="flex-1 text-sm font-bold text-gray-600 truncate" numberOfLines={1}>
+        <View style={styles.locationContainer}>
+          <View style={styles.locationRow}>
+            <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
+            <Text style={styles.locationText} numberOfLines={1}>
               {item.booking?.pickupAddress || 'Pickup Location'}
             </Text>
           </View>
-          <View className="w-[2px] h-6 bg-gray-100 ml-1.5 my-1" />
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-red-500 mr-4 shadow-sm shadow-red-500" />
-            <Text className="flex-1 text-sm font-bold text-gray-600 truncate" numberOfLines={1}>
+          <View style={styles.line} />
+          <View style={styles.locationRow}>
+            <View style={[styles.dot, { backgroundColor: '#EF4444' }]} />
+            <Text style={styles.locationText} numberOfLines={1}>
               {item.booking?.dropAddress || 'Drop Location'}
             </Text>
           </View>
         </View>
 
-        <View className="flex-row items-center justify-between pt-4 border-t border-gray-50">
-          <View className="flex-row items-center">
-            <Clock size={14} color="#9CA3AF" />
-            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+        <View style={styles.cardFooter}>
+          <View style={styles.timeContainer}>
+            <Clock size={12} color="#9CA3AF" />
+            <Text style={styles.timeText}>
               Placed {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
-          <ChevronRight size={20} color="#D1D5DB" strokeWidth={3} />
+          {item.status === 'ACCEPTED' && (
+            <View style={styles.actionPrompt}>
+              <Text style={styles.actionText}>Start Ride</Text>
+              <ChevronRight size={16} color="#10B981" strokeWidth={3} />
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-6 pt-4 pb-6 flex-row items-center">
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()}
-          className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mr-4"
+          style={styles.backBtn}
         >
           <ArrowLeft size={24} color="black" strokeWidth={2.5} />
         </TouchableOpacity>
         <View>
-          <Text className="text-2xl font-black text-black">My Active Bids</Text>
-          <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Track your offers</Text>
+          <Text style={styles.headerTitle}>Active Bids</Text>
+          <Text style={styles.headerSubtitle}>Manage your offers</Text>
         </View>
       </View>
 
@@ -121,30 +148,230 @@ const MyBidsScreen = ({ navigation }: any) => {
         renderItem={renderBid}
         keyExtractor={(item: any) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchMyBids} tintColor="#EAB308" />
+          <RefreshControl refreshing={loading} onRefresh={fetchMyBids} tintColor="#000" />
         }
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-24 px-10">
-            <View className="bg-gray-50 p-10 rounded-[50px] mb-8 border border-gray-100">
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconContainer}>
               <AlertCircle size={64} color="#D1D5DB" strokeWidth={1.5} />
             </View>
-            <Text className="text-xl font-black text-black mb-2">No active bids</Text>
-            <Text className="text-gray-400 text-center font-bold leading-5">
-              You haven't placed any bids yet. Check "Available Orders" to find work near you.
+            <Text style={styles.emptyTitle}>No active bids</Text>
+            <Text style={styles.emptySubtitle}>
+              You haven't placed any bids yet. Check "New Requests" to find work near you.
             </Text>
             <TouchableOpacity 
               onPress={() => navigation.navigate('AvailableBookings')}
-              className="mt-8 bg-black px-8 py-4 rounded-3xl shadow-xl shadow-black/20"
+              style={styles.browseBtn}
             >
-              <Text className="text-white font-black uppercase tracking-widest">Browse Orders</Text>
+              <Text style={styles.browseBtnText}>Browse Requests</Text>
             </TouchableOpacity>
           </View>
         }
-        contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-        className="flex-1"
+        contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: 'black',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  listContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  bidCard: {
+    backgroundColor: 'white',
+    borderRadius: 28,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  serviceLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bidAmount: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: 'black',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '900',
+    marginLeft: 4,
+    textTransform: 'uppercase',
+  },
+  locationContainer: {
+    marginBottom: 20,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#4B5563',
+    flex: 1,
+  },
+  line: {
+    width: 2,
+    height: 16,
+    backgroundColor: '#F3F4F6',
+    marginLeft: 3,
+    marginVertical: 4,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F9FAFB',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    marginLeft: 6,
+    textTransform: 'uppercase',
+  },
+  actionPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#10B981',
+    marginRight: 4,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: 'black',
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 30,
+  },
+  browseBtn: {
+    backgroundColor: 'black',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  browseBtnText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  itemRight: {
+    alignItems: 'flex-end',
+  },
+});
 
 export default MyBidsScreen;

@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  ScrollView, 
+  SafeAreaView, 
+  ActivityIndicator, 
+  RefreshControl,
+  StyleSheet,
+  Dimensions
+} from 'react-native';
 import api from '../config/api';
-import { ArrowLeft, Wallet, TrendingUp, Calendar, ChevronRight, CheckCircle2, IndianRupee } from 'lucide-react-native';
+import { 
+  ArrowLeft, Wallet, TrendingUp, 
+  Calendar, ChevronRight, CheckCircle2, 
+  IndianRupee, ArrowUpRight, ArrowDownLeft,
+  CreditCard, PieChart
+} from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 const EarningsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
@@ -30,116 +47,343 @@ const EarningsScreen = ({ navigation }: any) => {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View className="px-6 pt-4 pb-6 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mr-4"
-          >
-            <ArrowLeft size={24} color="black" strokeWidth={2.5} />
-          </TouchableOpacity>
-          <Text className="text-2xl font-black text-black">My Earnings</Text>
-        </View>
-        <TouchableOpacity className="bg-yellow-400 p-2.5 rounded-xl">
-          <IndianRupee size={20} color="black" strokeWidth={3} />
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Financials</Text>
+        <TouchableOpacity style={styles.payoutBtn}>
+          <IndianRupee size={18} color="black" strokeWidth={3} />
         </TouchableOpacity>
       </View>
 
       <ScrollView 
-        className="flex-1" 
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchEarnings} tintColor="#EAB308" />
+          <RefreshControl refreshing={loading} onRefresh={fetchEarnings} tintColor="#000" />
         }
       >
-        {/* Main Wallet Card */}
-        <View className="mx-6 mt-4 mb-10">
-          <View className="bg-black rounded-[40px] p-10 shadow-2xl shadow-black/30">
-            <Text className="text-white/60 text-xs font-black uppercase tracking-[4px]">Available for Payout</Text>
-            <Text className="text-white text-6xl font-black mt-4">₹{earnings.today}</Text>
-            
-            <View className="h-[1px] bg-white/10 my-8" />
-            
-            <View className="flex-row justify-between items-center">
-              <View>
-                <Text className="text-white/40 text-[10px] font-black uppercase tracking-widest">Total Trips</Text>
-                <Text className="text-white text-xl font-black mt-1">{earnings.trips}</Text>
-              </View>
-              <TouchableOpacity className="bg-yellow-400 px-6 py-3 rounded-2xl">
-                <Text className="text-black font-black text-xs uppercase tracking-widest">Withdraw</Text>
-              </TouchableOpacity>
+        {/* Balance Card */}
+        <View style={styles.balanceCard}>
+          <View style={styles.balanceHeader}>
+            <View style={styles.walletIcon}>
+              <Wallet size={20} color="white" />
             </View>
+            <Text style={styles.balanceLabel}>Available Balance</Text>
           </View>
-        </View>
-
-        {/* Stats Grid */}
-        <View className="px-6 mb-10">
-          <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] mb-6 ml-1">Earning Stats</Text>
           
-          <View className="flex-row justify-between mb-4">
-            <View className="w-[47%] bg-gray-50 p-6 rounded-[32px] border border-gray-100">
-              <View className="bg-white w-10 h-10 rounded-xl items-center justify-center mb-4 shadow-sm">
-                <Calendar size={18} color="#3B82F6" />
-              </View>
-              <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">This Week</Text>
-              <Text className="text-xl font-black text-black">₹{earnings.week}</Text>
+          <Text style={styles.balanceAmount}>₹{earnings.today}</Text>
+          
+          <View style={styles.balanceFooter}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Total Trips</Text>
+              <Text style={styles.statValue}>{earnings.trips}</Text>
             </View>
-            
-            <View className="w-[47%] bg-gray-50 p-6 rounded-[32px] border border-gray-100">
-              <View className="bg-white w-10 h-10 rounded-xl items-center justify-center mb-4 shadow-sm">
-                <TrendingUp size={18} color="#10B981" />
-              </View>
-              <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">This Month</Text>
-              <Text className="text-xl font-black text-black">₹{earnings.month}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Recent Transactions */}
-        <View className="px-6 pb-10">
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] ml-1">Recent Activity</Text>
-            <TouchableOpacity>
-              <Text className="text-blue-600 font-black text-xs uppercase tracking-widest">See All</Text>
+            <TouchableOpacity style={styles.withdrawBtn}>
+              <Text style={styles.withdrawText}>Withdraw</Text>
+              <ArrowUpRight size={16} color="black" strokeWidth={3} />
             </TouchableOpacity>
           </View>
-
-          {[
-            { id: '1', title: 'Ride Earning', subtitle: 'Trip #8291', amount: '+ ₹85', time: '2:30 PM', status: 'success' },
-            { id: '2', title: 'Parcel Delivery', subtitle: 'Trip #8288', amount: '+ ₹120', time: '11:15 AM', status: 'success' },
-            { id: '3', title: 'Platform Fee', subtitle: 'Subscription Payout', amount: '- ₹500', time: 'Yesterday', status: 'fee' },
-          ].map((item) => (
-            <View 
-              key={item.id}
-              className="flex-row items-center bg-white border border-gray-50 p-5 rounded-3xl shadow-sm shadow-black/5 mb-4"
-            >
-              <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${
-                item.status === 'success' ? 'bg-green-50' : 'bg-gray-50'
-              }`}>
-                {item.status === 'success' ? (
-                  <CheckCircle2 size={20} color="#10B981" />
-                ) : (
-                  <Wallet size={20} color="#6B7280" />
-                )}
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-black text-gray-800">{item.title}</Text>
-                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">{item.subtitle}</Text>
-              </View>
-              <View className="items-end">
-                <Text className={`text-base font-black ${
-                  item.amount.startsWith('+') ? 'text-green-600' : 'text-gray-800'
-                }`}>{item.amount}</Text>
-                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{item.time}</Text>
-              </View>
-            </View>
-          ))}
         </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: '#3B82F615' }]}>
+              <Calendar size={18} color="#3B82F6" />
+            </View>
+            <Text style={styles.statCardLabel}>Weekly</Text>
+            <Text style={styles.statCardValue}>₹{earnings.week}</Text>
+            <View style={styles.trendBadge}>
+              <TrendingUp size={10} color="#10B981" />
+              <Text style={styles.trendText}>+8%</Text>
+            </View>
+          </View>
+
+          <View style={styles.statCard}>
+            <View style={[styles.statIconContainer, { backgroundColor: '#10B98115' }]}>
+              <PieChart size={18} color="#10B981" />
+            </View>
+            <Text style={styles.statCardLabel}>Monthly</Text>
+            <Text style={styles.statCardValue}>₹{earnings.month}</Text>
+            <View style={styles.trendBadge}>
+              <TrendingUp size={10} color="#10B981" />
+              <Text style={styles.trendText}>+12%</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Transactions */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {[
+          { id: '1', title: 'Ride Earning', subtitle: 'Trip #8291', amount: '+ ₹85', time: '2:30 PM', type: 'credit' },
+          { id: '2', title: 'Parcel Delivery', subtitle: 'Trip #8288', amount: '+ ₹120', time: '11:15 AM', type: 'credit' },
+          { id: '3', title: 'Subscription payout', subtitle: 'Monthly Fee', amount: '- ₹500', time: 'Yesterday', type: 'debit' },
+        ].map((item) => (
+          <View key={item.id} style={styles.transactionItem}>
+            <View style={[styles.itemIcon, { backgroundColor: item.type === 'credit' ? '#D1FAE5' : '#F3F4F6' }]}>
+              {item.type === 'credit' ? (
+                <ArrowDownLeft size={20} color="#10B981" strokeWidth={2.5} />
+              ) : (
+                <CreditCard size={20} color="#6B7280" strokeWidth={2.5} />
+              )}
+            </View>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
+            </View>
+            <View style={styles.itemRight}>
+              <Text style={[styles.itemAmount, { color: item.type === 'credit' ? '#10B981' : '#000' }]}>
+                {item.amount}
+              </Text>
+              <Text style={styles.itemTime}>{item.time}</Text>
+            </View>
+          </View>
+        ))}
+        
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: 'black',
+  },
+  payoutBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#EAB308',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  balanceCard: {
+    backgroundColor: 'black',
+    borderRadius: 32,
+    padding: 30,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  walletIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  balanceLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  balanceAmount: {
+    fontSize: 48,
+    fontWeight: '900',
+    color: 'white',
+    marginBottom: 30,
+  },
+  balanceFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  statItem: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.4)',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: 'white',
+  },
+  withdrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EAB308',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  withdrawText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: 'black',
+    marginRight: 6,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+  },
+  statCard: {
+    width: '47%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  statCardLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  statCardValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: 'black',
+    marginBottom: 10,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  trendText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#10B981',
+    marginLeft: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: 'black',
+  },
+  seeAllText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#3B82F6',
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+  },
+  itemIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  itemSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  itemRight: {
+    alignItems: 'flex-end',
+  },
+  itemAmount: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  itemTime: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+});
 
 export default EarningsScreen;

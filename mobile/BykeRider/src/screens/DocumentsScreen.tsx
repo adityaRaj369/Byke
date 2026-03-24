@@ -1,68 +1,114 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  ScrollView, 
+  SafeAreaView, 
+  Alert, 
+  ActivityIndicator,
+  StyleSheet,
+  Dimensions,
+  Platform
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, FileText, CheckCircle2, AlertCircle, Upload, ChevronRight, Shield } from 'lucide-react-native';
+import { 
+  ArrowLeft, FileText, CheckCircle2, 
+  AlertCircle, Upload, ChevronRight, 
+  Shield, Clock, Info, Camera,
+  Briefcase, Landmark, CreditCard
+} from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 const DocumentsScreen = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
 
   const [docs, setDocs] = useState([
-    { id: 'dl', label: 'Driving License', status: 'verified', icon: FileText },
-    { id: 'rc', label: 'Vehicle RC', status: 'verified', icon: FileText },
-    { id: 'ins', label: 'Insurance Policy', status: 'pending', icon: Shield },
-    { id: 'pan', label: 'PAN Card', status: 'missing', icon: FileText },
-    { id: 'aadhar', label: 'Aadhaar Card', status: 'verified', icon: FileText },
+    { id: 'dl', label: 'Driving License', status: 'verified', icon: Briefcase, color: '#3B82F6' },
+    { id: 'rc', label: 'Vehicle RC', status: 'verified', icon: FileText, color: '#EAB308' },
+    { id: 'aadhar', label: 'Aadhaar Card', status: 'verified', icon: Landmark, color: '#10B981' },
+    { id: 'pan', label: 'PAN Card', status: 'missing', icon: CreditCard, color: '#8B5CF6' },
+    { id: 'ins', label: 'Insurance Policy', status: 'pending', icon: Shield, color: '#EF4444' },
   ]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'verified': return { bg: 'bg-green-50', text: 'text-green-700', icon: CheckCircle2, color: '#10B981', label: 'Verified' };
-      case 'pending': return { bg: 'bg-yellow-50', text: 'text-yellow-700', icon: Clock, color: '#F59E0B', label: 'Pending' };
-      case 'missing': return { bg: 'bg-red-50', text: 'text-red-700', icon: AlertCircle, color: '#EF4444', label: 'Missing' };
-      default: return { bg: 'bg-gray-50', text: 'text-gray-700', icon: AlertCircle, color: '#6B7280', label: status };
+      case 'verified': 
+        return { 
+          bg: '#D1FAE5', 
+          text: '#10B981', 
+          icon: CheckCircle2, 
+          label: 'Verified' 
+        };
+      case 'pending': 
+        return { 
+          bg: '#FEF3C7', 
+          text: '#F59E0B', 
+          icon: Clock, 
+          label: 'In Review' 
+        };
+      case 'missing': 
+        return { 
+          bg: '#FEE2E2', 
+          text: '#EF4444', 
+          icon: AlertCircle, 
+          label: 'Missing' 
+        };
+      default: 
+        return { 
+          bg: '#F3F4F6', 
+          text: '#6B7280', 
+          icon: Info, 
+          label: status 
+        };
     }
   };
 
-  const handleUpload = (id: string) => {
-    Alert.alert('Upload Document', `Please select a clear photo of your ${id.toUpperCase()}.`);
+  const handleUpload = (label: string) => {
+    Alert.alert(
+      'Upload Document',
+      `Choose source for your ${label}`,
+      [
+        { text: 'Camera', onPress: () => console.log('Camera') },
+        { text: 'Gallery', onPress: () => console.log('Gallery') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-6 pt-4 pb-6 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mr-4"
-          >
-            <ArrowLeft size={24} color="black" strokeWidth={2.5} />
-          </TouchableOpacity>
-          <View>
-            <Text className="text-2xl font-black text-black">Documents</Text>
-            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Verification Center</Text>
-          </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>Compliance</Text>
+          <Text style={styles.headerSubtitle}>Legal & Verification</Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
-        {/* Verification Banner */}
-        <View className="bg-black rounded-[40px] p-8 mb-10 shadow-2xl shadow-black/20 overflow-hidden">
-          <View className="relative z-10">
-            <Text className="text-yellow-400 text-xs font-black uppercase tracking-[4px]">Verification Progress</Text>
-            <Text className="text-white text-4xl font-black mt-4">80%</Text>
-            <View className="w-full h-2 bg-white/10 rounded-full mt-6 overflow-hidden">
-              <View className="w-[80%] h-full bg-yellow-400" />
-            </View>
-            <Text className="text-white/60 text-[10px] font-bold mt-4">Only one document left to start accepting high-value orders!</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Progress Card */}
+        <View style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressLabel}>Verification Score</Text>
+            <Text style={styles.progressValue}>80%</Text>
           </View>
-          <View className="absolute -bottom-10 -right-10 opacity-10">
-            <Shield size={180} color="white" />
+          <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarFill, { width: '80%' }]} />
           </View>
+          <Text style={styles.progressHint}>
+            Upload your PAN card to reach 100% and unlock all ride types.
+          </Text>
         </View>
 
-        <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] mb-6 ml-1">Required Items</Text>
+        <Text style={styles.sectionTitle}>Required Documents</Text>
 
         {docs.map((doc) => {
           const status = getStatusStyle(doc.status);
@@ -70,46 +116,242 @@ const DocumentsScreen = () => {
             <TouchableOpacity
               key={doc.id}
               activeOpacity={0.7}
-              onPress={() => doc.status !== 'verified' && handleUpload(doc.id)}
-              className="flex-row items-center bg-white border border-gray-100 p-5 rounded-[32px] mb-4 shadow-sm shadow-black/5"
+              onPress={() => doc.status !== 'verified' && handleUpload(doc.label)}
+              style={styles.docCard}
             >
-              <View className="w-12 h-12 rounded-2xl bg-gray-50 items-center justify-center mr-4">
-                <doc.icon size={22} color="#6B7280" />
+              <View style={[styles.docIcon, { backgroundColor: `${doc.color}15` }]}>
+                <doc.icon size={22} color={doc.color} strokeWidth={2.5} />
               </View>
               
-              <View className="flex-1">
-                <Text className="text-base font-black text-gray-800">{doc.label}</Text>
-                <View className="flex-row items-center mt-1">
-                  <status.icon size={10} color={status.color} strokeWidth={3} />
-                  <Text className={`text-[10px] font-black uppercase tracking-widest ml-1 ${status.text}`}>
+              <View style={styles.docInfo}>
+                <Text style={styles.docLabel}>{doc.label}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+                  <status.icon size={10} color={status.text} strokeWidth={3} />
+                  <Text style={[styles.statusText, { color: status.text }]}>
                     {status.label}
                   </Text>
                 </View>
               </View>
 
               {doc.status !== 'verified' ? (
-                <View className="bg-black p-2.5 rounded-xl">
-                  <Upload size={16} color="white" strokeWidth={2.5} />
+                <View style={styles.uploadBtn}>
+                  <Camera size={18} color="white" strokeWidth={2.5} />
                 </View>
               ) : (
-                <ChevronRight size={20} color="#D1D5DB" strokeWidth={3} />
+                <View style={styles.verifiedCheck}>
+                  <CheckCircle2 size={20} color="#10B981" strokeWidth={2.5} />
+                </View>
               )}
             </TouchableOpacity>
           );
         })}
 
-        <View className="bg-blue-50 p-6 rounded-[32px] border border-blue-100 flex-row items-center mt-6 mb-12">
-          <View className="bg-blue-500/10 p-3 rounded-2xl mr-4">
+        <View style={styles.helpBox}>
+          <View style={styles.helpIcon}>
             <Info size={20} color="#3B82F6" />
           </View>
-          <View className="flex-1">
-            <Text className="text-blue-900 font-black text-sm">Need help?</Text>
-            <Text className="text-blue-700 font-bold text-xs mt-0.5">Verification usually takes 24-48 hours after upload.</Text>
+          <View style={styles.helpTextContainer}>
+            <Text style={styles.helpTitle}>Verification Process</Text>
+            <Text style={styles.helpSubtitle}>
+              Our team reviews documents within 24 hours. Make sure photos are clear and details are legible.
+            </Text>
           </View>
         </View>
+        
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: 'black',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  progressCard: {
+    backgroundColor: 'black',
+    borderRadius: 32,
+    padding: 24,
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  progressLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  progressValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#EAB308',
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4,
+    marginBottom: 15,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#EAB308',
+    borderRadius: 4,
+  },
+  progressHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+    lineHeight: 16,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 20,
+    marginLeft: 5,
+  },
+  docCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 24,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F9FAFB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  docIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  docInfo: {
+    flex: 1,
+  },
+  docLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    marginLeft: 4,
+    letterSpacing: 0.5,
+  },
+  uploadBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'black',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifiedCheck: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpBox: {
+    flexDirection: 'row',
+    backgroundColor: '#EFF6FF',
+    padding: 20,
+    borderRadius: 24,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  helpIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  helpTextContainer: {
+    flex: 1,
+  },
+  helpTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1E40AF',
+    marginBottom: 4,
+  },
+  helpSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3B82F6',
+    lineHeight: 18,
+  },
+});
 
 export default DocumentsScreen;

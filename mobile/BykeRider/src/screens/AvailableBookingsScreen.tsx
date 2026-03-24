@@ -1,40 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
-  RefreshControl,
   Alert,
   TextInput,
   SafeAreaView,
   ActivityIndicator,
+  Dimensions,
+  StyleSheet,
+  Platform,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { setAvailableBookings, addBid } from '../store/slices/riderSlice';
 import api from '../config/api';
-import { Bike, Package, ShoppingBag, MapPin, ChevronRight, Clock, ArrowLeft, Send } from 'lucide-react-native';
+import { 
+  Bike, Package, ShoppingBag, MapPin, 
+  ChevronRight, Clock, ArrowLeft, Send, 
+  X, Navigation, User, Info
+} from 'lucide-react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const AvailableBookingsScreen = ({ navigation }: any) => {
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(false);
-  const [bidAmounts, setBidAmounts] = useState<{[key: string]: string}>({});
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [bidAmount, setBidAmount] = useState('');
   const { availableBookings } = useSelector((state: RootState) => state.rider) as any;
+  const mapRef = useRef<MapView>(null);
+
+  const currentBooking = availableBookings[currentIndex];
 
   const fetchAvailableBookings = async () => {
     setLoading(true);
     try {
-      // Fetch real bookings from backend
       const response = await api.get('/bookings/available', {
         params: {
-          latitude: 28.6139,
+          latitude: 28.6139, // In real app, use current location
           longitude: 77.2090,
-          radius: 50.0
+          radius: 3.0 // 3km radius as requested
         }
       });
       
-      // Transform backend data to match app format
       const bookings = response.data.map((booking: any) => ({
         id: String(booking.id),
         type: booking.serviceType?.toLowerCase() || 'ride',
@@ -51,15 +61,18 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
         },
         description: booking.errandDescription || booking.parcelDescription,
         estimatedFare: booking.estimatedFare || 100,
+        userAmount: booking.userEnteredAmount || booking.estimatedFare || 100,
         user: {
           id: String(booking.user?.id || ''),
           name: booking.user?.fullName || 'User',
-          phone: booking.user?.mobileNumber || ''
+          phone: booking.user?.mobileNumber || '',
+          rating: 4.8 // Mock rating
         },
         createdAt: booking.createdAt || new Date().toISOString(),
       }));
       
       dispatch(setAvailableBookings(bookings));
+      setCurrentIndex(0);
     } catch (error: any) {
       console.log('Error fetching bookings:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to fetch available bookings');
@@ -72,157 +85,560 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
     fetchAvailableBookings();
   }, []);
 
-  const handlePlaceBid = async (bookingId: string) => {
-    const bidAmount = bidAmounts[bookingId];
+  useEffect(() => {
+    if (currentBooking && mapRef.current) {
+      const coords = [
+        { latitude: currentBooking.pickupLocation.latitude, longitude: currentBooking.pickupLocation.longitude },
+        { latitude: currentBooking.dropLocation.latitude, longitude: currentBooking.dropLocation.longitude }
+      ];
+      mapRef.current.fitToCoordinates(coords, {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true,
+      });
+    }
+  }, [currentBooking]);
+
+  const handlePlaceBid = async () => {
     if (!bidAmount || parseFloat(bidAmount) <= 0) {
       Alert.alert('Error', 'Please enter a valid bid amount');
       return;
     }
 
+    const amount = parseFloat(bidAmount);
+    const maxAllowed = currentBooking.userAmount + 80;
+
+    if (amount > maxAllowed) {
+      Alert.alert('Limit Exceeded', `You can bid at most ₹80 more than user's price (Max: ₹${maxAllowed})`);
+      return;
+    }
+
     try {
+      setLoading(true);
       const response = await api.post('/bids', null, {
         params: {
-          bookingId,
-          bidAmount: parseFloat(bidAmount),
+          bookingId: currentBooking.id,
+          bidAmount: amount,
         }
       });
 
       dispatch(addBid(response.data));
       Alert.alert('Success', 'Bid placed successfully!');
-      
-      // Clear bid amount
-      setBidAmounts(prev => ({ ...prev, [bookingId]: '' }));
+      setBidAmount('');
+      handleNext();
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to place bid');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < availableBookings.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setBidAmount('');
+    } else {
+      // No more bookings
+      dispatch(setAvailableBookings([]));
+    }
+  };
+
+  const handleSkip = () => {
+    handleNext();
   };
 
   const getServiceInfo = (type: string) => {
     switch (type) {
-      case 'ride': return { icon: Bike, color: '#EAB308', label: 'Ride' };
-      case 'errand': return { icon: ShoppingBag, color: '#10B981', label: 'Errand' };
-      case 'parcel': return { icon: Package, color: '#3B82F6', label: 'Parcel' };
+      case 'ride': return { icon: Bike, color: '#EAB308', label: 'Ride Request' };
+      case 'errand': return { icon: ShoppingBag, color: '#10B981', label: 'Errand Task' };
+      case 'parcel': return { icon: Package, color: '#3B82F6', label: 'Parcel Delivery' };
       default: return { icon: Bike, color: '#6B7280', label: type };
     }
   };
 
-  const renderBooking = ({ item }: any) => {
-    const service = getServiceInfo(item.type);
-    const bidAmount = bidAmounts[item.id] || '';
-
+  if (loading && availableBookings.length === 0) {
     return (
-      <View className="bg-white rounded-[32px] p-6 mb-6 border border-gray-100 shadow-sm shadow-black/5">
-        <View className="flex-row items-center justify-between mb-6">
-          <View className="flex-row items-center">
-            <View 
-              className="w-12 h-12 rounded-2xl items-center justify-center mr-3"
-              style={{ backgroundColor: `${service.color}15` }}
-            >
-              <service.icon size={22} color={service.color} strokeWidth={2.5} />
-            </View>
-            <View>
-              <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{service.label}</Text>
-              <Text className="text-base font-black text-black">₹{item.estimatedFare}</Text>
-            </View>
-          </View>
-          <View className="items-end">
-            <View className="flex-row items-center bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
-              <Clock size={12} color="#9CA3AF" />
-              <Text className="text-[10px] font-black text-gray-500 ml-1 uppercase">
-                {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View className="mb-6">
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-green-500 mr-4 shadow-sm shadow-green-500" />
-            <Text className="flex-1 text-sm font-bold text-gray-600 truncate" numberOfLines={1}>{item.pickupLocation.address}</Text>
-          </View>
-          <View className="w-[2px] h-6 bg-gray-100 ml-1.5 my-1" />
-          <View className="flex-row items-center">
-            <View className="w-2.5 h-2.5 rounded-full bg-red-500 mr-4 shadow-sm shadow-red-500" />
-            <Text className="flex-1 text-sm font-bold text-gray-600 truncate" numberOfLines={1}>{item.dropLocation.address}</Text>
-          </View>
-        </View>
-
-        {item.description && (
-          <View className="bg-gray-50 p-4 rounded-2xl mb-6 border border-gray-100">
-            <Text className="text-xs font-bold text-gray-500 italic">“{item.description}”</Text>
-          </View>
-        )}
-
-        <View className="h-[1px] bg-gray-50 mb-6" />
-
-        <View className="flex-row items-center space-x-3">
-          <View className="flex-1 flex-row items-center bg-gray-50 rounded-3xl px-5 py-1 border border-gray-100 mr-3">
-            <Text className="text-sm font-black text-gray-400 mr-2">₹</Text>
-            <TextInput
-              className="flex-1 h-12 text-black font-black text-lg"
-              placeholder="Your Bid"
-              placeholderTextColor="#D1D5DB"
-              value={bidAmount}
-              onChangeText={(text: string) => setBidAmounts(prev => ({ ...prev, [item.id]: text }))}
-              keyboardType="numeric"
-            />
-          </View>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => handlePlaceBid(item.id)}
-            className="bg-black w-14 h-14 rounded-full items-center justify-center shadow-lg shadow-black/20"
-          >
-            <Send size={20} color="white" strokeWidth={2.5} />
-          </TouchableOpacity>
-        </View>
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#000" />
+        <Text style={styles.loadingText}>Searching for nearby rides...</Text>
       </View>
     );
-  };
+  }
+
+  if (availableBookings.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ArrowLeft size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Requests</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconContainer}>
+            <Bike size={64} color="#D1D5DB" />
+          </View>
+          <Text style={styles.emptyTitle}>All caught up!</Text>
+          <Text style={styles.emptySubtitle}>No new requests within 3km. Stay online to get notified of new orders.</Text>
+          <TouchableOpacity onPress={fetchAvailableBookings} style={styles.refreshBtn}>
+            <Text style={styles.refreshText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const service = getServiceInfo(currentBooking.type);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-6 pt-4 pb-6 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mr-4"
-          >
-            <ArrowLeft size={24} color="black" strokeWidth={2.5} />
-          </TouchableOpacity>
-          <View>
-            <Text className="text-2xl font-black text-black">New Orders</Text>
-            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Nearby Bookings</Text>
+    <View style={styles.container}>
+      {/* Map Background */}
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
+        style={styles.map}
+        initialRegion={{
+          latitude: currentBooking.pickupLocation.latitude,
+          longitude: currentBooking.pickupLocation.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+      >
+        <Marker coordinate={currentBooking.pickupLocation}>
+          <View style={[styles.marker, { backgroundColor: '#10B981' }]}>
+            <MapPin size={16} color="white" />
           </View>
+        </Marker>
+        <Marker coordinate={currentBooking.dropLocation}>
+          <View style={[styles.marker, { backgroundColor: '#EF4444' }]}>
+            <MapPin size={16} color="white" />
+          </View>
+        </Marker>
+        <Polyline
+          coordinates={[currentBooking.pickupLocation, currentBooking.dropLocation]}
+          strokeWidth={3}
+          strokeColor="black"
+          lineDashPattern={[5, 5]}
+        />
+      </MapView>
+
+      {/* Header Overlay */}
+      <SafeAreaView style={styles.headerOverlay}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnOverlay}>
+          <ArrowLeft size={24} color="black" />
+        </TouchableOpacity>
+        <View style={styles.counterBadge}>
+          <Text style={styles.counterText}>{currentIndex + 1} / {availableBookings.length}</Text>
         </View>
-        <View className="bg-yellow-400 px-3 py-1 rounded-full">
-          <Text className="text-[10px] font-black text-black uppercase tracking-tighter">{availableBookings.length} Live</Text>
+      </SafeAreaView>
+
+      {/* Booking Card */}
+      <View style={styles.cardContainer}>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.serviceTag}>
+              <View style={[styles.serviceIcon, { backgroundColor: `${service.color}15` }]}>
+                <service.icon size={18} color={service.color} />
+              </View>
+              <Text style={styles.serviceLabel}>{service.label}</Text>
+            </View>
+            <View style={styles.userContainer}>
+              <User size={16} color="#6B7280" />
+              <Text style={styles.userName}>{currentBooking.user.name}</Text>
+              <Text style={styles.userRating}>⭐ {currentBooking.user.rating}</Text>
+            </View>
+          </View>
+
+          <View style={styles.locationContainer}>
+            <View style={styles.locationRow}>
+              <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
+              <Text style={styles.locationText} numberOfLines={1}>{currentBooking.pickupLocation.address}</Text>
+            </View>
+            <View style={styles.line} />
+            <View style={styles.locationRow}>
+              <View style={[styles.dot, { backgroundColor: '#EF4444' }]} />
+              <Text style={styles.locationText} numberOfLines={1}>{currentBooking.dropLocation.address}</Text>
+            </View>
+          </View>
+
+          {currentBooking.description && (
+            <View style={styles.descriptionBox}>
+              <Info size={14} color="#6B7280" />
+              <Text style={styles.descriptionText} numberOfLines={2}>
+                {currentBooking.description}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.fareContainer}>
+            <View>
+              <Text style={styles.fareLabel}>User's Price</Text>
+              <Text style={styles.fareAmount}>₹{currentBooking.userAmount}</Text>
+            </View>
+            <View style={styles.bidInputContainer}>
+              <Text style={styles.bidLabel}>Your Bid (Max ₹{currentBooking.userAmount + 80})</Text>
+              <View style={styles.bidInputWrapper}>
+                <Text style={styles.currency}>₹</Text>
+                <TextInput
+                  style={styles.bidInput}
+                  value={bidAmount}
+                  onChangeText={setBidAmount}
+                  placeholder={String(currentBooking.userAmount)}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
+              <X size={24} color="#6B7280" />
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.bidBtn} 
+              onPress={handlePlaceBid}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Text style={styles.bidBtnText}>Place Bid</Text>
+                  <ChevronRight size={20} color="white" />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-
-      <FlatList
-        data={availableBookings}
-        renderItem={renderBooking}
-        keyExtractor={(item: any) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchAvailableBookings} tintColor="#EAB308" />
-        }
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-24 px-10">
-            <View className="bg-gray-50 p-10 rounded-[50px] mb-8 border border-gray-100">
-              <Bike size={64} color="#D1D5DB" strokeWidth={1.5} />
-            </View>
-            <Text className="text-xl font-black text-black mb-2">Quiet neighborhood?</Text>
-            <Text className="text-gray-400 text-center font-bold leading-5">
-              We couldn't find any orders near you right now. Stay online to get notified instantly!
-            </Text>
-          </View>
-        }
-        contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-        className="flex-1"
-      />
-    </SafeAreaView>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginLeft: 15,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
+  },
+  backBtnOverlay: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  counterBadge: {
+    backgroundColor: 'black',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    justifyContent: 'center',
+  },
+  counterText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  cardContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 32,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  serviceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingRight: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  serviceIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  serviceLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#374151',
+    textTransform: 'uppercase',
+  },
+  userContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userName: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 6,
+    color: '#374151',
+  },
+  userRating: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 8,
+    color: '#EAB308',
+  },
+  locationContainer: {
+    marginBottom: 20,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#4B5563',
+    flex: 1,
+  },
+  line: {
+    width: 2,
+    height: 20,
+    backgroundColor: '#F3F4F6',
+    marginLeft: 3,
+    marginVertical: 4,
+  },
+  descriptionBox: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  descriptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginLeft: 8,
+    fontStyle: 'italic',
+  },
+  fareContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  fareLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  fareAmount: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: 'black',
+  },
+  bidInputContainer: {
+    flex: 1,
+    marginLeft: 30,
+  },
+  bidLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  bidInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  currency: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#6B7280',
+    marginRight: 4,
+  },
+  bidInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '900',
+    color: 'black',
+    padding: 0,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  skipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    height: 56,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    marginRight: 12,
+  },
+  skipText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  bidBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'black',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bidBtnText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: 'white',
+    marginRight: 8,
+  },
+  marker: {
+    padding: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: 'black',
+    marginBottom: 12,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 30,
+  },
+  refreshBtn: {
+    backgroundColor: 'black',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 32,
+  },
+  refreshText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export default AvailableBookingsScreen;

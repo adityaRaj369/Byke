@@ -1,8 +1,10 @@
 package com.byke.controller;
 
+import com.byke.model.entity.Bid;
 import com.byke.model.entity.Rider;
 import com.byke.model.entity.User;
 import com.byke.model.enums.RiderStatus;
+import com.byke.service.BiddingService;
 import com.byke.service.RiderService;
 import com.byke.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +21,7 @@ public class RiderController {
 
     private final RiderService riderService;
     private final UserService userService;
+    private final BiddingService biddingService;
 
     @PostMapping("/apply")
     public ResponseEntity<?> applyAsRider(@RequestBody Rider riderData, HttpServletRequest request) {
@@ -88,6 +91,30 @@ public class RiderController {
         try {
             List<Rider> riders = riderService.getNearbyAvailableRiders(latitude, longitude, radius);
             return ResponseEntity.ok(riders);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/my-bids")
+    public ResponseEntity<?> getMyBids(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            Rider rider = riderService.getRiderByUserId(userId);
+            List<Bid> bids = biddingService.getRiderBids(rider.getId());
+            return ResponseEntity.ok(bids);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getRiderStats(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            Rider rider = riderService.getRiderByUserId(userId);
+            java.util.Map<String, Object> stats = riderService.getRiderStats(rider.getId());
+            return ResponseEntity.ok(stats);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

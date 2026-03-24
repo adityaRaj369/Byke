@@ -3,34 +3,89 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Switch,
   Alert,
-  SafeAreaView,
-  Animated,
+  StyleSheet,
   Dimensions,
-  ActivityIndicator,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { toggleOnlineStatus, setEarnings, updateLocation } from '../store/slices/riderSlice';
 import api from '../config/api';
 import Geolocation from 'react-native-geolocation-service';
-import { Bell, MapPin, Wallet, TrendingUp, ChevronRight, Navigation, LayoutGrid, Clock, Shield } from 'lucide-react-native';
+import { Bell, Wallet, TrendingUp, Navigation, Clock, Shield, List } from 'lucide-react-native';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const MAP_HEIGHT = height * 0.65;
 
 const HomeScreen = ({ navigation }: any) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user: rider } = useSelector((state: RootState) => state.auth);
   const { isOnline, earnings } = useSelector((state: RootState) => state.rider) as any;
+  const mapRef = useRef<MapView>(null);
+  
+  const [location, setLocation] = useState({
+    latitude: 28.6139,
+    longitude: 77.2090,
+    latitudeDelta: 0.0122,
+    longitudeDelta: 0.0121,
+  });
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
 
   useEffect(() => {
+    requestLocationPermission();
     fetchEarnings();
-    if (isOnline) {
+  }, []);
+
+  useEffect(() => {
+    if (isOnline && hasLocationPermission) {
       startLocationTracking();
+      const interval = setInterval(startLocationTracking, 30000);
+      return () => clearInterval(interval);
     }
-  }, [isOnline]);
+  }, [isOnline, hasLocationPermission]);
+
+  const requestLocationPermission = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Location Permission',
+          message: 'BYKE Rider needs access to your location',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      setHasLocationPermission(granted === PermissionsAndroid.RESULTS.GRANTED);
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        getCurrentLocation();
+      }
+    } else {
+      setHasLocationPermission(true);
+      getCurrentLocation();
+    }
+  };
+
+  const getCurrentLocation = () => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          latitudeDelta: 0.0122,
+          longitudeDelta: 0.0121,
+        };
+        setLocation(newLocation);
+        mapRef.current?.animateToRegion(newLocation, 800);
+      },
+      (error) => console.log('Location error:', error),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  };
 
   const fetchEarnings = async () => {
     try {
@@ -50,8 +105,8 @@ const HomeScreen = ({ navigation }: any) => {
       (position) => {
         const { latitude, longitude } = position.coords;
         dispatch(updateLocation({ latitude, longitude }));
+        setLocation(prev => ({ ...prev, latitude, longitude }));
         
-        // Update location on backend
         api.patch('/rider/location', null, {
           params: { latitude, longitude }
         }).catch(console.log);
@@ -84,124 +139,342 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Top Header */}
-        <View className="px-6 pt-6 pb-8 flex-row items-center justify-between">
-          <View>
-            <Text className="text-sm font-black text-gray-400 uppercase tracking-widest">Captain Dashboard</Text>
-            <Text className="text-3xl font-black text-black mt-1">Hi, {rider?.name?.split(' ')[0] || 'Captain'}! 👋</Text>
+    <View style={styles.container}>
+      {/* Map View */}
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_GOOGLE}
+          style={StyleSheet.absoluteFill}
+          region={location}
+          showsUserLocation
+          showsMyLocationButton={false}
+          showsCompass={false}
+        >
+          <Marker coordinate={location}>
+            <View style={styles.riderMarker}>
+              <Navigation size={20} color="white" fill="white" />
+            </View>
+          </Marker>
+        </MapView>
+
+        {/* Header Overlay */}
+        <View style={styles.headerOverlay}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.statusBadge, { backgroundColor: isOnline ? '#10B981' : '#6B7280' }]}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>{isOnline ? 'ONLINE' : 'OFFLINE'}</Text>
+            </View>
           </View>
           <TouchableOpacity 
-            className="bg-gray-50 p-3 rounded-2xl border border-gray-100"
+            style={styles.notificationBtn}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Bell size={24} color="black" />
-            <View className="absolute top-2 right-2 w-2.5 h-3 bg-red-500 rounded-full border-2 border-white" />
+            <Bell size={22} color="black" />
+            <View style={styles.notificationDot} />
           </TouchableOpacity>
         </View>
 
-        {/* Online Status Card */}
-        <View className="mx-6 mb-8">
-          <View className={`rounded-[40px] p-8 flex-row items-center justify-between shadow-2xl ${
-            isOnline ? 'bg-green-500 shadow-green-500/30' : 'bg-black shadow-black/30'
-          }`}>
-            <View className="flex-1">
-              <Text className="text-white text-xs font-black uppercase tracking-[2px] opacity-80">
-                Current Status
-              </Text>
-              <Text className="text-white text-2xl font-black mt-1">
-                {isOnline ? 'Active & Ready' : 'System Offline'}
-              </Text>
-              <Text className="text-white text-[10px] font-bold mt-2 opacity-70">
-                {isOnline ? 'You are receiving nearby orders' : 'Turn on to start earning today'}
-              </Text>
-            </View>
-            <Switch
-              value={isOnline}
-              onValueChange={handleToggleOnline}
-              trackColor={{ false: '#374151', true: '#ffffff40' }}
-              thumbColor={isOnline ? '#fff' : '#9CA3AF'}
-              ios_backgroundColor="#374151"
-            />
+        {/* Recenter Button */}
+        <TouchableOpacity 
+          style={styles.recenterBtn}
+          onPress={getCurrentLocation}
+        >
+          <Navigation size={20} color="black" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Bottom Sheet */}
+      <View style={styles.bottomSheet}>
+        {/* Online Toggle */}
+        <View style={[styles.onlineCard, { backgroundColor: isOnline ? '#10B98115' : '#F3F4F6' }]}>
+          <View style={styles.onlineCardLeft}>
+            <Text style={styles.onlineLabel}>Go {isOnline ? 'Offline' : 'Online'}</Text>
+            <Text style={styles.onlineSubtext}>
+              {isOnline ? 'Stop receiving orders' : 'Start accepting orders'}
+            </Text>
           </View>
+          <Switch
+            value={isOnline}
+            onValueChange={handleToggleOnline}
+            trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+            thumbColor="#fff"
+          />
         </View>
 
-        {/* Earnings Card */}
-        <View className="mx-6 mb-10 bg-gray-50 rounded-[40px] p-8 border border-gray-100">
-          <View className="flex-row items-center justify-between mb-8">
-            <View className="flex-row items-center">
-              <View className="bg-white p-2.5 rounded-xl mr-3 shadow-sm">
-                <Wallet size={18} color="#EAB308" />
-              </View>
-              <Text className="text-gray-800 font-black uppercase tracking-widest text-xs">Today's Earnings</Text>
+        {/* Earnings Summary */}
+        <View style={styles.earningsCard}>
+          <View style={styles.earningsHeader}>
+            <View style={styles.earningsIcon}>
+              <Wallet size={18} color="#EAB308" />
             </View>
+            <Text style={styles.earningsTitle}>Today's Earnings</Text>
+          </View>
+          <View style={styles.earningsRow}>
+            <Text style={styles.earningsAmount}>₹{earnings.today}</Text>
+            <View style={styles.earningsBadge}>
+              <TrendingUp size={12} color="#166534" />
+              <Text style={styles.earningsBadgeText}>+12%</Text>
+            </View>
+          </View>
+          <View style={styles.earningsFooter}>
+            <Text style={styles.earningsWeekly}>Weekly: ₹{earnings.thisWeek}</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Earnings')}>
-              <Text className="text-blue-600 font-black text-xs uppercase tracking-widest">Details</Text>
+              <Text style={styles.earningsLink}>View Details →</Text>
             </TouchableOpacity>
           </View>
-
-          <View className="flex-row items-end justify-between">
-            <View>
-              <Text className="text-4xl font-black text-black">₹{earnings.today}</Text>
-              <View className="flex-row items-center mt-2 bg-green-100 self-start px-2 py-1 rounded-lg">
-                <TrendingUp size={12} color="#166534" />
-                <Text className="text-[10px] font-black text-green-800 ml-1">+12% from yesterday</Text>
-              </View>
-            </View>
-            <View className="items-end">
-              <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Weekly</Text>
-              <Text className="text-xl font-black text-gray-800">₹{earnings.thisWeek}</Text>
-            </View>
-          </View>
         </View>
 
-        {/* Quick Actions Grid */}
-        <View className="px-6 mb-12">
-          <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] mb-6 ml-1">Captain Tools</Text>
+        {/* Quick Actions */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: '#EAB30815' }]}
+            onPress={() => navigation.navigate('AvailableBookings')}
+          >
+            <List size={22} color="#EAB308" strokeWidth={2.5} />
+            <Text style={styles.actionText}>Orders</Text>
+          </TouchableOpacity>
           
-          <View className="flex-row flex-wrap justify-between">
-            {[
-              { id: 'bookings', label: 'Available Orders', icon: Navigation, color: '#EAB308', screen: 'AvailableBookings' },
-              { id: 'mybids', label: 'Active Bids', icon: Clock, color: '#3B82F6', screen: 'MyBids' },
-              { id: 'docs', label: 'Documents', icon: Shield, color: '#10B981', screen: 'Documents' },
-              { id: 'more', label: 'More Ops', icon: LayoutGrid, color: '#6B7280', screen: 'Profile' },
-            ].map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate(item.screen as any)}
-                className="w-[47%] bg-white border border-gray-100 p-6 rounded-[32px] mb-4 shadow-sm shadow-black/5"
-              >
-                <View 
-                  className="w-12 h-12 rounded-2xl items-center justify-center mb-4"
-                  style={{ backgroundColor: `${item.color}15` }}
-                >
-                  <item.icon size={22} color={item.color} strokeWidth={2.5} />
-                </View>
-                <Text className="text-sm font-black text-gray-800 leading-5">{item.label}</Text>
-                <View className="mt-4 flex-row items-center">
-                  <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Open</Text>
-                  <ChevronRight size={12} color="#D1D5DB" className="ml-1" />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: '#3B82F615' }]}
+            onPress={() => navigation.navigate('MyBids')}
+          >
+            <Clock size={22} color="#3B82F6" strokeWidth={2.5} />
+            <Text style={styles.actionText}>My Bids</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: '#10B98115' }]}
+            onPress={() => navigation.navigate('Documents')}
+          >
+            <Shield size={22} color="#10B981" strokeWidth={2.5} />
+            <Text style={styles.actionText}>Docs</Text>
+          </TouchableOpacity>
         </View>
-
-        {/* Tips Footer */}
-        <View className="mx-6 p-6 bg-yellow-50 rounded-[32px] border border-yellow-100 flex-row items-center mb-12">
-          <View className="bg-yellow-400 p-3 rounded-2xl mr-4 shadow-sm">
-            <Shield size={20} color="black" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-yellow-900 font-black text-sm">Safety First!</Text>
-            <Text className="text-yellow-700 font-bold text-xs mt-0.5">Always wear a helmet and follow traffic rules.</Text>
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  mapContainer: {
+    height: MAP_HEIGHT,
+    width: '100%',
+  },
+  riderMarker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    alignSelf: 'flex-start',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+    marginRight: 8,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  notificationBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  recenterBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bottomSheet: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  onlineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderRadius: 24,
+    marginBottom: 16,
+  },
+  onlineCardLeft: {
+    flex: 1,
+  },
+  onlineLabel: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#000',
+    marginBottom: 4,
+  },
+  onlineSubtext: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  earningsCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  earningsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  earningsIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  earningsTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  earningsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  earningsAmount: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#000',
+    marginRight: 12,
+  },
+  earningsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  earningsBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#166534',
+    marginLeft: 4,
+  },
+  earningsFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  earningsWeekly: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  earningsLink: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#3B82F6',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  actionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 20,
+    marginHorizontal: 4,
+  },
+  actionText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#000',
+    marginTop: 8,
+  },
+});
 
 export default HomeScreen;

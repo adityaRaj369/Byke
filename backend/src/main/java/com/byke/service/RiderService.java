@@ -1,16 +1,19 @@
 package com.byke.service;
 
-import com.byke.model.entity.Rider;
-import com.byke.model.entity.User;
-import com.byke.model.enums.RiderStatus;
+import com.byke.model.entity.Booking;
+import com.byke.model.enums.BookingStatus;
+import com.byke.repository.BookingRepository;
 import com.byke.repository.RiderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +22,7 @@ public class RiderService {
 
     private final RiderRepository riderRepository;
     private final UserService userService;
+    private final BookingRepository bookingRepository;
 
     @Transactional
     public Rider createRiderApplication(User user, Rider riderData) {
@@ -171,10 +175,44 @@ public class RiderService {
         
         int totalRides = rider.getTotalRides();
         int cancellations = rider.getCancellationCount();
-        double acceptanceRate = ((double) (totalRides - cancellations) / totalRides) * 100;
+        double acceptanceRate = totalRides == 0 ? 100.0 : ((double) (totalRides - cancellations) / totalRides) * 100;
         rider.setAcceptanceRate(acceptanceRate);
         
         riderRepository.save(rider);
+    }
+
+    public Map<String, Object> getRiderStats(Long riderId) {
+        Rider rider = getRiderById(riderId);
+        List<Booking> completedBookings = bookingRepository.findByRiderIdAndStatus(riderId, BookingStatus.COMPLETED);
+        
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime startOfWeek = LocalDate.now().minusWeeks(1).atStartOfDay();
+        LocalDateTime startOfMonth = LocalDate.now().minusMonths(1).atStartOfDay();
+
+        double earningsToday = completedBookings.stream()
+                .filter(b -> b.getUpdatedAt().isAfter(startOfDay))
+                .mapToDouble(b -> b.getFinalPrice() != null ? b.getFinalPrice() : 0.0)
+                .sum();
+
+        double earningsWeek = completedBookings.stream()
+                .filter(b -> b.getUpdatedAt().isAfter(startOfWeek))
+                .mapToDouble(b -> b.getFinalPrice() != null ? b.getFinalPrice() : 0.0)
+                .sum();
+
+        double earningsMonth = completedBookings.stream()
+                .filter(b -> b.getUpdatedAt().isAfter(startOfMonth))
+                .mapToDouble(b -> b.getFinalPrice() != null ? b.getFinalPrice() : 0.0)
+                .sum();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalRides", rider.getTotalRides());
+        stats.put("averageRating", rider.getAverageRating());
+        stats.put("acceptanceRate", rider.getAcceptanceRate());
+        stats.put("earningsToday", earningsToday);
+        stats.put("earningsWeek", earningsWeek);
+        stats.put("earningsMonth", earningsMonth);
+        
+        return stats;
     }
 
     public List<Rider> getPendingRiders() {

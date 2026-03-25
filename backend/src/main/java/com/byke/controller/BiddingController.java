@@ -1,7 +1,9 @@
 package com.byke.controller;
 
 import com.byke.model.entity.Bid;
+import com.byke.model.entity.Rider;
 import com.byke.service.BiddingService;
+import com.byke.service.RiderService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +17,17 @@ import java.util.List;
 public class BiddingController {
 
     private final BiddingService biddingService;
+    private final RiderService riderService;
 
     @PostMapping
     public ResponseEntity<?> placeBid(@RequestParam Long bookingId, 
                                       @RequestParam Double bidAmount,
                                       HttpServletRequest request) {
         try {
-            Long riderId = (Long) request.getAttribute("userId");
-            Bid bid = biddingService.placeBid(bookingId, riderId, bidAmount);
+            Long userId = (Long) request.getAttribute("userId");
+            // Get or create rider profile for this user
+            Rider rider = riderService.getOrCreateRiderForUser(userId);
+            Bid bid = biddingService.placeBid(bookingId, rider.getId(), bidAmount);
             return ResponseEntity.ok(bid);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

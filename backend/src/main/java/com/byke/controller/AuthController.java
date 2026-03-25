@@ -3,11 +3,14 @@ package com.byke.controller;
 import com.byke.dto.AuthRequest;
 import com.byke.dto.AuthResponse;
 import com.byke.dto.RefreshTokenRequest;
+import com.byke.model.entity.Rider;
 import com.byke.model.entity.User;
 import com.byke.model.enums.UserRole;
+import com.byke.model.enums.RiderStatus;
 import com.byke.security.JwtUtil;
 import com.byke.service.FirebaseOtpService;
 import com.byke.service.UserService;
+import com.byke.service.RiderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,7 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final RiderService riderService;
     private final JwtUtil jwtUtil;
     private final FirebaseOtpService firebaseOtpService;
 

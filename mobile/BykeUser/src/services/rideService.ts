@@ -97,17 +97,20 @@ export const createRideRequest = async (request: RideRequest): Promise<{ rideId:
 
 export const getRideBids = async (rideId: string): Promise<Bid[]> => {
   try {
-    const response = await api.get(`/rides/${rideId}/bids`);
-    return response.data;
+    // Backend endpoint is /api/bids/booking/{bookingId}
+    const response = await api.get(`/bids/booking/${rideId}`);
+    return response.data || [];
   } catch (error: any) {
     console.error('Error fetching bids:', error);
-    throw new Error(error.response?.data?.message || 'Failed to fetch bids');
+    // Return empty array instead of throwing - no bids is a valid state
+    return [];
   }
 };
 
 export const acceptBid = async (rideId: string, bidId: string): Promise<Ride> => {
   try {
-    const response = await api.post(`/rides/${rideId}/bids/${bidId}/accept`);
+    // Backend endpoint is /api/bids/{bidId}/accept
+    const response = await api.post(`/bids/${bidId}/accept`);
     return response.data;
   } catch (error: any) {
     console.error('Error accepting bid:', error);
@@ -115,9 +118,10 @@ export const acceptBid = async (rideId: string, bidId: string): Promise<Ride> =>
   }
 };
 
-export const getRideDetails = async (rideId: string): Promise<Ride> => {
+export const getRideDetails = async (rideId: string): Promise<any> => {
   try {
-    const response = await api.get(`/rides/${rideId}`);
+    // Backend endpoint is /api/bookings/{id}
+    const response = await api.get(`/bookings/${rideId}`);
     return response.data;
   } catch (error: any) {
     console.error('Error fetching ride details:', error);
@@ -127,7 +131,10 @@ export const getRideDetails = async (rideId: string): Promise<Ride> => {
 
 export const cancelRide = async (rideId: string, reason?: string): Promise<void> => {
   try {
-    await api.post(`/rides/${rideId}/cancel`, { reason });
+    // Backend endpoint is /api/bookings/{id}/cancel
+    await api.post(`/bookings/${rideId}/cancel`, null, {
+      params: { reason: reason || 'User cancelled', byUser: true }
+    });
   } catch (error: any) {
     console.error('Error cancelling ride:', error);
     throw new Error(error.response?.data?.message || 'Failed to cancel ride');

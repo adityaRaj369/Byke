@@ -64,7 +64,7 @@ public class RiderController {
                                             HttpServletRequest request) {
         try {
             Long userId = (Long) request.getAttribute("userId");
-            Rider rider = riderService.getRiderByUserId(userId);
+            Rider rider = riderService.getOrCreateRiderForUser(userId);
             riderService.updateRiderLocation(rider.getId(), latitude, longitude);
             return ResponseEntity.ok("Location updated");
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class RiderController {
     public ResponseEntity<?> updateStatus(@RequestParam RiderStatus status, HttpServletRequest request) {
         try {
             Long userId = (Long) request.getAttribute("userId");
-            Rider rider = riderService.getRiderByUserId(userId);
+            Rider rider = riderService.getOrCreateRiderForUser(userId);
             riderService.updateRiderStatus(rider.getId(), status);
             return ResponseEntity.ok("Status updated");
         } catch (Exception e) {

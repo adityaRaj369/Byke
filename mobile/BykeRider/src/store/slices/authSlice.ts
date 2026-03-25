@@ -1,9 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../config/api';
+import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_PROFILE_KEY } from '../../constants/storageKeys';
+
+interface User {
+  id: string;
+  name: string;
+  phone: string;
+  profilePhoto?: string;
+  role: 'rider';
+}
 
 interface AuthState {
-  user: any | null;
+  user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
@@ -16,108 +24,87 @@ const initialState: AuthState = {
   accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true, // Start as true to check stored session
   error: null,
 };
 
-export const sendOtp = createAsyncThunk(
-  'auth/sendOtp',
-  async (mobileNumber: string, { rejectWithValue }) => {
+// Check for stored session on app start
+export const checkStoredSession = createAsyncThunk(
+  'auth/checkStoredSession',
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await api.post('/auth/send-otp', { mobileNumber });
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to send OTP');
-    }
-  }
-);
-
-export const verifyOtp = createAsyncThunk(
-  'auth/verifyOtp',
-  async (
-    { mobileNumber, otpCode, fullName }: { mobileNumber: string; otpCode: string; fullName?: string },
-    { rejectWithValue }
-  ) => {
-    try {
-      const response = await api.post('/auth/rider/verify-otp', {
-        mobileNumber,
-        otpCode,
-        fullName,
-      });
+      const [token, profile] = await AsyncStorage.multiGet([TOKEN_KEY, USER_PROFILE_KEY]);
+      const accessToken = token[1];
+      const userProfile = profile[1];
       
-      const { accessToken, refreshToken, userId, role } = response.data;
-      
-      await AsyncStorage.setItem('accessToken', accessToken);
-      await AsyncStorage.setItem('refreshToken', refreshToken);
-      await AsyncStorage.setItem('userId', userId.toString());
-      
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'OTP verification failed');
+      if (accessToken && userProfile) {
+        return {
+          accessToken,
+          user: JSON.parse(userProfile),
+        };
+      }
+      return null;
+    } catch (error) {
+      return rejectWithValue('Failed to restore session');
     }
   }
 );
 
 export const logout = createAsyncThunk('auth/logout', async () => {
-  await AsyncStorage.removeItem('accessToken');
-  await AsyncStorage.removeItem('refreshToken');
-  await AsyncStorage.removeItem('userId');
+  await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, USER_PROFILE_KEY]);
 });
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ accessToken: string; user: any }>) => {
-      state.accessToken = action.payload.accessToken;
+    loginSuccess: (state, action: PayloadAction<{ user: User; accessToken: string; refreshToken?: string }>) => {
       state.user = action.payload.user;
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken || null;
       state.isAuthenticated = true;
-    },
-    clearError: (state) => {
+      state.loading = false;
       state.error = null;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
+    },
+    clearAuth: (state) => {
+      state.user = null;
+      state.accessToken = null;
+      state.refreshToken = null;
+      state.isAuthenticated = false;
+      state.loading = false;
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(sendOtp.pending, (state) => {
+      .addCase(checkStoredSession.pending, (state) => {
         state.loading = true;
-        state.error = null;
       })
-      .addCase(sendOtp.fulfilled, (state) => {
+      .addCase(checkStoredSession.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.accessToken = action.payload.accessToken;
+          state.user = action.payload.user;
+          state.isAuthenticated = true;
+        }
         state.loading = false;
       })
-      .addCase(sendOtp.rejected, (state, action) => {
+      .addCase(checkStoredSession.rejected, (state) => {
         state.loading = false;
-        state.error = action.payload as string;
-      })
-      .addCase(verifyOtp.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(verifyOtp.fulfilled, (state, action) => {
-        state.loading = false;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
-        state.user = { id: action.payload.userId, role: action.payload.role };
-        state.isAuthenticated = true;
-      })
-      .addCase(verifyOtp.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.accessToken = null;
         state.refreshToken = null;
         state.isAuthenticated = false;
+        state.loading = false;
       });
   },
 });
 
-export const { setCredentials, clearError } = authSlice.actions;
-
-// Legacy exports for compatibility
-export const loginSuccess = setCredentials;
-export const setLoading = (loading: boolean) => ({ type: 'auth/setLoading', payload: loading });
-
+export const { loginSuccess, setLoading, setError, clearAuth } = authSlice.actions;
 export default authSlice.reducer;

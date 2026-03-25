@@ -115,9 +115,13 @@ public class BiddingService {
         booking.setVerificationOtp(otp);
         bookingRepository.save(booking);
 
-        // Notify rider that bid was accepted
+        // Notify rider that bid was accepted (without OTP - rider must ask user for OTP)
         notificationService.notifyRider(bid.getRider().getId(),
-                "Bid Accepted!", "User accepted your bid. OTP: " + otp);
+                "Bid Accepted!", "User accepted your bid. Navigate to pickup location.");
+        
+        // Notify user with OTP
+        notificationService.notifyUser(booking.getUser().getId(),
+                "Rider Assigned!", "Your OTP is: " + otp + ". Share this with your rider when they arrive.");
 
         log.info("Bid {} accepted for booking {}. OTP generated: {}", bidId, bid.getBooking().getId(), otp);
         return booking;

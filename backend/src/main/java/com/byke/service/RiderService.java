@@ -27,6 +27,33 @@ public class RiderService {
     private final UserService userService;
     private final BookingRepository bookingRepository;
 
+    /**
+     * Get existing rider profile or create a basic one for a user.
+     * This ensures every rider user has a rider profile entry.
+     */
+    @Transactional
+    public Rider getOrCreateRiderForUser(Long userId) {
+        try {
+            return getRiderByUserId(userId);
+        } catch (RuntimeException e) {
+            // Create a basic rider profile
+            User user = userService.getUserById(userId);
+            Rider rider = Rider.builder()
+                    .user(user)
+                    .status(RiderStatus.ACTIVE) // Default to active for now
+                    .vehicleType("Auto") // Default vehicle type
+                    .averageRating(5.0)
+                    .totalRides(0)
+                    .totalRatings(0)
+                    .cancellationCount(0)
+                    .acceptanceRate(100.0)
+                    .build();
+            Rider savedRider = riderRepository.save(rider);
+            log.info("Auto-created rider profile for user: {}", userId);
+            return savedRider;
+        }
+    }
+
     @Transactional
     public Rider createRiderApplication(User user, Rider riderData) {
         Rider rider = Rider.builder()

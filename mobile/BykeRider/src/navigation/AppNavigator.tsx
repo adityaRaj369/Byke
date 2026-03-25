@@ -1,10 +1,11 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import { Home, ListOrdered, Wallet, User } from 'lucide-react-native';
 
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -19,45 +20,50 @@ import RideTrackingScreen from '../screens/RideTrackingScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const TabIcon = ({ icon: Icon, focused, label }: { icon: any; focused: boolean; label: string }) => (
+  <View style={styles.tabIconContainer}>
+    <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+      <Icon size={22} color={focused ? '#000' : '#9CA3AF'} strokeWidth={focused ? 2.5 : 2} />
+    </View>
+    <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
+  </View>
+);
+
 const HomeTabs = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#059669',
-        tabBarInactiveTintColor: '#9ca3af',
         headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: styles.tabBar,
       }}
     >
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
         options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon icon={Home} focused={focused} label="Home" />,
         }}
       />
       <Tab.Screen
         name="BookingsTab"
         component={AvailableBookingsScreen}
         options={{
-          tabBarLabel: 'Bookings',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon icon={ListOrdered} focused={focused} label="Orders" />,
         }}
       />
       <Tab.Screen
         name="EarningsTab"
         component={EarningsScreen}
         options={{
-          tabBarLabel: 'Earnings',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>💰</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon icon={Wallet} focused={focused} label="Earnings" />,
         }}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
+          tabBarIcon: ({ focused }) => <TabIcon icon={User} focused={focused} label="Profile" />,
         }}
       />
     </Tab.Navigator>
@@ -65,7 +71,12 @@ const HomeTabs = () => {
 };
 
 const AppNavigator = () => {
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
+
+  // Don't render navigation during loading
+  if (loading) {
+    return null;
+  }
 
   return (
     <NavigationContainer>
@@ -78,22 +89,22 @@ const AppNavigator = () => {
             <Stack.Screen 
               name="AvailableBookings" 
               component={AvailableBookingsScreen}
-              options={{ headerShown: true, title: 'Available Bookings' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen 
               name="MyBids" 
               component={MyBidsScreen}
-              options={{ headerShown: true, title: 'My Bids' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen 
               name="Earnings" 
               component={EarningsScreen}
-              options={{ headerShown: true, title: 'Earnings' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen 
               name="Documents" 
               component={DocumentsScreen}
-              options={{ headerShown: true, title: 'Documents' }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen 
               name="Notifications" 
@@ -111,5 +122,49 @@ const AppNavigator = () => {
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopWidth: 0,
+    height: Platform.OS === 'ios' ? 88 : 70,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapper: {
+    width: 44,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    marginBottom: 4,
+  },
+  iconWrapperActive: {
+    backgroundColor: '#EAB30820',
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    letterSpacing: 0.3,
+  },
+  tabLabelActive: {
+    color: '#000',
+    fontWeight: '800',
+  },
+});
 
 export default AppNavigator;

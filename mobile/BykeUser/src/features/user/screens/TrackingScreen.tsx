@@ -37,6 +37,7 @@ export default function TrackingScreen() {
   const [rideSeconds, setRideSeconds] = useState(0);
   const [riderLocation, setRiderLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [otp, setOtp] = useState<string | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -81,6 +82,10 @@ export default function TrackingScreen() {
         setPhase('enroute');
       } else if (rideDetails.status === 'COMPLETED') {
         setPhase('completed');
+      }
+      // Get OTP from ride details
+      if (rideDetails.verificationOtp) {
+        setOtp(rideDetails.verificationOtp);
       }
     } catch (error) {
       console.error('Error loading ride details:', error);
@@ -298,13 +303,27 @@ export default function TrackingScreen() {
 
           {phase === 'arrived' && (
             <View style={styles.arrivalOverlay}>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }], marginBottom: 32 }}>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }], marginBottom: 24 }}>
                 <View style={styles.arrivalIcon}>
                   <Check size={48} color="white" strokeWidth={4} />
                 </View>
               </Animated.View>
               <Text style={styles.arrivalTitle}>{rider.name} is here!</Text>
-              <Text style={styles.arrivalSubtitle}>Please verify the vehicle number and board.</Text>
+              <Text style={styles.arrivalSubtitle}>Verify vehicle number and share OTP with rider</Text>
+              
+              {otp && (
+                <View style={styles.otpContainer}>
+                  <Text style={styles.otpLabel}>Your OTP</Text>
+                  <View style={styles.otpBoxes}>
+                    {otp.split('').map((digit, i) => (
+                      <View key={i} style={styles.otpBox}>
+                        <Text style={styles.otpDigit}>{digit}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              
               <TouchableOpacity 
                 onPress={() => setPhase('enroute')}
                 style={styles.boardedButton}
@@ -477,7 +496,12 @@ const styles = StyleSheet.create({
   arrivalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.98)', borderTopLeftRadius: 40, borderTopRightRadius: 40, alignItems: 'center', justifyContent: 'center', padding: 32, zIndex: 50 },
   arrivalIcon: { backgroundColor: '#22C55E', padding: 32, borderRadius: 100, elevation: 20, shadowColor: '#22C55E', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 },
   arrivalTitle: { fontSize: 32, fontWeight: '900', color: 'black', marginBottom: 8 },
-  arrivalSubtitle: { fontSize: 14, color: '#9CA3AF', fontWeight: '700', textAlign: 'center', marginBottom: 40 },
+  arrivalSubtitle: { fontSize: 14, color: '#9CA3AF', fontWeight: '700', textAlign: 'center', marginBottom: 20 },
+  otpContainer: { alignItems: 'center', marginBottom: 32, width: '100%' },
+  otpLabel: { fontSize: 12, fontWeight: '900', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 },
+  otpBoxes: { flexDirection: 'row', justifyContent: 'center', gap: 12 },
+  otpBox: { width: 56, height: 72, backgroundColor: '#F9FAFB', borderRadius: 16, borderWidth: 2, borderColor: '#EAB308', alignItems: 'center', justifyContent: 'center' },
+  otpDigit: { fontSize: 32, fontWeight: '900', color: 'black' },
   boardedButton: { backgroundColor: 'black', width: '100%', height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 15 },
   boardedText: { color: 'white', fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
   completedContent: { paddingHorizontal: 24, paddingTop: 40, alignItems: 'center' },

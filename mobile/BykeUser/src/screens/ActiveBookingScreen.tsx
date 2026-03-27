@@ -117,7 +117,9 @@ const ActiveBookingScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.post(`/bookings/${bookingId}/cancel`);
+              await api.post(`/bookings/${bookingId}/cancel`, null, {
+                params: { reason: 'User cancelled', byUser: true }
+              });
               Alert.alert('Ride Cancelled', 'Your ride has been cancelled.', [
                 { text: 'OK', onPress: () => (navigation as any).replace('Home') },
               ]);

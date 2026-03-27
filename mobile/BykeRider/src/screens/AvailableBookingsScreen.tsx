@@ -77,7 +77,7 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
         params: {
           latitude,
           longitude,
-          radius: 3.0
+          radius: 10.0
         }
       });
       
@@ -86,7 +86,7 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
       const filtered = response.data
         .filter((b: any) => {
           const status = (b.status || '').toUpperCase();
-          if (status === 'CANCELLED' || status === 'COMPLETED' || status === 'ACCEPTED' || status === 'IN_PROGRESS') return false;
+          if (status === 'CANCELLED_BY_USER' || status === 'CANCELLED_BY_RIDER' || status === 'COMPLETED' || status === 'ACCEPTED' || status === 'IN_PROGRESS') return false;
           const age = now - new Date(b.createdAt || 0).getTime();
           return age < TWO_HOURS_MS;
         })
@@ -221,7 +221,7 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
             <Bike size={64} color="#D1D5DB" />
           </View>
           <Text style={styles.emptyTitle}>All caught up!</Text>
-          <Text style={styles.emptySubtitle}>No new requests within 3km. Stay online to get notified of new orders.</Text>
+          <Text style={styles.emptySubtitle}>No new requests within 10km. Stay online to get notified of new orders.</Text>
           <TouchableOpacity onPress={() => fetchAvailableBookings()} style={styles.refreshBtn}>
             <Text style={styles.refreshText}>Refresh</Text>
           </TouchableOpacity>

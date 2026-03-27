@@ -92,9 +92,11 @@ const RideTrackingScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.post(`/bookings/${resolvedBookingId}/cancel`);
+              await api.post(`/bookings/${resolvedBookingId}/cancel`, null, {
+                params: { reason: 'Rider cancelled', byUser: false }
+              });
               Alert.alert('Cancelled', 'Ride cancelled.', [
-                { text: 'OK', onPress: () => (navigation as any).replace('MainTabs') },
+                { text: 'OK', onPress: () => (navigation as any).replace('Home') },
               ]);
             } catch (e) {
               Alert.alert('Error', 'Failed to cancel ride.');

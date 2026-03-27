@@ -167,6 +167,14 @@ public class BiddingService {
                     10.0,
                     vehicleType
             );
+            // Fallback: if no riders with matching vehicle type, search all available riders
+            if (nearbyRiders.isEmpty()) {
+                nearbyRiders = riderService.getNearbyAvailableRiders(
+                        booking.getPickupLatitude(),
+                        booking.getPickupLongitude(),
+                        10.0
+                );
+            }
         } else {
             nearbyRiders = riderService.getNearbyAvailableRiders(
                     booking.getPickupLatitude(),

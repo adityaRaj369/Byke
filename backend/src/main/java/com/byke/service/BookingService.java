@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -274,6 +275,23 @@ public class BookingService {
         }
 
         return baseFare + (distance * perKmRate);
+    }
+
+    public Optional<Booking> getUserActiveBooking(Long userId) {
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.ACCEPTED, BookingStatus.RIDER_ARRIVED, BookingStatus.IN_PROGRESS);
+        return bookingRepository.findByUserIdAndStatusIn(userId, activeStatuses)
+                .stream()
+                .findFirst();
+    }
+
+    public Optional<Booking> getRiderActiveBooking(Long userId) {
+        Rider rider = riderService.getRiderByUserId(userId);
+        List<BookingStatus> activeStatuses = List.of(
+                BookingStatus.ACCEPTED, BookingStatus.RIDER_ARRIVED, BookingStatus.IN_PROGRESS);
+        return bookingRepository.findByRiderIdAndStatusIn(rider.getId(), activeStatuses)
+                .stream()
+                .findFirst();
     }
 
     public long getTotalBookingsToday() {

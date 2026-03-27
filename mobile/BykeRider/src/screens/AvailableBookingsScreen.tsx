@@ -81,7 +81,18 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
         }
       });
       
-      const bookings = response.data.map((booking: any) => ({
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      const now = Date.now();
+      const filtered = response.data
+        .filter((b: any) => {
+          const status = (b.status || '').toUpperCase();
+          if (status === 'CANCELLED' || status === 'COMPLETED' || status === 'ACCEPTED' || status === 'IN_PROGRESS') return false;
+          const age = now - new Date(b.createdAt || 0).getTime();
+          return age < TWO_HOURS_MS;
+        })
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      const bookings = filtered.map((booking: any) => ({
         id: String(booking.id),
         type: booking.serviceType?.toLowerCase() || 'ride',
         status: booking.status?.toLowerCase() || 'bidding',

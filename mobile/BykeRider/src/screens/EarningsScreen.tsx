@@ -23,11 +23,11 @@ const { width } = Dimensions.get('window');
 const EarningsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [earnings, setEarnings] = useState({
-    today: 450,
-    week: 2800,
-    month: 12500,
-    trips: 14,
-    rating: 4.8
+    today: 0,
+    week: 0,
+    month: 0,
+    trips: 0,
+    rating: 0,
   });
 
   const fetchEarnings = async () => {

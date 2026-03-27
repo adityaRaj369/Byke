@@ -53,12 +53,36 @@ public class BookingController {
         }
     }
 
+    @GetMapping("/user/active")
+    public ResponseEntity<?> getUserActiveBooking(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            return bookingService.getUserActiveBooking(userId)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.noContent().build());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/rider/my-bookings")
     public ResponseEntity<?> getRiderBookings(HttpServletRequest request) {
         try {
             Long userId = (Long) request.getAttribute("userId");
             List<Booking> bookings = bookingService.getRiderBookings(userId);
             return ResponseEntity.ok(bookings);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/rider/active")
+    public ResponseEntity<?> getRiderActiveBooking(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            return bookingService.getRiderActiveBooking(userId)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.noContent().build());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -44,10 +44,11 @@ interface Booking {
 const RideTrackingScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { bookingId } = route.params as { bookingId: number };
-  
+  const params = route.params as { bookingId?: number; booking?: Booking };
+  const resolvedBookingId = params.bookingId ?? params.booking?.id;
+
   const mapRef = useRef<MapView>(null);
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const [booking, setBooking] = useState<Booking | null>(params.booking || null);
   const [currentLocation, setCurrentLocation] = useState({
     latitude: 28.6139,
     longitude: 77.2090,
@@ -62,6 +63,47 @@ const RideTrackingScreen = () => {
     const interval = setInterval(fetchBookingDetails, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleOpenNavigation = () => {
+    const dest = rideStatus === 'IN_PROGRESS'
+      ? { lat: booking?.dropLatitude, lng: booking?.dropLongitude, label: booking?.dropAddress }
+      : { lat: booking?.pickupLatitude, lng: booking?.pickupLongitude, label: booking?.pickupAddress };
+    if (!dest.lat || !dest.lng) return;
+    const url = Platform.OS === 'ios'
+      ? `maps://?daddr=${dest.lat},${dest.lng}&dirflg=d`
+      : `google.navigation:q=${dest.lat},${dest.lng}&mode=d`;
+    Linking.openURL(url).catch(() =>
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`)
+    );
+  };
+
+  const handleCancelRide = () => {
+    if (rideStatus === 'IN_PROGRESS') {
+      Alert.alert('Cannot Cancel', 'Cannot cancel a ride that is already in progress.');
+      return;
+    }
+    Alert.alert(
+      'Cancel Ride',
+      'Are you sure you want to cancel this ride?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.post(`/bookings/${resolvedBookingId}/cancel`);
+              Alert.alert('Cancelled', 'Ride cancelled.', [
+                { text: 'OK', onPress: () => (navigation as any).replace('MainTabs') },
+              ]);
+            } catch (e) {
+              Alert.alert('Error', 'Failed to cancel ride.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     if (booking && mapRef.current) {
@@ -95,8 +137,9 @@ const RideTrackingScreen = () => {
   };
 
   const fetchBookingDetails = async () => {
+    if (!resolvedBookingId) return;
     try {
-      const response = await api.get(`/bookings/${bookingId}`);
+      const response = await api.get(`/bookings/${resolvedBookingId}`);
       setBooking(response.data);
       setRideStatus(response.data.status);
     } catch (error) {
@@ -107,7 +150,7 @@ const RideTrackingScreen = () => {
   const handleArrived = async () => {
     try {
       setLoading(true);
-      await api.patch(`/bookings/${bookingId}/status`, null, {
+      await api.patch(`/bookings/${resolvedBookingId}/status`, null, {
         params: { status: 'RIDER_ARRIVED' }
       });
       setRideStatus('RIDER_ARRIVED');
@@ -128,7 +171,7 @@ const RideTrackingScreen = () => {
     try {
       setLoading(true);
       await api.post('/bids/verify-otp', null, {
-        params: { bookingId, otp }
+        params: { bookingId: resolvedBookingId, otp }
       });
       setRideStatus('IN_PROGRESS');
       Alert.alert('Ride Started', 'Navigate to drop location');
@@ -150,7 +193,7 @@ const RideTrackingScreen = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              await api.patch(`/bookings/${bookingId}/status`, null, {
+              await api.patch(`/bookings/${resolvedBookingId}/status`, null, {
                 params: { status: 'COMPLETED' }
               });
               Alert.alert('Success', 'Ride completed successfully!', [
@@ -275,6 +318,12 @@ const RideTrackingScreen = () => {
           )}
         </View>
 
+        {/* 3D Navigation Button */}
+        <TouchableOpacity style={styles.navBtn} onPress={handleOpenNavigation}>
+          <Navigation size={18} color="white" />
+          <Text style={styles.navBtnText}>Open Navigation</Text>
+        </TouchableOpacity>
+
         {rideStatus === 'ACCEPTED' && (
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
@@ -330,6 +379,12 @@ const RideTrackingScreen = () => {
           <Text style={styles.fareLabel}>Fare Amount</Text>
           <Text style={styles.fareAmount}>₹{booking.finalFare || booking.estimatedFare}</Text>
         </View>
+
+        {rideStatus !== 'IN_PROGRESS' && rideStatus !== 'COMPLETED' && (
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelRide}>
+            <Text style={styles.cancelBtnText}>Cancel Ride</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -596,6 +651,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#fff',
+  },
+  navBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    borderRadius: 14,
+    marginBottom: 10,
+  },
+  navBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  cancelBtn: {
+    marginTop: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   fareCard: {
     flexDirection: 'row',

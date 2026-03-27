@@ -37,7 +37,8 @@ const HomeScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     requestLocationPermission();
-    fetchEarnings();
+    fetchRealEarnings();
+    checkActiveRide();
   }, []);
 
   useEffect(() => {
@@ -87,16 +88,28 @@ const HomeScreen = ({ navigation }: any) => {
     );
   };
 
-  const fetchEarnings = async () => {
+  const fetchRealEarnings = async () => {
     try {
-      // Mock earnings - in real app, fetch from backend
+      const response = await api.get('/rider/stats');
       dispatch(setEarnings({
-        today: 450,
-        thisWeek: 2800,
-        thisMonth: 12500,
+        today: response.data.earningsToday || 0,
+        thisWeek: response.data.earningsWeek || 0,
+        thisMonth: response.data.earningsMonth || 0,
       }));
     } catch (error) {
       console.log('Error fetching earnings:', error);
+    }
+  };
+
+  const checkActiveRide = async () => {
+    try {
+      const response = await api.get('/bookings/rider/active');
+      if (response.status === 200 && response.data) {
+        const booking = response.data;
+        navigation.replace('RideTracking', { booking });
+      }
+    } catch (error) {
+      // No active ride
     }
   };
 

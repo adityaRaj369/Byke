@@ -7,6 +7,7 @@ import {
   Alert,
   Linking,
   Platform,
+  ScrollView,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
@@ -85,7 +86,7 @@ const ActiveBookingScreen = () => {
       
       if (response.data.status === 'COMPLETED') {
         Alert.alert('Ride Completed', 'Thank you for using BYKE!', [
-          { text: 'OK', onPress: () => navigation.navigate('Home') }
+          { text: 'OK', onPress: () => (navigation as any).replace('Home') }
         ]);
       }
     } catch (error) {
@@ -99,6 +100,34 @@ const ActiveBookingScreen = () => {
     if (booking?.rider?.user?.mobileNumber) {
       Linking.openURL(`tel:${booking.rider.user.mobileNumber}`);
     }
+  };
+
+  const handleCancelRide = () => {
+    if (booking?.status === 'IN_PROGRESS') {
+      Alert.alert('Cannot Cancel', 'You cannot cancel a ride that is already in progress.');
+      return;
+    }
+    Alert.alert(
+      'Cancel Ride',
+      'Are you sure you want to cancel this ride?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.post(`/bookings/${bookingId}/cancel`);
+              Alert.alert('Ride Cancelled', 'Your ride has been cancelled.', [
+                { text: 'OK', onPress: () => (navigation as any).replace('Home') },
+              ]);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getStatusInfo = () => {
@@ -163,10 +192,11 @@ const ActiveBookingScreen = () => {
       >
         <Marker
           coordinate={riderLocation}
-          title="Rider Location"
+          title="Rider"
+          anchor={{ x: 0.5, y: 0.5 }}
         >
           <View style={styles.riderMarker}>
-            <Navigation size={20} color="white" fill="white" />
+            <Text style={styles.riderMarkerEmoji}>🏍️</Text>
           </View>
         </Marker>
 
@@ -210,7 +240,7 @@ const ActiveBookingScreen = () => {
         />
       </MapView>
 
-      <View style={styles.bottomSheet}>
+      <ScrollView style={styles.bottomSheet} showsVerticalScrollIndicator={false}>
         <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
           <statusInfo.icon size={16} color={statusInfo.color} />
           <Text style={[styles.statusText, { color: statusInfo.color }]}>
@@ -273,7 +303,13 @@ const ActiveBookingScreen = () => {
             ₹{booking.finalFare || booking.estimatedFare}
           </Text>
         </View>
-      </View>
+
+        {booking.status !== 'IN_PROGRESS' && booking.status !== 'COMPLETED' && (
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}>
+            <Text style={styles.cancelButtonText}>Cancel Ride</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -297,20 +333,23 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
+  riderMarkerEmoji: {
+    fontSize: 22,
+  },
   riderMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#10B981',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pickupMarker: {
     width: 40,
@@ -494,6 +533,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     lineHeight: 20,
+  },
+  cancelButton: {
+    marginTop: 12,
+    marginBottom: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   fareCard: {
     flexDirection: 'row',

@@ -1,24 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Dimensions,
   Platform,
   PermissionsAndroid,
-  Alert,
-  Dimensions,
+  Modal,
+  ScrollView,
+  Animated,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import Geolocation from 'react-native-geolocation-service';
+import MapView, { Marker, PROVIDER_GOOGLE, Circle } from 'react-native-maps';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import Modal from 'react-native-modal';
+import api from '../config/api';
+import Geolocation from 'react-native-geolocation-service';
+import { Bell, User, MapPin, Navigation, Package, ShoppingCart, ChevronRight } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
+interface NearbyRider {
+  id: number;
+  currentLatitude: number;
+  currentLongitude: number;
+  vehicleType: string;
+  averageRating: number;
+  user: { fullName: string };
+}
+
 const HomeScreen = ({ navigation }: any) => {
   const { user } = useSelector((state: RootState) => state.auth);
+  const mapRef = useRef<MapView>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   const [location, setLocation] = useState({
     latitude: 28.6139,
     longitude: 77.2090,
@@ -26,11 +42,70 @@ const HomeScreen = ({ navigation }: any) => {
     longitudeDelta: 0.0121,
   });
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
-  const [isServiceModalVisible, setServiceModalVisible] = useState(false);
+  const [serviceModalVisible, setServiceModalVisible] = useState(false);
+  const [nearbyRiders, setNearbyRiders] = useState<NearbyRider[]>([]);
+  const [pickupCoord, setPickupCoord] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     requestLocationPermission();
+    startPulseAnimation();
+    checkActiveBooking();
   }, []);
+
+  const fetchNearbyRiders = useCallback(async (lat: number, lng: number) => {
+    try {
+      const response = await api.get('/rider/nearby', {
+        params: { latitude: lat, longitude: lng, radius: 5.0 },
+      });
+      setNearbyRiders(response.data || []);
+    } catch (error) {
+      // silently fail
+    }
+  }, []);
+
+  const getCurrentLocation = useCallback((onFetch?: (lat: number, lng: number) => void) => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const newLocation = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.0122,
+          longitudeDelta: 0.0121,
+        };
+        setLocation(newLocation);
+        setPickupCoord({ latitude, longitude });
+        mapRef.current?.animateToRegion(newLocation, 800);
+        fetchNearbyRiders(latitude, longitude);
+        onFetch?.(latitude, longitude);
+      },
+      (error) => console.log('Location error:', error),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  }, [fetchNearbyRiders]);
+
+  useEffect(() => {
+    if (hasLocationPermission) {
+      getCurrentLocation();
+      const interval = setInterval(() => {
+        Geolocation.getCurrentPosition(
+          (pos) => fetchNearbyRiders(pos.coords.latitude, pos.coords.longitude),
+          () => {},
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+        );
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [hasLocationPermission, getCurrentLocation, fetchNearbyRiders]);
+
+  const startPulseAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+  };
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'android') {
@@ -54,21 +129,19 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
-  const getCurrentLocation = () => {
-    Geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          latitudeDelta: 0.0122,
-          longitudeDelta: 0.0121,
+  const checkActiveBooking = async () => {
+    try {
+      const response = await api.get('/bookings/user/active');
+      if (response.status === 200 && response.data) {
+        const booking = response.data;
+        navigation.replace('ActiveBooking', {
+          bookingId: booking.id,
+          otp: booking.verificationOtp,
         });
-      },
-      (error) => {
-        console.log('Location error:', error);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
+      }
+    } catch (error) {
+      // No active booking, stay on home
+    }
   };
 
   const serviceTypes = [
@@ -86,40 +159,75 @@ const HomeScreen = ({ navigation }: any) => {
     <View style={styles.container}>
       {/* Full Screen Map */}
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
-        style={styles.map}
+        style={StyleSheet.absoluteFill}
         region={location}
-        showsUserLocation={hasLocationPermission}
+        showsUserLocation={false}
         showsMyLocationButton={false}
+        showsCompass={false}
+        onLongPress={(e) => setPickupCoord(e.nativeEvent.coordinate)}
       >
-        <Marker
-          coordinate={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-          }}
-          title="Your Location"
+        {/* User Location - Large blue circle with pulse */}
+        <Circle
+          center={location}
+          radius={80}
+          fillColor="rgba(59,130,246,0.15)"
+          strokeColor="rgba(59,130,246,0.4)"
+          strokeWidth={2}
         />
+        <Marker coordinate={location} anchor={{ x: 0.5, y: 0.5 }}>
+          <View style={styles.userMarkerOuter}>
+            <View style={styles.userMarkerInner} />
+          </View>
+        </Marker>
+
+        {/* Draggable Pickup Pin */}
+        {pickupCoord && (
+          <Marker
+            coordinate={pickupCoord}
+            draggable
+            onDragEnd={(e) => setPickupCoord(e.nativeEvent.coordinate)}
+            pinColor="#10B981"
+          />
+        )}
+
+        {/* Nearby Rider Markers */}
+        {nearbyRiders.map((rider) => (
+          <Marker
+            key={rider.id}
+            coordinate={{
+              latitude: rider.currentLatitude,
+              longitude: rider.currentLongitude,
+            }}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <View style={styles.bikeMarker}>
+              <Text style={styles.bikeIcon}>🏍️</Text>
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       {/* Floating Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.menuIcon}>👤</Text>
+          <User size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
-          <Text style={styles.notificationIcon}>🔔</Text>
+          <Bell size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
       {/* Location Button */}
-      <TouchableOpacity style={styles.myLocationButton} onPress={getCurrentLocation}>
-        <Text style={styles.myLocationIcon}>📍</Text>
+      <TouchableOpacity style={styles.myLocationButton} onPress={() => getCurrentLocation()}>
+        <MapPin size={20} color="#fff" />
       </TouchableOpacity>
 
       {/* Bottom Card for "Where to?" */}
       <View style={styles.bottomCard}>
         <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'User'}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.whereToButton}
           onPress={() => setServiceModalVisible(true)}
         >
@@ -129,7 +237,7 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('MyBookings')}>
             <View style={styles.quickActionIconContainer}>
-              <Text style={styles.quickActionIcon}>📋</Text>
+              <Navigation size={20} color="#fff" />
             </View>
             <Text style={styles.quickActionText}>Bookings</Text>
           </TouchableOpacity>
@@ -138,13 +246,16 @@ const HomeScreen = ({ navigation }: any) => {
 
       {/* Services Modal (Bottom Sheet Alternative) */}
       <Modal
-        isVisible={isServiceModalVisible}
-        onBackdropPress={() => setServiceModalVisible(false)}
-        onSwipeComplete={() => setServiceModalVisible(false)}
-        swipeDirection={['down']}
-        style={styles.modal}
-        propagateSwipe
+        visible={serviceModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setServiceModalVisible(false)}
       >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setServiceModalVisible(false)}
+        />
         <View style={styles.modalContent}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Choose a Service</Text>
@@ -173,9 +284,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
   header: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 50 : 20,
@@ -197,9 +305,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
-  menuIcon: {
-    fontSize: 20,
-  },
   notificationButton: {
     width: 44,
     height: 44,
@@ -212,9 +317,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-  },
-  notificationIcon: {
-    fontSize: 20,
   },
   myLocationButton: {
     position: 'absolute',
@@ -231,9 +333,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-  },
-  myLocationIcon: {
-    fontSize: 20,
   },
   bottomCard: {
     position: 'absolute',
@@ -283,9 +382,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  quickActionIcon: {
-    fontSize: 20,
-  },
   quickActionText: {
     fontSize: 12,
     color: '#475569',
@@ -294,6 +390,10 @@ const styles = StyleSheet.create({
   modal: {
     justifyContent: 'flex-end',
     margin: 0,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -340,6 +440,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#334155',
+  },
+  userMarkerOuter: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(59,130,246,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(59,130,246,0.5)',
+  },
+  userMarkerInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#3B82F6',
+    borderWidth: 2.5,
+    borderColor: '#fff',
+  },
+  bikeMarker: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  bikeIcon: {
+    fontSize: 16,
   },
 });
 

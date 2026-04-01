@@ -3,6 +3,9 @@ package com.byke.scheduler;
 import com.byke.model.entity.Booking;
 import com.byke.model.enums.BookingStatus;
 import com.byke.repository.BookingRepository;
+import com.byke.repository.BidRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +22,10 @@ import java.util.List;
 public class BookingCleanupScheduler {
 
     private final BookingRepository bookingRepository;
+    private final BidRepository bidRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     /**
      * Runs every 5 minutes to clean up stale bookings:
@@ -33,7 +40,7 @@ public class BookingCleanupScheduler {
         LocalDateTime tenMinutesAgo = now.minusMinutes(10);
 
         try {
-            // Find all bookings in BIDDING or PENDING status
+            // Find all bookings in BIDDING or PENDING status older than 1 hour
             List<BookingStatus> activeStatuses = Arrays.asList(
                 BookingStatus.PENDING,
                 BookingStatus.BIDDING
@@ -46,8 +53,26 @@ public class BookingCleanupScheduler {
                 .toList();
 
             if (!staleBookings.isEmpty()) {
-                log.info("Deleting {} bookings older than 1 hour", staleBookings.size());
-                bookingRepository.deleteAll(staleBookings);
+                log.info("Cancelling {} stale bookings older than 1 hour", staleBookings.size());
+                // Cancel instead of delete to avoid foreign key constraint issues
+                for (Booking booking : staleBookings) {
+                    try {
+                        // Delete associated bids first
+                        bidRepository.deleteByBookingId(booking.getId());
+                        entityManager.flush();
+                        
+                        // Now delete the booking
+                        bookingRepository.delete(booking);
+                        log.info("Deleted stale booking {} and its bids", booking.getId());
+                    } catch (Exception ex) {
+                        log.error("Error deleting booking {}: {}", booking.getId(), ex.getMessage());
+                        // If delete fails, just cancel it
+                        booking.setStatus(BookingStatus.CANCELLED_BY_USER);
+                        booking.setCancelledAt(now);
+                        booking.setCancellationReason("Auto-cancelled - stale booking");
+                        bookingRepository.save(booking);
+                    }
+                }
             }
 
             // Auto-cancel bookings older than 10 minutes with no bids

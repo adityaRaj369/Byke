@@ -15,4 +15,5 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
     Optional<Bid> findByBookingIdAndRiderId(Long bookingId, Long riderId);
     List<Bid> findByBookingIdAndStatus(Long bookingId, BidStatus status);
     long countByBookingId(Long bookingId);
+    void deleteByBookingId(Long bookingId);
 }

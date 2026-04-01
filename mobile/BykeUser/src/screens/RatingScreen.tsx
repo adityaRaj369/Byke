@@ -5,12 +5,23 @@ import { RootState } from '../store';
 import api from '../config/api';
 import { Star, MessageSquare, ArrowLeft, Send, CheckCircle2, Bike } from 'lucide-react-native';
 
-const RatingScreen = ({ navigation }: any) => {
+const RatingScreen = ({ navigation, route }: any) => {
+  const { bookingId } = route.params || {};
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [selectedReason, setSelectedReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { currentBooking } = useSelector((state: RootState) => state.booking);
+  
+  const complaintReasons = [
+    'Rude behavior',
+    'Unsafe driving',
+    'Vehicle condition',
+    'Wrong route taken',
+    'Late arrival',
+    'Other'
+  ];
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -24,22 +35,33 @@ const RatingScreen = ({ navigation }: any) => {
 
   const handleSubmitRating = async () => {
     if (rating === 0) {
-      Alert.alert('Error', 'Please select a rating for your Captain');
+      Alert.alert('Error', 'Please select a rating');
+      return;
+    }
+
+    if (rating < 5 && !selectedReason && !comment) {
+      Alert.alert('Feedback Required', 'Please select a reason or add a comment for ratings below 5 stars');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (currentBooking?.id) {
-        await api.post(`/bookings/${currentBooking.id}/rate`, {
-          rating,
-          comment,
+      const finalBookingId = bookingId || currentBooking?.id;
+      if (finalBookingId) {
+        const reviewText = rating < 5 && selectedReason 
+          ? `${selectedReason}${comment ? ': ' + comment : ''}` 
+          : comment;
+        
+        await api.post(`/bookings/${finalBookingId}/rate`, null, {
+          params: {
+            userRating: rating,
+            userReview: reviewText || undefined
+          }
         });
       }
       setSubmitted(true);
-    } catch (error) {
-      // Fallback for demo/missing backend
-      setSubmitted(true);
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to submit rating');
     } finally {
       setSubmitting(false);
     }
@@ -104,11 +126,36 @@ const RatingScreen = ({ navigation }: any) => {
               ))}
             </View>
 
+            {rating > 0 && rating < 5 && (
+              <View className="mb-6">
+                <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] mb-4">What went wrong?</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {complaintReasons.map((reason) => (
+                    <TouchableOpacity
+                      key={reason}
+                      onPress={() => setSelectedReason(reason === selectedReason ? '' : reason)}
+                      className={`px-4 py-3 rounded-2xl border-2 ${
+                        selectedReason === reason 
+                          ? 'bg-red-50 border-red-400' 
+                          : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      <Text className={`text-sm font-bold ${
+                        selectedReason === reason ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {reason}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <View className="flex-row items-start bg-white border border-gray-100 rounded-[32px] px-6 py-5 shadow-sm">
               <MessageSquare size={20} color="#9CA3AF" className="mt-1" />
               <TextInput
                 className="flex-1 ml-4 text-base font-bold text-black min-h-[100px]"
-                placeholder="Share your experience (optional)"
+                placeholder={rating < 5 ? "Add more details (optional)" : "Share your experience (optional)"}
                 placeholderTextColor="#D1D5DB"
                 value={comment}
                 onChangeText={setComment}

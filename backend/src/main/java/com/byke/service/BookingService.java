@@ -233,11 +233,14 @@ public class BookingService {
     public List<Booking> getAvailableBookings(Double latitude, Double longitude, Double radius) {
         List<Booking> allBiddingBookings = bookingRepository.findByStatus(BookingStatus.BIDDING);
         
-        // Default radius to 3km if not provided
-        final double searchRadius = (radius != null) ? radius : 3.0;
+        // Default radius to 10km if not provided
+        final double searchRadius = (radius != null) ? radius : 10.0;
         
         if (latitude == null || longitude == null) {
-            return allBiddingBookings;
+            // Return most recent first
+            return allBiddingBookings.stream()
+                    .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
+                    .toList();
         }
         
         return allBiddingBookings.stream()
@@ -248,6 +251,7 @@ public class BookingService {
                     );
                     return distance <= searchRadius;
                 })
+                .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
                 .toList();
     }
 
@@ -302,5 +306,91 @@ public class BookingService {
 
     public long getBookingCountByStatus(BookingStatus status) {
         return bookingRepository.countByStatus(status);
+    }
+
+    @Transactional
+    public Booking markRiderReached(Long bookingId, Long riderId) {
+        Booking booking = getBookingById(bookingId);
+        
+        if (booking.getRider() == null || !booking.getRider().getUser().getId().equals(riderId)) {
+            throw new RuntimeException("Unauthorized: This booking is not assigned to you");
+        }
+        
+        if (booking.getStatus() != BookingStatus.ACCEPTED && booking.getStatus() != BookingStatus.RIDER_EN_ROUTE) {
+            throw new RuntimeException("Invalid booking status for marking arrival");
+        }
+        
+        // Generate 4-digit OTP
+        String otp = String.format("%04d", (int)(Math.random() * 10000));
+        booking.setVerificationOtp(otp);
+        booking.setStatus(BookingStatus.RIDER_ARRIVED);
+        booking.setRiderArrivedAt(LocalDateTime.now());
+        
+        Booking savedBooking = bookingRepository.save(booking);
+        log.info("Rider {} marked reached for booking {}. OTP: {}", riderId, bookingId, otp);
+        
+        // Notify user that rider has arrived with OTP
+        notificationService.notifyUser(booking.getUser().getId(), "Rider Arrived", 
+                "Your rider has arrived! Share OTP: " + otp);
+        
+        return savedBooking;
+    }
+
+    @Transactional
+    public Booking verifyOtpAndStartRide(Long bookingId, Long riderId, String otp) {
+        Booking booking = getBookingById(bookingId);
+        
+        if (booking.getRider() == null || !booking.getRider().getUser().getId().equals(riderId)) {
+            throw new RuntimeException("Unauthorized: This booking is not assigned to you");
+        }
+        
+        if (booking.getStatus() != BookingStatus.RIDER_ARRIVED) {
+            throw new RuntimeException("Rider must mark arrival before starting ride");
+        }
+        
+        if (booking.getVerificationOtp() == null || !booking.getVerificationOtp().equals(otp)) {
+            throw new RuntimeException("Invalid OTP. Please try again.");
+        }
+        
+        booking.setStatus(BookingStatus.IN_PROGRESS);
+        booking.setStartedAt(LocalDateTime.now());
+        booking.setVerificationOtp(null); // Clear OTP after verification
+        
+        Booking savedBooking = bookingRepository.save(booking);
+        log.info("Ride started for booking {} after OTP verification", bookingId);
+        
+        notificationService.notifyUser(booking.getUser().getId(), "Ride Started", 
+                "Your ride has started. Enjoy your journey!");
+        
+        return savedBooking;
+    }
+
+    @Transactional
+    public Booking completeRide(Long bookingId, Long riderId) {
+        Booking booking = getBookingById(bookingId);
+        
+        if (booking.getRider() == null || !booking.getRider().getUser().getId().equals(riderId)) {
+            throw new RuntimeException("Unauthorized: This booking is not assigned to you");
+        }
+        
+        if (booking.getStatus() != BookingStatus.IN_PROGRESS) {
+            throw new RuntimeException("Ride must be in progress to complete");
+        }
+        
+        booking.setStatus(BookingStatus.COMPLETED);
+        booking.setCompletedAt(LocalDateTime.now());
+        booking.setFinalFare(booking.getEstimatedFare());
+        
+        // Update rider statistics
+        userService.incrementBookingCount(booking.getUser().getId());
+        riderService.incrementRideCount(booking.getRider().getId());
+        
+        Booking savedBooking = bookingRepository.save(booking);
+        log.info("Ride completed for booking {}", bookingId);
+        
+        notificationService.notifyUser(booking.getUser().getId(), "Ride Completed", 
+                "Your ride is complete! Please rate your experience.");
+        
+        return savedBooking;
     }
 }

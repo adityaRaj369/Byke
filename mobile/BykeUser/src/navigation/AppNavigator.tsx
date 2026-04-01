@@ -18,6 +18,8 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import BookingScreen from '../screens/BookingScreen';
 import BidSelectionScreen from '../screens/BidSelectionScreen';
 import ActiveBookingScreen from '../screens/ActiveBookingScreen';
+import RiderApproachingScreen from '../screens/RiderApproachingScreen';
+import RatingScreen from '../screens/RatingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -46,6 +48,8 @@ const AppNavigator = () => {
             <Stack.Screen name="Booking" component={BookingScreen} options={{ headerShown: true, title: 'Book Service' }} />
             <Stack.Screen name="BidSelection" component={BidSelectionScreen} options={{ headerShown: true, title: 'Select Rider' }} />
             <Stack.Screen name="ActiveBooking" component={ActiveBookingScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RiderApproaching" component={RiderApproachingScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RatingScreen" component={RatingScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

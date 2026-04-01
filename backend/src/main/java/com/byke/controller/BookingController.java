@@ -134,4 +134,39 @@ public class BookingController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PostMapping("/{id}/rider-reached")
+    public ResponseEntity<?> markRiderReached(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            Long riderId = (Long) request.getAttribute("userId");
+            Booking booking = bookingService.markRiderReached(id, riderId);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/verify-otp")
+    public ResponseEntity<?> verifyOtpAndStartRide(@PathVariable Long id, 
+                                                    @RequestParam String otp,
+                                                    HttpServletRequest request) {
+        try {
+            Long riderId = (Long) request.getAttribute("userId");
+            Booking booking = bookingService.verifyOtpAndStartRide(id, riderId, otp);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<?> completeRide(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            Long riderId = (Long) request.getAttribute("userId");
+            Booking booking = bookingService.completeRide(id, riderId);
+            return ResponseEntity.ok(booking);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

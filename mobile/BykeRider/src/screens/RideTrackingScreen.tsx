@@ -152,13 +152,12 @@ const RideTrackingScreen = () => {
   const handleArrived = async () => {
     try {
       setLoading(true);
-      await api.patch(`/bookings/${resolvedBookingId}/status`, null, {
-        params: { status: 'RIDER_ARRIVED' }
-      });
+      const response = await api.post(`/bookings/${resolvedBookingId}/rider-reached`);
       setRideStatus('RIDER_ARRIVED');
-      Alert.alert('Success', 'User has been notified of your arrival');
+      setBooking(response.data);
+      Alert.alert('Success', 'User has been notified. OTP generated.');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update status');
+      Alert.alert('Error', error.response?.data?.message || 'Failed to mark arrival');
     } finally {
       setLoading(false);
     }
@@ -172,10 +171,12 @@ const RideTrackingScreen = () => {
 
     try {
       setLoading(true);
-      await api.post('/bids/verify-otp', null, {
-        params: { bookingId: resolvedBookingId, otp }
+      const response = await api.post(`/bookings/${resolvedBookingId}/verify-otp`, null, {
+        params: { otp }
       });
       setRideStatus('IN_PROGRESS');
+      setBooking(response.data);
+      setOtp('');
       Alert.alert('Ride Started', 'Navigate to drop location');
     } catch (error: any) {
       Alert.alert('Invalid OTP', error.response?.data?.message || 'Please check the OTP and try again');
@@ -195,11 +196,9 @@ const RideTrackingScreen = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              await api.patch(`/bookings/${resolvedBookingId}/status`, null, {
-                params: { status: 'COMPLETED' }
-              });
+              await api.post(`/bookings/${resolvedBookingId}/complete`);
               Alert.alert('Success', 'Ride completed successfully!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
+                { text: 'OK', onPress: () => (navigation as any).replace('Home') }
               ]);
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to complete ride');

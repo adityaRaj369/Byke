@@ -171,4 +171,49 @@ public class Booking {
     
     public String getVehicleType() { return vehicleType; }
     public void setVehicleType(String vehicleType) { this.vehicleType = vehicleType; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public String getErrandDescription() { return errandDescription; }
+    public void setErrandDescription(String errandDescription) { this.errandDescription = errandDescription; }
+    
+    public String getErrandItemsList() { return errandItemsList; }
+    public void setErrandItemsList(String errandItemsList) { this.errandItemsList = errandItemsList; }
+    
+    public Double getEstimatedBudget() { return estimatedBudget; }
+    public void setEstimatedBudget(Double estimatedBudget) { this.estimatedBudget = estimatedBudget; }
+    
+    public String getParcelDescription() { return parcelDescription; }
+    public void setParcelDescription(String parcelDescription) { this.parcelDescription = parcelDescription; }
+    
+    public String getParcelWeight() { return parcelWeight; }
+    public void setParcelWeight(String parcelWeight) { this.parcelWeight = parcelWeight; }
+    
+    public String getRecipientName() { return recipientName; }
+    public void setRecipientName(String recipientName) { this.recipientName = recipientName; }
+    
+    public String getRecipientPhone() { return recipientPhone; }
+    public void setRecipientPhone(String recipientPhone) { this.recipientPhone = recipientPhone; }
+    
+    public Double getEstimatedDistance() { return estimatedDistance; }
+    public void setEstimatedDistance(Double estimatedDistance) { this.estimatedDistance = estimatedDistance; }
+    
+    public Integer getEstimatedDuration() { return estimatedDuration; }
+    public void setEstimatedDuration(Integer estimatedDuration) { this.estimatedDuration = estimatedDuration; }
+    
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
+    
+    public String getCancellationReasonDetail() { return cancellationReasonDetail; }
+    public void setCancellationReasonDetail(String cancellationReasonDetail) { this.cancellationReasonDetail = cancellationReasonDetail; }
+    
+    public Integer getUserRating() { return userRating; }
+    public void setUserRating(Integer userRating) { this.userRating = userRating; }
+    
+    public String getUserReview() { return userReview; }
+    public void setUserReview(String userReview) { this.userReview = userReview; }
+    
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
 }

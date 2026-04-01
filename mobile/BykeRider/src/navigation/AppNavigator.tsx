@@ -16,6 +16,7 @@ import DocumentsScreen from '../screens/DocumentsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import RideTrackingScreen from '../screens/RideTrackingScreen';
+import OTPEntryScreen from '../screens/OTPEntryScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -114,6 +115,11 @@ const AppNavigator = () => {
             <Stack.Screen 
               name="RideTracking" 
               component={RideTrackingScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="OTPEntry" 
+              component={OTPEntryScreen}
               options={{ headerShown: false }}
             />
           </>

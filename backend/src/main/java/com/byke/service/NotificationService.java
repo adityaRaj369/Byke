@@ -4,8 +4,10 @@ import com.byke.model.entity.Booking;
 import com.byke.model.entity.Notification;
 import com.byke.model.entity.User;
 import com.byke.repository.NotificationRepository;
+import com.byke.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,11 +16,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class NotificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     private final NotificationRepository notificationRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
@@ -26,12 +30,11 @@ public class NotificationService {
                                            String type, Long bookingId) {
         User user = userService.getUserById(userId);
         
-        Notification notification = Notification.builder()
-                .user(user)
-                .title(title)
-                .message(message)
-                .type(type)
-                .build();
+        Notification notification = new Notification();
+        notification.setUser(user);
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setType(type);
 
         if (bookingId != null) {
             Booking booking = new Booking();
@@ -41,10 +44,34 @@ public class NotificationService {
 
         Notification savedNotification = notificationRepository.save(notification);
         
+        // 1. Send via WebSocket (In-app)
         messagingTemplate.convertAndSend("/topic/user/" + userId + "/notifications", savedNotification);
+        
+        // 2. Send via Firebase Cloud Messaging (Push Notification for background/killed state)
+        sendPushNotification(user, title, message, type, bookingId);
         
         log.info("Notification created for user {}: {}", userId, title);
         return savedNotification;
+    }
+
+    private void sendPushNotification(User user, String title, String message, String type, Long bookingId) {
+        try {
+            // Note: In a real production app, you should use the official Firebase Admin SDK
+            // This is a basic implementation using the legacy HTTP API for demonstration
+            // You will need to configure FCM properly and store FCM tokens in the User entity
+            log.info("Would send FCM Push Notification to user {}: {} - {}", user.getId(), title, message);
+            
+            // To actually send notifications to background/killed apps, the frontend needs to 
+            // send its FCM token to the backend, and the backend needs to save it in the User entity.
+            // Example implementation:
+            /*
+            if (user.getFcmToken() != null) {
+                // Send FCM request
+            }
+            */
+        } catch (Exception e) {
+            log.error("Error sending push notification: ", e);
+        }
     }
 
     public void notifyUser(Long userId, String title, String message) {

@@ -18,10 +18,11 @@ import { RootState, AppDispatch } from '../store';
 import { setAvailableBookings, addBid } from '../store/slices/riderSlice';
 import api from '../config/api';
 import { 
-  Bike, Package, ShoppingBag, MapPin, 
+  MapPin, 
   ChevronRight, Clock, ArrowLeft, Send, 
   X, Navigation, User, Info
 } from 'lucide-react-native';
+import { Image } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -183,10 +184,10 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
 
   const getServiceInfo = (type: string) => {
     switch (type) {
-      case 'ride': return { icon: Bike, color: '#EAB308', label: 'Ride Request' };
-      case 'errand': return { icon: ShoppingBag, color: '#10B981', label: 'Errand Task' };
-      case 'parcel': return { icon: Package, color: '#3B82F6', label: 'Parcel Delivery' };
-      default: return { icon: Bike, color: '#6B7280', label: type };
+      case 'ride': return { icon: require('../../assets/icons/bike.png'), color: '#EAB308', label: 'Ride Request' };
+      case 'errand': return { icon: require('../../assets/icons/auto.png'), color: '#10B981', label: 'Errand Task' };
+      case 'parcel': return { icon: require('../../assets/icons/parcel.png'), color: '#3B82F6', label: 'Parcel Delivery' };
+      default: return { icon: require('../../assets/icons/bike.png'), color: '#6B7280', label: type };
     }
   };
 
@@ -210,7 +211,7 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
         </View>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
-            <Bike size={64} color="#D1D5DB" />
+            <Image source={require('../../assets/icons/bike.png')} style={{ width: 64, height: 64, opacity: 0.5 }} />
           </View>
           <Text style={styles.emptyTitle}>All caught up!</Text>
           <Text style={styles.emptySubtitle}>No new requests within 10km. Stay online to get notified of new orders.</Text>
@@ -222,7 +223,7 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
     );
   }
 
-  const service = getServiceInfo(currentBooking.type);
+  const serviceInfo = getServiceInfo(currentBooking.type);
 
   return (
     <View style={styles.container}>
@@ -238,22 +239,35 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
           longitudeDelta: 0.05,
         }}
       >
-        <Marker coordinate={currentBooking.pickupLocation}>
-          <View style={[styles.marker, { backgroundColor: '#10B981' }]}>
-            <MapPin size={16} color="white" />
-          </View>
-        </Marker>
-        <Marker coordinate={currentBooking.dropLocation}>
-          <View style={[styles.marker, { backgroundColor: '#EF4444' }]}>
-            <MapPin size={16} color="white" />
-          </View>
-        </Marker>
         <Polyline
-          coordinates={[currentBooking.pickupLocation, currentBooking.dropLocation]}
+          coordinates={[
+            { latitude: currentBooking.pickupLocation.latitude, longitude: currentBooking.pickupLocation.longitude },
+            { latitude: currentBooking.dropLocation.latitude, longitude: currentBooking.dropLocation.longitude }
+          ]}
+          strokeColor="#000"
           strokeWidth={3}
-          strokeColor="black"
           lineDashPattern={[5, 5]}
         />
+        <Marker
+          coordinate={{
+            latitude: currentBooking.pickupLocation.latitude,
+            longitude: currentBooking.pickupLocation.longitude,
+          }}
+        >
+          <View style={[styles.marker, { backgroundColor: 'black' }]}>
+            <User size={20} color="white" />
+          </View>
+        </Marker>
+        <Marker
+          coordinate={{
+            latitude: currentBooking.dropLocation.latitude,
+            longitude: currentBooking.dropLocation.longitude,
+          }}
+        >
+          <View style={[styles.marker, { backgroundColor: '#EF4444' }]}>
+            <MapPin size={20} color="white" />
+          </View>
+        </Marker>
       </MapView>
 
       {/* Header Overlay */}
@@ -270,11 +284,9 @@ const AvailableBookingsScreen = ({ navigation }: any) => {
       <View style={styles.cardContainer}>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <View style={styles.serviceTag}>
-              <View style={[styles.serviceIcon, { backgroundColor: `${service.color}15` }]}>
-                <service.icon size={18} color={service.color} />
-              </View>
-              <Text style={styles.serviceLabel}>{service.label}</Text>
+            <View style={[styles.serviceTag, { backgroundColor: serviceInfo.color }]}>
+              <Image source={serviceInfo.icon} style={{ width: 16, height: 16, tintColor: 'white' }} />
+              <Text style={styles.serviceLabel}>{serviceInfo.label}</Text>
             </View>
             <View style={styles.userContainer}>
               <User size={16} color="#6B7280" />
@@ -423,20 +435,52 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     paddingTop: 10,
+    backgroundColor: 'transparent',
+    zIndex: 999,
+    elevation: 999,
   },
   card: {
     backgroundColor: 'white',
-    borderRadius: 32,
-    padding: 24,
+    borderRadius: 24,
+    padding: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,
-    shadowRadius: 20,
+    shadowRadius: 12,
     elevation: 10,
+  },
+  bidInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 12,
     zIndex: 1000,
+    elevation: 1000,
+  },
+  bidInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+  },
+  rupeeSymbol: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginRight: 8,
+  },
+  bidInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    height: '100%',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -462,7 +506,7 @@ const styles = StyleSheet.create({
   },
   serviceLabel: {
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#374151',
     textTransform: 'uppercase',
   },
@@ -544,10 +588,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: 'black',
   },
-  bidInputContainer: {
-    flex: 1,
-    marginLeft: 30,
-  },
   bidLabel: {
     fontSize: 10,
     fontWeight: '900',
@@ -563,7 +603,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 12,
     height: 48,
-    zIndex: 100,
   },
   currency: {
     fontSize: 16,
@@ -669,7 +708,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   backBtn: {
     width: 40,

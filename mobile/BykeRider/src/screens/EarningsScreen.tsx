@@ -29,6 +29,7 @@ const EarningsScreen = ({ navigation }: any) => {
     trips: 0,
     rating: 0,
   });
+  const [transactions, setTransactions] = useState<any[]>([]);
 
   const fetchEarnings = async () => {
     setLoading(true);
@@ -41,6 +42,10 @@ const EarningsScreen = ({ navigation }: any) => {
         trips: response.data.totalRides || 0,
         rating: response.data.averageRating || 0
       });
+      
+      // Fetch transaction history
+      const transactionsResponse = await api.get('/rider/transactions');
+      setTransactions(transactionsResponse.data || []);
     } catch (error) {
       console.log('Error fetching earnings:', error);
     } finally {
@@ -133,31 +138,33 @@ const EarningsScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {[
-          { id: '1', title: 'Ride Earning', subtitle: 'Trip #8291', amount: '+ ₹85', time: '2:30 PM', type: 'credit' },
-          { id: '2', title: 'Parcel Delivery', subtitle: 'Trip #8288', amount: '+ ₹120', time: '11:15 AM', type: 'credit' },
-          { id: '3', title: 'Subscription payout', subtitle: 'Monthly Fee', amount: '- ₹500', time: 'Yesterday', type: 'debit' },
-        ].map((item) => (
-          <View key={item.id} style={styles.transactionItem}>
-            <View style={[styles.itemIcon, { backgroundColor: item.type === 'credit' ? '#D1FAE5' : '#F3F4F6' }]}>
-              {item.type === 'credit' ? (
-                <ArrowDownLeft size={20} color="#10B981" strokeWidth={2.5} />
-              ) : (
-                <CreditCard size={20} color="#6B7280" strokeWidth={2.5} />
-              )}
+        {transactions.length > 0 ? (
+          transactions.map((item: any) => (
+            <View key={item.id} style={styles.transactionItem}>
+              <View style={[styles.itemIcon, { backgroundColor: item.type === 'credit' ? '#D1FAE5' : '#F3F4F6' }]}>
+                {item.type === 'credit' ? (
+                  <ArrowDownLeft size={20} color="#10B981" strokeWidth={2.5} />
+                ) : (
+                  <CreditCard size={20} color="#6B7280" strokeWidth={2.5} />
+                )}
+              </View>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemTitle}>{item.title || item.description}</Text>
+                <Text style={styles.itemSubtitle}>{item.subtitle || `Booking #${item.bookingId}`}</Text>
+              </View>
+              <View style={styles.itemRight}>
+                <Text style={[styles.itemAmount, { color: item.type === 'credit' ? '#10B981' : '#000' }]}>
+                  {item.type === 'credit' ? '+' : '-'} ₹{Math.abs(item.amount)}
+                </Text>
+                <Text style={styles.itemTime}>{new Date(item.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+              </View>
             </View>
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemTitle}>{item.title}</Text>
-              <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
-            </View>
-            <View style={styles.itemRight}>
-              <Text style={[styles.itemAmount, { color: item.type === 'credit' ? '#10B981' : '#000' }]}>
-                {item.amount}
-              </Text>
-              <Text style={styles.itemTime}>{item.time}</Text>
-            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No transactions yet</Text>
           </View>
-        ))}
+        )}
         
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -389,6 +396,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#9CA3AF',
     marginTop: 2,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
   },
 });
 

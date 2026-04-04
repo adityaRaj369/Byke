@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootState } from '../store';
+import { NotificationProvider, useNotification } from '../context/NotificationContext';
+import { setupNotificationListeners } from '../services/notificationService';
+import PopupNotifications from '../components/PopupNotifications';
 
 import LoginScreen from '../features/auth/screens/LoginScreen';
 import RegisterScreen from '../features/auth/screens/RegisterScreen';
@@ -23,11 +26,35 @@ import RatingScreen from '../screens/RatingScreen';
 
 const Stack = createNativeStackNavigator();
 
-const AppNavigator = () => {
+const NavigationContent = () => {
+  const { showNotification } = useNotification();
+
+  useEffect(() => {
+    // Setup Firebase notification listeners
+    const unsubscribe = setupNotificationListeners(
+      (remoteMessage) => {
+        // Show popup notification when app is in foreground
+        showNotification({
+          title: remoteMessage.notification?.title || 'New Notification',
+          body: remoteMessage.notification?.body || '',
+          type: 'info',
+          data: remoteMessage.data,
+        });
+      },
+      (remoteMessage) => {
+        // Handle notification opened app
+        console.log('Notification opened app:', remoteMessage);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [showNotification]);
+
   const { isAuthenticated, needsRegistration } = useSelector((state: RootState) => state.auth);
 
   return (
-    <NavigationContainer>
+    <>
+      <PopupNotifications />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated && !needsRegistration ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -53,6 +80,16 @@ const AppNavigator = () => {
           </>
         )}
       </Stack.Navigator>
+    </>
+  );
+};
+
+const AppNavigator = () => {
+  return (
+    <NavigationContainer>
+      <NotificationProvider>
+        <NavigationContent />
+      </NotificationProvider>
     </NavigationContainer>
   );
 };

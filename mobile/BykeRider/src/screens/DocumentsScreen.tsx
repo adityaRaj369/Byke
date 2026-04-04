@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -12,6 +12,7 @@ import {
   Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import api from '../config/api';
 import { 
   ArrowLeft, FileText, CheckCircle2, 
   AlertCircle, Upload, ChevronRight, 
@@ -23,15 +24,72 @@ const { width } = Dimensions.get('window');
 
 const DocumentsScreen = () => {
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [riderProfile, setRiderProfile] = useState<any>(null);
+  const [docs, setDocs] = useState<any[]>([]);
 
-  const [docs, setDocs] = useState([
-    { id: 'dl', label: 'Driving License', status: 'verified', icon: Briefcase, color: '#3B82F6' },
-    { id: 'rc', label: 'Vehicle RC', status: 'verified', icon: FileText, color: '#EAB308' },
-    { id: 'aadhar', label: 'Aadhaar Card', status: 'verified', icon: Landmark, color: '#10B981' },
-    { id: 'pan', label: 'PAN Card', status: 'missing', icon: CreditCard, color: '#8B5CF6' },
-    { id: 'ins', label: 'Insurance Policy', status: 'pending', icon: Shield, color: '#EF4444' },
-  ]);
+  useEffect(() => {
+    fetchRiderProfile();
+  }, []);
+
+  const fetchRiderProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/rider/profile');
+      const rider = response.data;
+      setRiderProfile(rider);
+      
+      // Map rider documents to UI state
+      const documentsList = [
+        { 
+          id: 'dl', 
+          label: 'Driving License', 
+          status: rider.drivingLicenseUrl ? 'verified' : 'missing', 
+          icon: Briefcase, 
+          color: '#3B82F6',
+          url: rider.drivingLicenseUrl
+        },
+        { 
+          id: 'rc', 
+          label: 'Vehicle RC', 
+          status: rider.vehicleRcUrl ? 'verified' : 'missing', 
+          icon: FileText, 
+          color: '#EAB308',
+          url: rider.vehicleRcUrl
+        },
+        { 
+          id: 'aadhar', 
+          label: 'Aadhaar Card', 
+          status: rider.aadharUrl ? 'verified' : 'missing', 
+          icon: Landmark, 
+          color: '#10B981',
+          url: rider.aadharUrl
+        },
+        { 
+          id: 'pan', 
+          label: 'PAN Card', 
+          status: rider.panUrl ? 'verified' : 'missing', 
+          icon: CreditCard, 
+          color: '#8B5CF6',
+          url: rider.panUrl
+        },
+        { 
+          id: 'ins', 
+          label: 'Insurance Policy', 
+          status: rider.insuranceUrl ? 'verified' : 'missing', 
+          icon: Shield, 
+          color: '#EF4444',
+          url: rider.insuranceUrl
+        },
+      ];
+      setDocs(documentsList);
+    } catch (error) {
+      console.log('Error fetching rider profile:', error);
+      Alert.alert('Error', 'Failed to load documents');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -78,6 +136,19 @@ const DocumentsScreen = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#000" />
+        <Text style={styles.loadingText}>Loading documents...</Text>
+      </View>
+    );
+  }
+
+  const verifiedCount = docs.filter(d => d.status === 'verified').length;
+  const totalDocs = docs.length;
+  const verificationScore = Math.round((verifiedCount / totalDocs) * 100);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -98,13 +169,15 @@ const DocumentsScreen = () => {
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Verification Score</Text>
-            <Text style={styles.progressValue}>80%</Text>
+            <Text style={styles.progressValue}>{verificationScore}%</Text>
           </View>
           <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: '80%' }]} />
+            <View style={[styles.progressBarFill, { width: `${verificationScore}%` }]} />
           </View>
           <Text style={styles.progressHint}>
-            Upload your PAN card to reach 100% and unlock all ride types.
+            {verificationScore === 100 
+              ? 'All documents verified! You can accept all ride types.' 
+              : `Upload ${totalDocs - verifiedCount} more document${totalDocs - verifiedCount > 1 ? 's' : ''} to reach 100%.`}
           </Text>
         </View>
 
@@ -168,6 +241,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   header: {
     flexDirection: 'row',

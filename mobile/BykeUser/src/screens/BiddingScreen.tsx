@@ -92,7 +92,7 @@ const BiddingScreen = ({ navigation }: any) => {
             try {
               await api.post(`/bids/${bid.id}/accept`);
               dispatch(acceptBid({ bidId: bid.id, rider: bid.rider }));
-              navigation.navigate('Tracking');
+              navigation.navigate('RiderApproaching', { bookingId: currentBooking.id });
             } catch (error: any) {
               Alert.alert('Error', 'Failed to accept bid');
             }

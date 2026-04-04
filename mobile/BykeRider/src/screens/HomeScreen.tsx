@@ -39,12 +39,17 @@ const HomeScreen = ({ navigation }: any) => {
     requestLocationPermission();
     fetchRealEarnings();
     checkActiveRide();
+    
+    // Poll for active rides every 5 seconds to detect accepted bids immediately
+    const rideCheckInterval = setInterval(checkActiveRide, 5000);
+    return () => clearInterval(rideCheckInterval);
   }, []);
 
   useEffect(() => {
     if (isOnline && hasLocationPermission) {
       startLocationTracking();
-      const interval = setInterval(startLocationTracking, 30000);
+      // Poll location every 6 seconds for real-time tracking
+      const interval = setInterval(startLocationTracking, 6000);
       return () => clearInterval(interval);
     }
   }, [isOnline, hasLocationPermission]);

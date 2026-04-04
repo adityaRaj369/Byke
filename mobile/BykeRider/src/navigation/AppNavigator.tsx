@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -6,6 +6,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { Home, ListOrdered, Wallet, User } from 'lucide-react-native';
+
+import { NotificationProvider, useNotification } from '../context/NotificationContext';
+import { setupNotificationListeners } from '../services/notificationService';
+import PopupNotifications from '../components/PopupNotifications';
 
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -71,16 +75,35 @@ const HomeTabs = () => {
   );
 };
 
-const AppNavigator = () => {
+const NavigationContent = () => {
+  const { showNotification } = useNotification();
   const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
 
-  // Don't render navigation during loading
+  useEffect(() => {
+    const unsubscribe = setupNotificationListeners(
+      (remoteMessage) => {
+        showNotification({
+          title: remoteMessage.notification?.title || 'New Notification',
+          body: remoteMessage.notification?.body || '',
+          type: 'info',
+          data: remoteMessage.data,
+        });
+      },
+      (remoteMessage) => {
+        console.log('Notification opened app:', remoteMessage);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [showNotification]);
+
   if (loading) {
     return null;
   }
 
   return (
-    <NavigationContainer>
+    <>
+      <PopupNotifications />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -125,6 +148,16 @@ const AppNavigator = () => {
           </>
         )}
       </Stack.Navigator>
+    </>
+  );
+};
+
+const AppNavigator = () => {
+  return (
+    <NavigationContainer>
+      <NotificationProvider>
+        <NavigationContent />
+      </NotificationProvider>
     </NavigationContainer>
   );
 };

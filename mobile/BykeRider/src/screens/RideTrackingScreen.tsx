@@ -292,10 +292,14 @@ const RideTrackingScreen = () => {
             <User size={24} color="#3B82F6" />
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{booking.user.fullName}</Text>
-            <Text style={styles.userPhone}>{booking.user.mobileNumber}</Text>
+            <Text style={styles.userName}>{booking.user?.fullName || 'User'}</Text>
+            <Text style={styles.userPhone}>{booking.user?.mobileNumber || 'Phone not available'}</Text>
           </View>
-          <TouchableOpacity style={styles.callBtn} onPress={handleCallUser}>
+          <TouchableOpacity 
+            style={[styles.callBtn, !booking.user?.mobileNumber && styles.callBtnDisabled]} 
+            onPress={handleCallUser}
+            disabled={!booking.user?.mobileNumber}
+          >
             <Phone size={20} color="white" />
           </TouchableOpacity>
         </View>
@@ -553,6 +557,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  callBtnDisabled: {
+    backgroundColor: '#9CA3AF',
+    opacity: 0.6,
   },
   locationCard: {
     backgroundColor: '#F9FAFB',

@@ -2,6 +2,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config/env';
 import { TOKEN_KEY } from '../constants/storageKeys';
+import { Alert } from 'react-native';
+
+let isLoggingOut = false;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,8 +30,24 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      await AsyncStorage.removeItem(TOKEN_KEY);
+    if (error.response?.status === 401 && !isLoggingOut) {
+      isLoggingOut = true;
+      await AsyncStorage.multiRemove([TOKEN_KEY, 'riderId', 'riderProfile']);
+      
+      Alert.alert(
+        'Session Expired',
+        'Your session has expired. Please login again.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              isLoggingOut = false;
+              // Navigation will be handled by auth state listener
+            }
+          }
+        ],
+        { cancelable: false }
+      );
     }
     return Promise.reject(error);
   }

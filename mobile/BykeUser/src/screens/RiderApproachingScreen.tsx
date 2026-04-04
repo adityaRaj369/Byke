@@ -8,12 +8,16 @@ import {
   Platform,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import { Phone, MessageCircle, Navigation, User, Star, Clock } from 'lucide-react-native';
+import { Phone, MessageCircle, Navigation, User, Star, Clock, MapPin, AlertCircle } from 'lucide-react-native';
 import api from '../config/api';
 import { GOOGLE_PLACES_API_KEY } from '../config/env';
+
+const { width, height } = Dimensions.get('window');
 
 const RiderApproachingScreen = ({ route, navigation }: any) => {
   const { bookingId } = route.params;
@@ -22,23 +26,40 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
   const [riderLocation, setRiderLocation] = useState<any>(null);
   const [eta, setEta] = useState<string>('Calculating...');
   const [otp, setOtp] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBookingDetails();
-    const interval = setInterval(fetchBookingDetails, 3000);
+    // Poll every 6 seconds for rider location updates
+    const interval = setInterval(fetchBookingDetails, 6000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (booking && riderLocation && mapRef.current) {
-      const coordinates = [
-        { latitude: riderLocation.latitude, longitude: riderLocation.longitude },
-        { latitude: booking.pickupLatitude, longitude: booking.pickupLongitude },
-      ];
-      mapRef.current.fitToCoordinates(coordinates, {
-        edgePadding: { top: 100, right: 50, bottom: 400, left: 50 },
-        animated: true,
-      });
+    if (booking && mapRef.current) {
+      const coordinates = [];
+      
+      if (riderLocation) {
+        coordinates.push({ latitude: riderLocation.latitude, longitude: riderLocation.longitude });
+      }
+      
+      if (booking.pickupLatitude && booking.pickupLongitude) {
+        coordinates.push({ latitude: booking.pickupLatitude, longitude: booking.pickupLongitude });
+      }
+      
+      if (coordinates.length === 2) {
+        mapRef.current.fitToCoordinates(coordinates, {
+          edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
+          animated: true,
+        });
+      } else if (coordinates.length === 1) {
+        mapRef.current.animateToRegion({
+          ...coordinates[0],
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }, 1000);
+      }
     }
   }, [booking, riderLocation]);
 
@@ -47,33 +68,43 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
       const response = await api.get(`/bookings/${bookingId}`);
       const bookingData = response.data;
       setBooking(bookingData);
+      setLoading(false);
+      setError(null);
 
-      if (bookingData.status === 'RIDER_ARRIVED' && bookingData.verificationOtp) {
+      const status = bookingData.status?.toUpperCase();
+
+      if (status === 'RIDER_ARRIVED' && bookingData.verificationOtp) {
         setOtp(bookingData.verificationOtp);
       }
 
-      if (bookingData.status === 'IN_PROGRESS') {
+      if (status === 'IN_PROGRESS') {
         navigation.replace('RideInProgress', { bookingId });
       }
 
-      if (bookingData.status === 'COMPLETED') {
+      if (status === 'COMPLETED') {
         navigation.replace('RatingScreen', { bookingId });
       }
 
       if (bookingData.rider?.currentLatitude && bookingData.rider?.currentLongitude) {
-        setRiderLocation({
+        const newLocation = {
           latitude: bookingData.rider.currentLatitude,
           longitude: bookingData.rider.currentLongitude,
-        });
+        };
+        setRiderLocation(newLocation);
       }
-    } catch (error) {
-      console.log('Error fetching booking:', error);
+    } catch (err: any) {
+      console.log('Error fetching booking:', err);
+      setError(err.response?.data?.message || 'Failed to load booking details');
+      setLoading(false);
     }
   };
 
   const handleCall = () => {
-    if (booking?.rider?.user?.mobileNumber) {
-      Linking.openURL(`tel:${booking.rider.user.mobileNumber}`);
+    const phoneNumber = booking?.rider?.user?.mobileNumber || booking?.rider?.mobileNumber;
+    if (phoneNumber) {
+      Linking.openURL(`tel:${phoneNumber}`);
+    } else {
+      Alert.alert('Error', 'Phone number not available');
     }
   };
 
@@ -107,15 +138,46 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
     );
   };
 
-  if (!booking) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>Finding your rider...</Text>
       </View>
     );
   }
 
-  const isRiderArrived = booking.status === 'RIDER_ARRIVED';
+  if (error) {
+    return (
+      <View style={styles.loadingContainer}>
+        <AlertCircle size={48} color="#EF4444" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchBookingDetails}>
+          <Text style={styles.retryBtnText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <View style={styles.loadingContainer}>
+        <AlertCircle size={48} color="#EF4444" />
+        <Text style={styles.errorText}>Booking not found</Text>
+      </View>
+    );
+  }
+
+  const status = booking.status?.toUpperCase();
+  const isRiderArrived = status === 'RIDER_ARRIVED';
+  const isAccepted = status === 'ACCEPTED';
+  
+  const riderName = booking.rider?.user?.fullName || booking.rider?.fullName || 'Rider';
+  const riderRating = booking.rider?.averageRating || booking.rider?.rating || 5.0;
+  const vehicleModel = booking.rider?.vehicleModel || 'Two Wheeler';
+  const vehicleNumber = booking.rider?.vehicleRegistrationNumber || booking.rider?.vehicleNumber || 'N/A';
+  const phoneNumber = booking.rider?.user?.mobileNumber || booking.rider?.mobileNumber;
+  const totalRides = booking.rider?.totalRides || 0;
 
   return (
     <View style={styles.container}>
@@ -131,7 +193,11 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
         }}
       >
         {riderLocation && (
-          <Marker coordinate={riderLocation} title="Rider Location">
+          <Marker 
+            coordinate={riderLocation} 
+            title="Rider Location"
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
             <View style={styles.riderMarker}>
               <Navigation size={20} color="white" fill="white" />
             </View>
@@ -170,9 +236,9 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
 
       <SafeAreaView style={styles.topBar}>
         <View style={styles.statusBadge}>
-          <View style={[styles.statusDot, { backgroundColor: isRiderArrived ? '#10B981' : '#F59E0B' }]} />
+          <View style={[styles.statusDot, { backgroundColor: isRiderArrived ? '#10B981' : '#3B82F6' }]} />
           <Text style={styles.statusText}>
-            {isRiderArrived ? 'Rider Arrived' : 'Rider Approaching'}
+            {isRiderArrived ? 'RIDER ARRIVED' : isAccepted ? 'RIDER COMING' : status}
           </Text>
         </View>
       </SafeAreaView>
@@ -180,52 +246,78 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
       <View style={styles.bottomSheet}>
         {isRiderArrived && otp && (
           <View style={styles.otpCard}>
-            <Text style={styles.otpLabel}>Share this OTP with Rider</Text>
+            <Text style={styles.otpLabel}>SHARE THIS OTP WITH RIDER</Text>
             <Text style={styles.otpValue}>{otp}</Text>
-            <Text style={styles.otpHint}>The rider will ask for this code to start the ride</Text>
+            <Text style={styles.otpHint}>Rider will ask for this code to start your ride</Text>
           </View>
         )}
 
         <View style={styles.riderCard}>
-          <View style={styles.riderAvatar}>
-            <User size={32} color="#3B82F6" />
-          </View>
-          <View style={styles.riderInfo}>
-            <Text style={styles.riderName}>{booking.rider?.user?.fullName || 'Rider'}</Text>
-            <View style={styles.riderMeta}>
-              <Star size={14} color="#EAB308" fill="#EAB308" />
-              <Text style={styles.riderRating}>
-                {booking.rider?.averageRating?.toFixed(1) || '5.0'}
-              </Text>
-              <Text style={styles.riderVehicle}>
-                • {booking.rider?.vehicleModel || 'Two Wheeler'}
-              </Text>
+          <View style={styles.riderHeader}>
+            <View style={styles.riderAvatar}>
+              <Text style={styles.riderInitial}>{riderName.charAt(0).toUpperCase()}</Text>
             </View>
-            <Text style={styles.vehicleNumber}>{booking.rider?.vehicleNumber || 'DL01AB1234'}</Text>
+            <View style={styles.riderInfo}>
+              <Text style={styles.riderName}>{riderName}</Text>
+              <View style={styles.riderMeta}>
+                <Star size={14} color="#F59E0B" fill="#F59E0B" />
+                <Text style={styles.riderRating}>{riderRating.toFixed(1)}</Text>
+                <Text style={styles.riderDivider}>•</Text>
+                <Text style={styles.riderRides}>{totalRides} rides</Text>
+              </View>
+            </View>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={[styles.iconBtn, !phoneNumber && styles.iconBtnDisabled]} 
+                onPress={handleCall}
+                disabled={!phoneNumber}
+              >
+                <Phone size={20} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.iconBtn, { backgroundColor: '#10B981' }]} onPress={handleChat}>
+                <MessageCircle size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.iconBtn} onPress={handleCall}>
-              <Phone size={20} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconBtn, { backgroundColor: '#10B981' }]} onPress={handleChat}>
-              <MessageCircle size={20} color="white" />
-            </TouchableOpacity>
+          <View style={styles.vehicleDetails}>
+            <View style={styles.vehicleInfoRow}>
+              <View style={styles.vehicleIconContainer}>
+                <Navigation size={16} color="#3B82F6" />
+              </View>
+              <View style={styles.vehicleTextContainer}>
+                <Text style={styles.vehicleLabel}>Vehicle</Text>
+                <Text style={styles.vehicleModel}>{vehicleModel}</Text>
+              </View>
+            </View>
+            <View style={styles.vehicleNumberBadge}>
+              <Text style={styles.vehicleNumber}>{vehicleNumber}</Text>
+            </View>
           </View>
+          {phoneNumber && (
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactLabel}>Contact: </Text>
+              <Text style={styles.contactNumber}>{phoneNumber}</Text>
+            </View>
+          )}
         </View>
 
         {!isRiderArrived && (
           <View style={styles.etaCard}>
             <Clock size={20} color="#3B82F6" />
-            <Text style={styles.etaLabel}>Estimated Arrival</Text>
-            <Text style={styles.etaValue}>{eta}</Text>
+            <View style={styles.etaInfo}>
+              <Text style={styles.etaLabel}>Estimated Arrival</Text>
+              <Text style={styles.etaValue}>{eta}</Text>
+            </View>
           </View>
         )}
 
         <View style={styles.locationCard}>
           <View style={styles.locationDot} />
           <View style={styles.locationInfo}>
-            <Text style={styles.locationLabel}>Pickup Location</Text>
-            <Text style={styles.locationAddress}>{booking.pickupAddress}</Text>
+            <Text style={styles.locationLabel}>PICKUP</Text>
+            <Text style={styles.locationAddress} numberOfLines={2}>
+              {booking.pickupAddress || 'Pickup location'}
+            </Text>
           </View>
         </View>
 
@@ -233,8 +325,10 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
           <View style={styles.locationCard}>
             <View style={[styles.locationDot, { backgroundColor: '#EF4444' }]} />
             <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Drop Location</Text>
-              <Text style={styles.locationAddress}>{booking.dropAddress}</Text>
+              <Text style={styles.locationLabel}>DROP-OFF</Text>
+              <Text style={styles.locationAddress} numberOfLines={2}>
+                {booking.dropAddress}
+              </Text>
             </View>
           </View>
         )}
@@ -262,6 +356,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#6B7280',
+    marginTop: 12,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EF4444',
+    marginTop: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  retryBtn: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
+  },
+  retryBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   map: {
     flex: 1,
@@ -378,21 +493,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   riderCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  riderHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 20,
     marginBottom: 16,
   },
   riderAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#EFF6FF',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#3B82F6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  riderInitial: {
+    fontSize: 30,
+    fontWeight: '900',
+    color: 'white',
   },
   riderInfo: {
     flex: 1,
@@ -420,15 +555,83 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginLeft: 4,
   },
-  vehicleNumber: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#3B82F6',
+  riderDivider: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginHorizontal: 4,
+  },
+  riderRides: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  vehicleDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  vehicleInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  vehicleIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  vehicleTextContainer: {
+    flex: 1,
+  },
+  vehicleLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  vehicleModel: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  vehicleNumberBadge: {
+    backgroundColor: '#1F2937',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  vehicleNumber: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  contactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 12,
+  },
+  contactLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  contactNumber: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1F2937',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -441,14 +644,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  iconBtnDisabled: {
+    backgroundColor: '#9CA3AF',
+    opacity: 0.6,
   },
   etaCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EFF6FF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  etaInfo: {
+    flex: 1,
+    marginLeft: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   etaLabel: {
     flex: 1,

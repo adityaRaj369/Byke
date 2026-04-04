@@ -245,6 +245,27 @@ public class RiderService {
         return stats;
     }
 
+    public List<Map<String, Object>> getRiderTransactions(Long riderId) {
+        List<Booking> completedBookings = bookingRepository.findByRiderIdAndStatus(riderId, BookingStatus.COMPLETED);
+        
+        return completedBookings.stream()
+                .map(booking -> {
+                    Map<String, Object> transaction = new HashMap<>();
+                    transaction.put("id", booking.getId());
+                    transaction.put("bookingId", booking.getId());
+                    transaction.put("type", "credit");
+                    transaction.put("amount", booking.getFinalFare() != null ? booking.getFinalFare() : 0.0);
+                    transaction.put("title", "Ride Earning");
+                    transaction.put("description", booking.getServiceType() + " - " + booking.getPickupAddress());
+                    transaction.put("subtitle", "Booking #" + booking.getId());
+                    transaction.put("createdAt", booking.getCompletedAt() != null ? booking.getCompletedAt() : booking.getUpdatedAt());
+                    return transaction;
+                })
+                .sorted((a, b) -> ((LocalDateTime) b.get("createdAt")).compareTo((LocalDateTime) a.get("createdAt")))
+                .limit(20)
+                .toList();
+    }
+
     public List<Rider> getPendingRiders() {
         return riderRepository.findByStatus(RiderStatus.PENDING);
     }

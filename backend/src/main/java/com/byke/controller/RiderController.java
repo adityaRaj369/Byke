@@ -119,4 +119,16 @@ public class RiderController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/transactions")
+    public ResponseEntity<?> getRiderTransactions(HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            Rider rider = riderService.getRiderByUserId(userId);
+            java.util.List<java.util.Map<String, Object>> transactions = riderService.getRiderTransactions(rider.getId());
+            return ResponseEntity.ok(transactions);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

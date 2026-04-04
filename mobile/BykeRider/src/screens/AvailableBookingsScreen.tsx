@@ -420,9 +420,12 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingTop: 10,
   },
   card: {
     backgroundColor: 'white',
@@ -433,6 +436,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 10,
+    zIndex: 1000,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -559,6 +563,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 12,
     height: 48,
+    zIndex: 100,
   },
   currency: {
     fontSize: 16,

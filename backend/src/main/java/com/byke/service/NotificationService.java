@@ -56,19 +56,28 @@ public class NotificationService {
 
     private void sendPushNotification(User user, String title, String message, String type, Long bookingId) {
         try {
-            // Note: In a real production app, you should use the official Firebase Admin SDK
-            // This is a basic implementation using the legacy HTTP API for demonstration
-            // You will need to configure FCM properly and store FCM tokens in the User entity
-            log.info("Would send FCM Push Notification to user {}: {} - {}", user.getId(), title, message);
-            
-            // To actually send notifications to background/killed apps, the frontend needs to 
-            // send its FCM token to the backend, and the backend needs to save it in the User entity.
-            // Example implementation:
-            /*
-            if (user.getFcmToken() != null) {
-                // Send FCM request
+            String fcmToken = user.getFcmToken();
+            if (fcmToken == null || fcmToken.isBlank()) {
+                log.debug("No FCM token for user {}, skipping push notification", user.getId());
+                return;
             }
-            */
+            
+            // TODO: Implement actual FCM push using Firebase Admin SDK
+            // For now, log that we would send a notification
+            log.info("FCM Push Notification for user {}: {} - {} (token: {}...)", 
+                user.getId(), title, message, fcmToken.substring(0, Math.min(10, fcmToken.length())));
+            
+            // In production, you would use Firebase Admin SDK:
+            // Message fcmMessage = Message.builder()
+            //     .setToken(fcmToken)
+            //     .setNotification(Notification.builder()
+            //         .setTitle(title)
+            //         .setBody(message)
+            //         .build())
+            //     .putData("type", type)
+            //     .putData("bookingId", bookingId != null ? bookingId.toString() : "")
+            //     .build();
+            // FirebaseMessaging.getInstance().send(fcmMessage);
         } catch (Exception e) {
             log.error("Error sending push notification: ", e);
         }

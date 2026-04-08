@@ -72,6 +72,8 @@ public class User {
     @Builder.Default
     private Boolean notificationsEnabled = true;
     
+    private String fcmToken;
+    
     @Column(length = 4)
     private String fixedOtp;
     
@@ -94,4 +96,31 @@ public class User {
     
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
+    
+    public String getFcmToken() { return fcmToken; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    
+    public String getProfilePhotoUrl() { return profilePhotoUrl; }
+    public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
+    
+    public String getHomeAddress() { return homeAddress; }
+    public void setHomeAddress(String homeAddress) { this.homeAddress = homeAddress; }
+    
+    public String getWorkAddress() { return workAddress; }
+    public void setWorkAddress(String workAddress) { this.workAddress = workAddress; }
+    
+    public Boolean getNotificationsEnabled() { return notificationsEnabled; }
+    public void setNotificationsEnabled(Boolean notificationsEnabled) { this.notificationsEnabled = notificationsEnabled; }
+    
+    public AccountStatus getStatus() { return status; }
+    public void setStatus(AccountStatus status) { this.status = status; }
+    
+    public Integer getTotalBookings() { return totalBookings; }
+    public void setTotalBookings(Integer totalBookings) { this.totalBookings = totalBookings; }
+    
+    public Double getAverageRatingGiven() { return averageRatingGiven; }
+    public void setAverageRatingGiven(Double averageRatingGiven) { this.averageRatingGiven = averageRatingGiven; }
+    
+    public Double getAverageRatingReceived() { return averageRatingReceived; }
+    public void setAverageRatingReceived(Double averageRatingReceived) { this.averageRatingReceived = averageRatingReceived; }
 }

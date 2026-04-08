@@ -42,8 +42,8 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:your-secret-key-change-in-production}
-  expiration: 2592000000
-  refresh-expiration: 7776000000
+  expiration: 7776000000
+  refresh-expiration: 15552000000
 
 
 stripe:

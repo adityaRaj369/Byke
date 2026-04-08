@@ -81,6 +81,29 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
+    @PostMapping("/fcm-token")
+    public ResponseEntity<?> updateFcmToken(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody Map<String, String> body) {
+        try {
+            String token = authHeader.replace("Bearer ", "").trim();
+            Long userId = jwtUtil.extractUserId(token);
+            String fcmToken = body.get("fcmToken");
+
+            if (fcmToken == null || fcmToken.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "fcmToken is required"));
+            }
+
+            userService.updateFcmToken(userId, fcmToken);
+            log.info("FCM token updated for userId={}", userId);
+
+            return ResponseEntity.ok(Map.of("message", "FCM token updated successfully"));
+        } catch (Exception e) {
+            log.error("updateFcmToken failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }
 
 

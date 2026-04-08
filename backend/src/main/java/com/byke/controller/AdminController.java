@@ -94,4 +94,102 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/riders")
+    public ResponseEntity<?> getAllRiders(
+            @RequestParam(required = false) RiderStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String location) {
+        try {
+            List<Rider> riders = riderService.getAllRidersWithFilters(status, search, location);
+            return ResponseEntity.ok(riders);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/riders/{riderId}")
+    public ResponseEntity<?> getRiderDetails(@PathVariable Long riderId) {
+        try {
+            Rider rider = riderService.getRiderById(riderId);
+            return ResponseEntity.ok(rider);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/riders/{riderId}/suspend")
+    public ResponseEntity<?> suspendRider(@PathVariable Long riderId, @RequestParam String reason) {
+        try {
+            Rider rider = riderService.suspendRider(riderId, reason);
+            return ResponseEntity.ok(rider);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/riders/{riderId}/activate")
+    public ResponseEntity<?> activateRider(@PathVariable Long riderId) {
+        try {
+            Rider rider = riderService.activateRider(riderId);
+            return ResponseEntity.ok(rider);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/bookings")
+    public ResponseEntity<?> getAllBookings(
+            @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        try {
+            return ResponseEntity.ok(bookingService.getAllBookingsWithFilters(status, search, startDate, endDate));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/bookings/{bookingId}")
+    public ResponseEntity<?> getBookingDetails(@PathVariable Long bookingId) {
+        try {
+            return ResponseEntity.ok(bookingService.getBookingById(bookingId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getAllUsers(@RequestParam(required = false) String search) {
+        try {
+            return ResponseEntity.ok(userService.getAllUsersWithSearch(search));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<?> getUserDetails(@PathVariable Long userId) {
+        try {
+            return ResponseEntity.ok(userService.getUserById(userId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/analytics")
+    public ResponseEntity<?> getAnalytics(
+            @RequestParam(required = false, defaultValue = "7") int days) {
+        try {
+            Map<String, Object> analytics = new HashMap<>();
+            analytics.put("totalBookings", bookingService.getTotalBookingsToday());
+            analytics.put("totalRevenue", paymentService.getTotalRevenueToday());
+            analytics.put("activeRiders", riderService.getRiderCountByStatus(RiderStatus.ACTIVE));
+            analytics.put("totalUsers", userService.getTotalUserCount());
+            return ResponseEntity.ok(analytics);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

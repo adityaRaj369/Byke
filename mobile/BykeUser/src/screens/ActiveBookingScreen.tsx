@@ -8,6 +8,7 @@ import {
   Linking,
   Platform,
   ScrollView,
+  Animated,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
@@ -48,17 +49,31 @@ interface Booking {
 const ActiveBookingScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { bookingId, otp } = route.params as { bookingId: number; otp: string };
+  const { bookingId } = route.params as { bookingId: number };
   
   const mapRef = useRef<MapView>(null);
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [userOtp, setUserOtp] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const animatedLatitude = useRef(new Animated.Value(0)).current;
+  const animatedLongitude = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchBookingDetails();
-    const interval = setInterval(fetchBookingDetails, 3000);
+    fetchUserOtp();
+    const interval = setInterval(fetchBookingDetails, 7000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchUserOtp = async () => {
+    try {
+      const response = await api.get('/users/profile');
+      setUserOtp(response.data.fixedOtp || '0000');
+    } catch (error) {
+      console.log('Error fetching user OTP:', error);
+      setUserOtp('0000');
+    }
+  };
 
   useEffect(() => {
     if (booking && mapRef.current) {
@@ -82,7 +97,34 @@ const ActiveBookingScreen = () => {
   const fetchBookingDetails = async () => {
     try {
       const response = await api.get(`/bookings/${bookingId}`);
-      setBooking(response.data);
+      const newBooking = response.data;
+      
+      if (booking && newBooking.rider) {
+        const newLat = newBooking.rider.currentLatitude || newBooking.pickupLatitude;
+        const newLng = newBooking.rider.currentLongitude || newBooking.pickupLongitude;
+        const oldLat = booking.rider?.currentLatitude || booking.pickupLatitude;
+        const oldLng = booking.rider?.currentLongitude || booking.pickupLongitude;
+        
+        if (Math.abs(newLat - oldLat) > 0.0001 || Math.abs(newLng - oldLng) > 0.0001) {
+          Animated.parallel([
+            Animated.timing(animatedLatitude, {
+              toValue: newLat,
+              duration: 2000,
+              useNativeDriver: false,
+            }),
+            Animated.timing(animatedLongitude, {
+              toValue: newLng,
+              duration: 2000,
+              useNativeDriver: false,
+            }),
+          ]).start();
+        }
+      } else if (newBooking.rider) {
+        animatedLatitude.setValue(newBooking.rider.currentLatitude || newBooking.pickupLatitude);
+        animatedLongitude.setValue(newBooking.rider.currentLongitude || newBooking.pickupLongitude);
+      }
+      
+      setBooking(newBooking);
       
       if (response.data.status === 'COMPLETED') {
         Alert.alert('Ride Completed', 'Thank you for using BYKE!', [
@@ -179,6 +221,8 @@ const ActiveBookingScreen = () => {
     longitude: booking.rider.currentLongitude || booking.pickupLongitude,
   };
 
+  const AnimatedMarker = Animated.createAnimatedComponent(Marker);
+
   return (
     <View style={styles.container}>
       <MapView
@@ -192,15 +236,18 @@ const ActiveBookingScreen = () => {
           longitudeDelta: 0.05,
         }}
       >
-        <Marker
-          coordinate={riderLocation}
+        <AnimatedMarker
+          coordinate={{
+            latitude: animatedLatitude,
+            longitude: animatedLongitude,
+          }}
           title="Rider"
           anchor={{ x: 0.5, y: 0.5 }}
         >
           <View style={styles.riderMarker}>
             <Text style={styles.riderMarkerEmoji}>🏍️</Text>
           </View>
-        </Marker>
+        </AnimatedMarker>
 
         <Marker
           coordinate={{ 
@@ -253,7 +300,7 @@ const ActiveBookingScreen = () => {
         {(booking.status === 'ACCEPTED' || booking.status === 'RIDER_ARRIVED') && (
           <View style={styles.otpCard}>
             <Text style={styles.otpLabel}>Share this OTP with rider</Text>
-            <Text style={styles.otpValue}>{otp}</Text>
+            <Text style={styles.otpValue}>{userOtp}</Text>
             <Text style={styles.otpHint}>Rider will verify this to start the ride</Text>
           </View>
         )}

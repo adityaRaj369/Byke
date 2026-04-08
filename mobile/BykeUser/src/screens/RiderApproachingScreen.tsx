@@ -31,8 +31,7 @@ const RiderApproachingScreen = ({ route, navigation }: any) => {
 
   useEffect(() => {
     fetchBookingDetails();
-    // Poll every 6 seconds for rider location updates
-    const interval = setInterval(fetchBookingDetails, 6000);
+    const interval = setInterval(fetchBookingDetails, 7000);
     return () => clearInterval(interval);
   }, []);
 

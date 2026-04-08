@@ -285,4 +285,31 @@ public class RiderService {
     public long getRiderCountByStatus(RiderStatus status) {
         return riderRepository.countByStatus(status);
     }
+
+    public List<Rider> getAllRidersWithFilters(RiderStatus status, String search, String location) {
+        if (status != null) {
+            return riderRepository.findByStatus(status);
+        }
+        return riderRepository.findAll();
+    }
+
+    @Transactional
+    public Rider suspendRider(Long riderId, String reason) {
+        Rider rider = getRiderById(riderId);
+        rider.setStatus(RiderStatus.SUSPENDED);
+        rider.setSuspensionReason(reason);
+        Rider saved = riderRepository.save(rider);
+        log.info("Rider {} suspended. Reason: {}", riderId, reason);
+        return saved;
+    }
+
+    @Transactional
+    public Rider activateRider(Long riderId) {
+        Rider rider = getRiderById(riderId);
+        rider.setStatus(RiderStatus.ACTIVE);
+        rider.setSuspensionReason(null);
+        Rider saved = riderRepository.save(rider);
+        log.info("Rider {} activated", riderId);
+        return saved;
+    }
 }

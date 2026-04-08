@@ -72,6 +72,9 @@ public class User {
     @Builder.Default
     private Boolean notificationsEnabled = true;
     
+    @Column(length = 4)
+    private String fixedOtp;
+    
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -4,12 +4,12 @@ import com.byke.model.entity.User;
 import com.byke.model.enums.AccountStatus;
 import com.byke.model.enums.UserRole;
 import com.byke.repository.UserRepository;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -46,16 +46,25 @@ public class UserService {
             return new UserResult(existingUser.get(), false);
         }
 
+        String fixedOtp = generateFixedOtp(mobileNumber);
+        
         User newUser = User.builder()
                 .mobileNumber(mobileNumber)
                 .fullName(fullName)
                 .role(role)
                 .status(AccountStatus.ACTIVE)
+                .fixedOtp(fixedOtp)
                 .build();
 
         User saved = userRepository.save(newUser);
-        log.info("New user created: mobile={}, role={}", mobileNumber, role);
+        log.info("New user created: mobile={}, role={}, fixedOtp={}", mobileNumber, role, fixedOtp);
         return new UserResult(saved, true);
+    }
+    
+    private String generateFixedOtp(String mobileNumber) {
+        int lastFourDigits = Integer.parseInt(mobileNumber.substring(mobileNumber.length() - 4));
+        int otp = (lastFourDigits * 7 + 1234) % 10000;
+        return String.format("%04d", otp);
     }
 
     /** Legacy convenience wrapper used by remaining callers. */
@@ -154,6 +163,13 @@ public class UserService {
 
     public long getUserCountByRole(UserRole role) {
         return userRepository.countByRole(role);
+    }
+
+    public List<User> getAllUsersWithSearch(String search) {
+        if (search != null && !search.isBlank()) {
+            return userRepository.findByFullNameContainingIgnoreCaseOrMobileNumberContaining(search, search);
+        }
+        return userRepository.findAll();
     }
 }
 

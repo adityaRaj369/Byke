@@ -320,18 +320,20 @@ public class BookingService {
             throw new RuntimeException("Invalid booking status for marking arrival");
         }
         
-        // Generate 4-digit OTP
-        String otp = String.format("%04d", (int)(Math.random() * 10000));
+        String otp = booking.getUser().getFixedOtp();
+        if (otp == null) {
+            otp = String.format("%04d", (int)(Math.random() * 10000));
+        }
+        
         booking.setVerificationOtp(otp);
         booking.setStatus(BookingStatus.RIDER_ARRIVED);
         booking.setRiderArrivedAt(LocalDateTime.now());
         
         Booking savedBooking = bookingRepository.save(booking);
-        log.info("Rider {} marked reached for booking {}. OTP: {}", riderId, bookingId, otp);
+        log.info("Rider {} marked reached for booking {}. User fixed OTP: {}", riderId, bookingId, otp);
         
-        // Notify user that rider has arrived with OTP
         notificationService.notifyUser(booking.getUser().getId(), "Rider Arrived", 
-                "Your rider has arrived! Share OTP: " + otp);
+                "Your rider has arrived! Share your OTP: " + otp);
         
         return savedBooking;
     }
@@ -392,5 +394,12 @@ public class BookingService {
                 "Your ride is complete! Please rate your experience.");
         
         return savedBooking;
+    }
+
+    public List<Booking> getAllBookingsWithFilters(BookingStatus status, String search, String startDate, String endDate) {
+        if (status != null) {
+            return bookingRepository.findByStatus(status);
+        }
+        return bookingRepository.findAll();
     }
 }

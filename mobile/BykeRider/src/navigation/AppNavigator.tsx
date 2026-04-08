@@ -164,10 +164,6 @@ const AppNavigator = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: '#fff',
     borderTopWidth: 0,
     height: Platform.OS === 'ios' ? 88 : 70,

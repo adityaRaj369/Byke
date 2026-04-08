@@ -13,6 +13,7 @@ import api from '../../../config/api';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_PROFILE_KEY } from '../../../constants/storageKeys';
 import { ChevronLeft } from 'lucide-react-native';
 import { API_BASE_URL } from '../../../config/env';
+import { getFCMToken } from '../../../services/notificationService';
 
 const LoginScreen = () => {
   const [phone, setPhone] = useState('');
@@ -51,6 +52,20 @@ const LoginScreen = () => {
         idToken, mobileNumber: `+91${phone}`, fullName: `User ${phone.slice(-4)}`,
       });
       const { accessToken, refreshToken, userId, isNewUser, fullName, profilePhotoUrl } = response.data;
+      
+      // Register FCM token for push notifications
+      try {
+        const fcmToken = await getFCMToken();
+        if (fcmToken) {
+          await api.post('/api/user/fcm-token', { fcmToken }, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          console.log('FCM token registered successfully');
+        }
+      } catch (fcmError) {
+        console.log('FCM token registration failed:', fcmError);
+      }
+      
       if (isNewUser) {
         await AsyncStorage.setItem(TOKEN_KEY, accessToken);
         if (refreshToken) await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);

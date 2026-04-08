@@ -1,83 +1,67 @@
-import messaging from '@react-native-firebase/messaging';
 import { PermissionsAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../config/api';
 
-const FCM_TOKEN_KEY = 'fcm_token';
+const LAST_NOTIF_ID_KEY = 'last_notification_id';
+let pollingInterval: ReturnType<typeof setInterval> | null = null;
 
 export const requestNotificationPermission = async (): Promise<boolean> => {
-  if (Platform.OS === 'ios') {
-    const authStatus = await messaging().requestPermission();
-    const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-    return enabled;
-  }
-
   if (Platform.OS === 'android' && Platform.Version >= 33) {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
     );
     return granted === PermissionsAndroid.RESULTS.GRANTED;
   }
-
   return true;
-};
-
-export const getFCMToken = async (): Promise<string | null> => {
-  try {
-    const hasPermission = await requestNotificationPermission();
-    if (!hasPermission) {
-      console.log('Notification permission denied');
-      return null;
-    }
-
-    const token = await messaging().getToken();
-    await AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-    return token;
-  } catch (error) {
-    console.error('Error getting FCM token:', error);
-    return null;
-  }
 };
 
 export const setupNotificationListeners = (
   onNotification: (notification: any) => void,
-  onNotificationOpened: (notification: any) => void
+  _onNotificationOpened: (notification: any) => void
 ): (() => void) => {
-  const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
-    console.log('Foreground notification:', remoteMessage);
-    onNotification(remoteMessage);
-  });
+  // Poll backend for new unread notifications every 10 seconds
+  const pollNotifications = async () => {
+    try {
+      const response = await api.get('/notifications/unread');
+      const notifications = response.data;
+      if (Array.isArray(notifications) && notifications.length > 0) {
+        const lastSeenId = await AsyncStorage.getItem(LAST_NOTIF_ID_KEY);
+        const lastId = lastSeenId ? parseInt(lastSeenId, 10) : 0;
 
-  const unsubscribeBackground = messaging().setBackgroundMessageHandler(
-    async (remoteMessage) => {
-      console.log('Background notification:', remoteMessage);
-    }
-  );
+        for (const notif of notifications) {
+          if (notif.id > lastId) {
+            onNotification({
+              notification: {
+                title: notif.title,
+                body: notif.message,
+              },
+              data: {
+                type: notif.type,
+                bookingId: notif.bookingId?.toString() || '',
+              },
+            });
+          }
+        }
 
-  messaging().onNotificationOpenedApp((remoteMessage) => {
-    console.log('Notification opened app:', remoteMessage);
-    onNotificationOpened(remoteMessage);
-  });
-
-  messaging()
-    .getInitialNotification()
-    .then((remoteMessage) => {
-      if (remoteMessage) {
-        console.log('App opened from quit state:', remoteMessage);
-        onNotificationOpened(remoteMessage);
+        // Save the highest notification ID we've seen
+        const maxId = Math.max(...notifications.map((n: any) => n.id));
+        if (maxId > lastId) {
+          await AsyncStorage.setItem(LAST_NOTIF_ID_KEY, maxId.toString());
+        }
       }
-    });
+    } catch (error) {
+      // Silently fail - user might not be authenticated yet
+    }
+  };
+
+  // Start polling
+  pollNotifications();
+  pollingInterval = setInterval(pollNotifications, 10000);
 
   return () => {
-    unsubscribeForeground();
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
   };
-};
-
-export const onTokenRefresh = (callback: (token: string) => void): (() => void) => {
-  return messaging().onTokenRefresh((token) => {
-    console.log('FCM token refreshed:', token);
-    AsyncStorage.setItem(FCM_TOKEN_KEY, token);
-    callback(token);
-  });
 };

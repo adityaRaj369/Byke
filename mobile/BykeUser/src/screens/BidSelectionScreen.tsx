@@ -139,6 +139,32 @@ const BidSelectionScreen = () => {
     );
   }
 
+  const handleCancelBooking = () => {
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.post(`/bookings/${bookingId}/cancel`, null, {
+                params: { reason: 'User cancelled', byUser: true }
+              });
+              Alert.alert('Booking Cancelled', 'Your booking has been cancelled.', [
+                { text: 'OK', onPress: () => (navigation as any).replace('Home') },
+              ]);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (bids.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -147,6 +173,9 @@ const BidSelectionScreen = () => {
         <Text style={styles.emptyText}>
           Nearby riders will bid on your request soon
         </Text>
+        <TouchableOpacity style={styles.cancelBookingButton} onPress={handleCancelBooking}>
+          <Text style={styles.cancelBookingButtonText}>Cancel Booking</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -163,6 +192,11 @@ const BidSelectionScreen = () => {
         renderItem={renderBid}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
+        ListFooterComponent={
+          <TouchableOpacity style={styles.cancelBookingButton} onPress={handleCancelBooking}>
+            <Text style={styles.cancelBookingButtonText}>Cancel Booking</Text>
+          </TouchableOpacity>
+        }
       />
     </SafeAreaView>
   );
@@ -310,6 +344,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: '#fff',
+  },
+  cancelBookingButton: {
+    marginTop: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cancelBookingButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#DC2626',
+    textAlign: 'center',
   },
 });
 

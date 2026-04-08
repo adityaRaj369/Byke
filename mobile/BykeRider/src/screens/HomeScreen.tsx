@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 20,
+    paddingBottom: Platform.OS === 'ios' ? 90 : 80,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,

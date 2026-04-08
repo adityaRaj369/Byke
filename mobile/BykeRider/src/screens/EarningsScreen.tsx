@@ -8,7 +8,8 @@ import {
   ActivityIndicator, 
   RefreshControl,
   StyleSheet,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native';
 import api from '../config/api';
 import { 
@@ -166,7 +167,7 @@ const EarningsScreen = ({ navigation }: any) => {
           </View>
         )}
         
-        <View style={{ height: 40 }} />
+        <View style={{ height: Platform.OS === 'ios' ? 100 : 90 }} />
       </ScrollView>
     </SafeAreaView>
   );

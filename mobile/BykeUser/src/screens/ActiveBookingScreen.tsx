@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -57,12 +57,19 @@ const ActiveBookingScreen = () => {
   const [loading, setLoading] = useState(true);
   const animatedLatitude = useRef(new Animated.Value(0)).current;
   const animatedLongitude = useRef(new Animated.Value(0)).current;
+  const cancelledHandled = useRef(false);
+  const completedHandled = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const AnimatedMarker = useMemo(() => Animated.createAnimatedComponent(Marker), []);
 
   useEffect(() => {
     fetchBookingDetails();
     fetchUserOtp();
-    const interval = setInterval(fetchBookingDetails, 7000);
-    return () => clearInterval(interval);
+    intervalRef.current = setInterval(fetchBookingDetails, 7000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   const fetchUserOtp = async () => {
@@ -76,7 +83,7 @@ const ActiveBookingScreen = () => {
   };
 
   useEffect(() => {
-    if (booking && mapRef.current) {
+    if (booking && booking.rider && mapRef.current) {
       const riderLocation = {
         latitude: booking.rider.currentLatitude || booking.pickupLatitude,
         longitude: booking.rider.currentLongitude || booking.pickupLongitude,
@@ -126,9 +133,17 @@ const ActiveBookingScreen = () => {
       
       setBooking(newBooking);
       
-      if (response.data.status === 'COMPLETED') {
+      if (response.data.status === 'COMPLETED' && !completedHandled.current) {
+        completedHandled.current = true;
+        if (intervalRef.current) clearInterval(intervalRef.current);
         Alert.alert('Ride Completed', 'Thank you for using BYKE!', [
           { text: 'OK', onPress: () => (navigation as any).replace('Home') }
+        ]);
+      } else if (response.data.status === 'CANCELLED_BY_RIDER' && !cancelledHandled.current) {
+        cancelledHandled.current = true;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        Alert.alert('Rider Cancelled', 'The rider has cancelled. Finding another rider for you...', [
+          { text: 'OK', onPress: () => (navigation as any).replace('BidSelection', { bookingId }) }
         ]);
       }
     } catch (error) {
@@ -215,13 +230,19 @@ const ActiveBookingScreen = () => {
     );
   }
 
+  if (!booking.rider) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Waiting for rider information...</Text>
+      </View>
+    );
+  }
+
   const statusInfo = getStatusInfo();
   const riderLocation = {
     latitude: booking.rider.currentLatitude || booking.pickupLatitude,
     longitude: booking.rider.currentLongitude || booking.pickupLongitude,
   };
-
-  const AnimatedMarker = Animated.createAnimatedComponent(Marker);
 
   return (
     <View style={styles.container}>

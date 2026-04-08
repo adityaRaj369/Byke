@@ -22,6 +22,7 @@ import api from '../config/api';
 import { ChevronLeft, Phone, ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { API_BASE_URL } from '../config/env';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY, USER_PROFILE_KEY } from '../constants/storageKeys';
+import { getFCMToken } from '../services/notificationService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -75,6 +76,20 @@ const LoginScreen = () => {
         fullName: `Rider ${phone.slice(-4)}`,
       });
       const { accessToken, refreshToken, userId, fullName, profilePhotoUrl } = response.data;
+      
+      // Register FCM token for push notifications
+      try {
+        const fcmToken = await getFCMToken();
+        if (fcmToken) {
+          await api.post('/api/rider/fcm-token', { fcmToken }, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          console.log('FCM token registered successfully');
+        }
+      } catch (fcmError) {
+        console.log('FCM token registration failed:', fcmError);
+      }
+      
       const userPayload = {
         id: String(userId),
         name: fullName || `Rider ${phone.slice(-4)}`,

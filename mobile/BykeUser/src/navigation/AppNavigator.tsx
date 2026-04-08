@@ -30,7 +30,7 @@ const NavigationContent = () => {
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    // Setup Firebase notification listeners
+    // Setup notification polling listeners
     const unsubscribe = setupNotificationListeners(
       (remoteMessage) => {
         // Show popup notification when app is in foreground

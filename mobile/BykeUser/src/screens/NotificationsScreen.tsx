@@ -19,7 +19,7 @@ const NotificationsScreen = ({ navigation }: any) => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/user/notifications');
+      const response = await api.get('/notifications');
       setNotifications(response.data);
     } catch (error) {
       console.log('Error fetching notifications:', error);
@@ -34,7 +34,7 @@ const NotificationsScreen = ({ navigation }: any) => {
 
   const markAsRead = async (id: string) => {
     try {
-      await api.put(`/user/notifications/${id}/read`);
+      await api.put(`/notifications/${id}/read`);
       setNotifications(prev =>
         prev.map(n => (n.id === id ? { ...n, read: true } : n))
       );

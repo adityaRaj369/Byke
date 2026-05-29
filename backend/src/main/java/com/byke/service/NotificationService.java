@@ -3,6 +3,9 @@ package com.byke.service;
 import com.byke.model.entity.Booking;
 import com.byke.model.entity.Notification;
 import com.byke.model.entity.User;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import com.byke.repository.NotificationRepository;
 import com.byke.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ public class NotificationService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final FirebaseMessaging firebaseMessaging;
 
     @Transactional
     public Notification createNotification(Long userId, String title, String message, 
@@ -48,38 +52,56 @@ public class NotificationService {
         messagingTemplate.convertAndSend("/topic/user/" + userId + "/notifications", savedNotification);
         
         // 2. Send via Firebase Cloud Messaging (Push Notification for background/killed state)
-        sendPushNotification(user, title, message, type, bookingId);
+        sendPushNotification(user, savedNotification);
         
         log.info("Notification created for user {}: {}", userId, title);
         return savedNotification;
     }
 
-    private void sendPushNotification(User user, String title, String message, String type, Long bookingId) {
+    private void sendPushNotification(User user, Notification notification) {
         try {
             String fcmToken = user.getFcmToken();
             if (fcmToken == null || fcmToken.isBlank()) {
                 log.debug("No FCM token for user {}, skipping push notification", user.getId());
                 return;
             }
-            
-            // TODO: Implement actual FCM push using Firebase Admin SDK
-            // For now, log that we would send a notification
-            log.info("FCM Push Notification for user {}: {} - {} (token: {}...)", 
-                user.getId(), title, message, fcmToken.substring(0, Math.min(10, fcmToken.length())));
-            
-            // In production, you would use Firebase Admin SDK:
-            // Message fcmMessage = Message.builder()
-            //     .setToken(fcmToken)
-            //     .setNotification(Notification.builder()
-            //         .setTitle(title)
-            //         .setBody(message)
-            //         .build())
-            //     .putData("type", type)
-            //     .putData("bookingId", bookingId != null ? bookingId.toString() : "")
-            //     .build();
-            // FirebaseMessaging.getInstance().send(fcmMessage);
+
+            Message fcmMessage = Message.builder()
+                    .setToken(fcmToken)
+                    .setNotification(
+                            com.google.firebase.messaging.Notification.builder()
+                                    .setTitle(notification.getTitle())
+                                    .setBody(notification.getMessage())
+                                    .build()
+                    )
+                    .putData("title", notification.getTitle())
+                    .putData("body", notification.getMessage())
+                    .putData("type", notification.getType() != null ? notification.getType() : "")
+                    .putData(
+                            "bookingId",
+                            notification.getBooking() != null && notification.getBooking().getId() != null
+                                    ? notification.getBooking().getId().toString()
+                                    : ""
+                    )
+                    .putData("notificationId", notification.getId().toString())
+                    .build();
+
+            String messageId = firebaseMessaging.send(fcmMessage);
+            log.info(
+                    "FCM push sent for user {} notification {} (messageId={})",
+                    user.getId(),
+                    notification.getId(),
+                    messageId
+            );
+        } catch (FirebaseMessagingException e) {
+            log.warn(
+                    "FCM send failed for user {} notification {}: {}",
+                    user.getId(),
+                    notification.getId(),
+                    e.getMessage()
+            );
         } catch (Exception e) {
-            log.error("Error sending push notification: ", e);
+            log.error("Unexpected error sending push notification", e);
         }
     }
 

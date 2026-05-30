@@ -112,6 +112,10 @@ public class NotificationService {
         createNotification(userId, title, message, "BOOKING", null);
     }
 
+    public void notifyUserWithType(Long userId, String title, String message, String type, Long bookingId) {
+        createNotification(userId, title, message, type, bookingId);
+    }
+
     public void notifyRider(Long riderId, String title, String message) {
         Rider rider = riderRepository.findById(riderId)
                 .orElseThrow(() -> new RuntimeException("Rider not found"));
@@ -120,6 +124,16 @@ public class NotificationService {
             throw new RuntimeException("Rider user not found");
         }
         createNotification(riderUserId, title, message, "BOOKING", null);
+    }
+
+    public void notifyRiderWithType(Long riderId, String title, String message, String type, Long bookingId) {
+        Rider rider = riderRepository.findById(riderId)
+                .orElseThrow(() -> new RuntimeException("Rider not found"));
+        Long riderUserId = rider.getUser() != null ? rider.getUser().getId() : null;
+        if (riderUserId == null) {
+            throw new RuntimeException("Rider user not found");
+        }
+        createNotification(riderUserId, title, message, type, bookingId);
     }
 
     public List<Notification> getUserNotifications(Long userId) {

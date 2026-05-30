@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.List;
 
 @RestController
@@ -53,6 +54,28 @@ public class RiderController {
             Rider rider = riderService.getRiderByUserId(userId);
             Rider updatedRider = riderService.updateRiderDocuments(rider.getId(), documentUrls);
             return ResponseEntity.ok(updatedRider);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<?> updateRiderProfile(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            Rider rider = riderService.getOrCreateRiderForUser(userId);
+
+            User updateUser = new User();
+            updateUser.setFullName(body.get("fullName"));
+            userService.updateUser(userId, updateUser);
+
+            Rider updated = riderService.updateBasicProfile(
+                    rider.getId(),
+                    body.get("vehicleModel"),
+                    body.get("vehicleRegistrationNumber"),
+                    body.get("vehicleType")
+            );
+            return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

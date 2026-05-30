@@ -26,6 +26,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   Navigation,
   Phone,
+  MessageCircle,
   CheckCircle,
   MapPin,
   DollarSign,
@@ -457,15 +458,27 @@ const RideTrackingScreen = () => {
               {booking.user?.mobileNumber || 'Phone not available'}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.callBtn,
-              !booking.user?.mobileNumber && styles.callBtnDisabled,
-            ]}
-            onPress={handleCallUser}
-            disabled={!booking.user?.mobileNumber}>
-            <Phone size={20} color="white" />
-          </TouchableOpacity>
+          <View style={styles.userActions}>
+            <TouchableOpacity
+              style={[
+                styles.callBtn,
+                !booking.user?.mobileNumber && styles.callBtnDisabled,
+              ]}
+              onPress={handleCallUser}
+              disabled={!booking.user?.mobileNumber}>
+              <Phone size={20} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.callBtn, styles.secondaryActionBtn, {backgroundColor: '#111827'}]}
+              onPress={() =>
+                (navigation as any).navigate('Chat', {
+                  bookingId: String(booking.id),
+                  userName: booking.user?.fullName || 'User',
+                })
+              }>
+              <MessageCircle size={20} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.locationCard}>
@@ -724,6 +737,13 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
+  },
+  userActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  secondaryActionBtn: {
+    marginLeft: 10,
   },
   userName: {
     fontSize: 16,

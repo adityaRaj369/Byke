@@ -52,6 +52,7 @@ type TrackingScreenNavigationProp = any;
 
 export default function TrackingScreen() {
   const {height: windowHeight} = useWindowDimensions();
+  const mapRef = useRef<MapView>(null);
   const route = useRoute<TrackingScreenRouteProp>();
   const navigation = useNavigation<TrackingScreenNavigationProp>();
   const {rideId, rider, from, to, maxFare} = route.params || ({} as any);
@@ -246,6 +247,25 @@ export default function TrackingScreen() {
   const dropAddress = booking?.dropAddress || to || 'Drop location';
   const maxFareValue = Number(maxFare) || riderProfile.bidAmount;
 
+  useEffect(() => {
+    if (!mapRef.current) {
+      return;
+    }
+    const points = [mapCenter, destination].filter(
+      point =>
+        hasValidCoordinate(point?.latitude) && hasValidCoordinate(point?.longitude),
+    ) as Array<{latitude: number; longitude: number}>;
+
+    if (points.length < 2) {
+      return;
+    }
+
+    mapRef.current.fitToCoordinates(points, {
+      edgePadding: {top: 120, right: 56, bottom: 340, left: 56},
+      animated: true,
+    });
+  }, [mapCenter, destination]);
+
   const handleCall = () => {
     if (riderProfile.phone) {
       Linking.openURL(`tel:${riderProfile.phone}`);
@@ -290,6 +310,7 @@ export default function TrackingScreen() {
       {/* Map Background */}
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           provider={PROVIDER_GOOGLE}
           style={StyleSheet.absoluteFill}
           initialRegion={{
@@ -298,8 +319,12 @@ export default function TrackingScreen() {
             latitudeDelta: 0.015,
             longitudeDelta: 0.015,
           }}
+          mapType="standard"
+          userInterfaceStyle="light"
+          loadingEnabled={true}
           showsUserLocation={true}
-          showsMyLocationButton={false}>
+          showsMyLocationButton={false}
+          toolbarEnabled={false}>
           <Marker coordinate={mapCenter}>
             <View style={styles.riderMarker}>
               <Navigation size={20} color="black" fill="black" />
@@ -684,19 +709,26 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  bottomContainer: {flex: 1, justifyContent: 'flex-end'},
+  bottomContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 20,
+    elevation: 20,
+  },
   sheet: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 24,
     paddingBottom: 8,
-    elevation: 25,
+    elevation: 18,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -10},
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
   },
   sheetContent: {paddingBottom: 40},
   sheetHandle: {
@@ -707,7 +739,16 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 32,
   },
-  riderRow: {flexDirection: 'row', alignItems: 'center', marginBottom: 32},
+  riderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#EEF2F7',
+  },
   avatarContainer: {position: 'relative'},
   avatar: {
     width: 80,
@@ -730,7 +771,7 @@ const styles = StyleSheet.create({
     borderColor: 'white',
   },
   riderInfo: {flex: 1, marginLeft: 20},
-  riderName: {fontSize: 24, fontWeight: '900', color: 'black'},
+  riderName: {fontSize: 20, fontWeight: '800', color: '#0F172A'},
   vehicleRow: {flexDirection: 'row', alignItems: 'center', marginTop: 4},
   vehicleBadge: {
     backgroundColor: '#F3F4F6',
@@ -764,12 +805,12 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 32,
-    padding: 24,
-    marginBottom: 32,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#FDE68A',
   },
   statItem: {alignItems: 'center', flex: 1},
   statLabel: {
@@ -782,15 +823,22 @@ const styles = StyleSheet.create({
   },
   statValue: {fontSize: 20, fontWeight: '900', color: 'black'},
   statDivider: {width: 1, height: 40, backgroundColor: '#E5E7EB'},
-  locationContainer: {marginBottom: 40, paddingHorizontal: 8},
+  locationContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EEF2F7',
+  },
   locationRow: {flexDirection: 'row', alignItems: 'center'},
   routeDot: {width: 12, height: 12, borderRadius: 6, marginRight: 16},
   locationText: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
   },
   routeLine: {
     width: 2,
@@ -799,14 +847,16 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     marginVertical: 4,
   },
-  buttonRow: {flexDirection: 'row', gap: 16},
+  buttonRow: {flexDirection: 'row', gap: 12},
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    height: 64,
-    borderRadius: 24,
+    backgroundColor: '#F8FAFC',
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   cancelText: {
     color: '#9CA3AF',
@@ -817,8 +867,8 @@ const styles = StyleSheet.create({
   sosButton: {
     flex: 1,
     backgroundColor: '#EF4444',
-    height: 64,
-    borderRadius: 24,
+    height: 56,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

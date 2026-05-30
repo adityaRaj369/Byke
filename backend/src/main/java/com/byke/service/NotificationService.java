@@ -2,11 +2,13 @@ package com.byke.service;
 
 import com.byke.model.entity.Booking;
 import com.byke.model.entity.Notification;
+import com.byke.model.entity.Rider;
 import com.byke.model.entity.User;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.byke.repository.NotificationRepository;
+import com.byke.repository.RiderRepository;
 import com.byke.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final RiderRepository riderRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final FirebaseMessaging firebaseMessaging;
 
@@ -110,7 +113,13 @@ public class NotificationService {
     }
 
     public void notifyRider(Long riderId, String title, String message) {
-        createNotification(riderId, title, message, "BOOKING", null);
+        Rider rider = riderRepository.findById(riderId)
+                .orElseThrow(() -> new RuntimeException("Rider not found"));
+        Long riderUserId = rider.getUser() != null ? rider.getUser().getId() : null;
+        if (riderUserId == null) {
+            throw new RuntimeException("Rider user not found");
+        }
+        createNotification(riderUserId, title, message, "BOOKING", null);
     }
 
     public List<Notification> getUserNotifications(Long userId) {

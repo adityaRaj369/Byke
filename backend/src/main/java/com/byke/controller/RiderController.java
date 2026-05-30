@@ -131,4 +131,18 @@ public class RiderController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/{riderId}/location")
+    public ResponseEntity<?> getRiderLocation(@PathVariable Long riderId) {
+        try {
+            Rider rider = riderService.getRiderById(riderId);
+            java.util.Map<String, Object> location = new java.util.HashMap<>();
+            location.put("latitude", rider.getCurrentLatitude());
+            location.put("longitude", rider.getCurrentLongitude());
+            location.put("lastLocationUpdate", rider.getLastLocationUpdate());
+            return ResponseEntity.ok(location);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

@@ -8,6 +8,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import api from '../config/api';
+import {colors} from '../theme';
+import CardGradient from '../components/CardGradient';
 import {
   Calendar,
   ChevronRight,
@@ -62,7 +64,8 @@ const MyBookingsScreen = ({navigation}: any) => {
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        className="bg-white rounded-[32px] p-6 mb-4 border border-gray-100 shadow-sm shadow-black/5"
+        className="rounded-[32px] p-6 mb-4 shadow-sm shadow-black/5 overflow-hidden"
+        style={{backgroundColor: 'transparent'}}
         onPress={() => {
           if (item.status === 'IN_PROGRESS' || item.status === 'ACCEPTED') {
             navigation.navigate('UserTracking', {
@@ -74,16 +77,21 @@ const MyBookingsScreen = ({navigation}: any) => {
             });
           }
         }}>
+        <CardGradient radius={32} />
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center">
-            <View className="bg-yellow-400/10 px-3 py-1 rounded-xl">
-              <Text className="text-[10px] font-black text-yellow-700 uppercase tracking-tighter">
+            <View className="px-3 py-1 rounded-xl" style={{backgroundColor: colors.accentSoft}}>
+              <Text
+                className="text-[10px] font-black uppercase tracking-tighter"
+                style={{color: colors.accent}}>
                 {item.serviceType || 'RIDE'}
               </Text>
             </View>
             <View className="flex-row items-center ml-3">
-              <Calendar size={12} color="#9CA3AF" />
-              <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+              <Calendar size={12} color={colors.textMute} />
+              <Text
+                className="text-[10px] font-black uppercase tracking-widest ml-1"
+                style={{color: colors.textMute}}>
                 {new Date(item.createdAt).toLocaleDateString(undefined, {
                   day: '2-digit',
                   month: 'short',
@@ -110,49 +118,62 @@ const MyBookingsScreen = ({navigation}: any) => {
 
         <View className="mb-4">
           <View className="flex-row items-center">
-            <View className="w-2 h-2 rounded-full bg-green-500 mr-3" />
+            <View
+              className="w-2 h-2 rounded-full mr-3"
+              style={{backgroundColor: colors.success}}
+            />
             <Text
-              className="flex-1 text-sm font-bold text-gray-600 truncate"
+              className="flex-1 text-sm font-bold truncate"
+              style={{color: colors.textSub}}
               numberOfLines={1}>
               {item.pickupAddress}
             </Text>
           </View>
-          <View className="w-[1px] h-3 bg-gray-100 ml-1 my-1" />
+          <View className="w-[1px] h-3 ml-1 my-1" style={{backgroundColor: colors.border}} />
           <View className="flex-row items-center">
-            <View className="w-2 h-2 rounded-full bg-red-500 mr-3" />
+            <View
+              className="w-2 h-2 rounded-full mr-3"
+              style={{backgroundColor: colors.danger}}
+            />
             <Text
-              className="flex-1 text-sm font-bold text-gray-600 truncate"
+              className="flex-1 text-sm font-bold truncate"
+              style={{color: colors.textSub}}
               numberOfLines={1}>
               {item.dropAddress}
             </Text>
           </View>
         </View>
 
-        <View className="flex-row items-center justify-between pt-4 border-t border-gray-50">
+        <View
+          className="flex-row items-center justify-between pt-4 border-t"
+          style={{borderColor: colors.border}}>
           <View>
-            <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            <Text
+              className="text-[10px] font-black uppercase tracking-widest"
+              style={{color: colors.textMute}}>
               Total Fare
             </Text>
-            <Text className="text-xl font-black text-black">
+            <Text className="text-xl font-black" style={{color: colors.accent}}>
               ₹{item.finalFare || item.estimatedFare}
             </Text>
           </View>
-          <ChevronRight size={20} color="#D1D5DB" strokeWidth={3} />
+          <ChevronRight size={20} color={colors.textMute} strokeWidth={3} />
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1" style={{backgroundColor: colors.bg}}>
       {/* Header */}
       <View className="px-6 pt-4 pb-6 flex-row items-center">
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mr-4">
-          <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+          className="p-2.5 rounded-xl border mr-4"
+          style={{backgroundColor: colors.surfaceAlt, borderColor: colors.border}}>
+          <ArrowLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
-        <Text className="text-2xl font-black text-black">My Bookings</Text>
+        <Text className="text-2xl font-black" style={{color: colors.text}}>My Bookings</Text>
       </View>
 
       <FlatList
@@ -163,24 +184,27 @@ const MyBookingsScreen = ({navigation}: any) => {
           <RefreshControl
             refreshing={loading}
             onRefresh={fetchBookings}
-            tintColor="#EAB308"
+            tintColor={colors.accent}
           />
         }
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20 px-10">
-            <View className="bg-gray-50 p-10 rounded-[50px] mb-6">
-              <Clock size={64} color="#D1D5DB" strokeWidth={1.5} />
+            <View className="p-10 rounded-[50px] mb-6" style={{backgroundColor: colors.surfaceAlt}}>
+              <Clock size={64} color={colors.textMute} strokeWidth={1.5} />
             </View>
-            <Text className="text-xl font-black text-black mb-2">
+            <Text className="text-xl font-black mb-2" style={{color: colors.text}}>
               No Bookings Yet
             </Text>
-            <Text className="text-gray-400 text-center font-bold leading-5">
+            <Text className="text-center font-bold leading-5" style={{color: colors.textMute}}>
               Your ride history will appear here once you take your first trip.
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('UserHome')}
-              className="mt-8 bg-yellow-400 px-8 py-4 rounded-3xl shadow-xl shadow-yellow-400/20">
-              <Text className="text-black font-black uppercase tracking-widest">
+              className="mt-8 px-8 py-4 rounded-3xl shadow-xl shadow-yellow-400/20"
+              style={{backgroundColor: colors.accent}}>
+              <Text
+                className="font-black uppercase tracking-widest"
+                style={{color: colors.onAccent}}>
                 Book Now
               </Text>
             </TouchableOpacity>

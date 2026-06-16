@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef, useMemo, useCallback} from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TouchableOpacity,
   Alert,
@@ -25,6 +26,9 @@ import {
   Star,
   CheckCircle,
 } from 'lucide-react-native';
+import {colors, darkMapStyle, getVehicleImage, normalizeVehicleId} from '../theme';
+import {UserLocationMarker} from '../components/MapMarkers';
+import CardGradient from '../components/CardGradient';
 
 interface Booking {
   id: number;
@@ -274,29 +278,29 @@ const ActiveBookingScreen = () => {
     switch (booking?.status) {
       case 'ACCEPTED':
         return {
-          color: '#3B82F6',
-          bg: '#DBEAFE',
+          color: colors.info,
+          bg: colors.surfaceAlt,
           text: 'Rider is on the way',
           icon: Navigation,
         };
       case 'RIDER_ARRIVED':
         return {
-          color: '#F59E0B',
-          bg: '#FEF3C7',
+          color: colors.warning,
+          bg: colors.surfaceAlt,
           text: 'Rider has arrived',
           icon: MapPin,
         };
       case 'IN_PROGRESS':
         return {
-          color: '#10B981',
-          bg: '#D1FAE5',
+          color: colors.success,
+          bg: colors.surfaceAlt,
           text: 'Ride in progress',
           icon: CheckCircle,
         };
       default:
         return {
-          color: '#6B7280',
-          bg: '#F3F4F6',
+          color: colors.textMute,
+          bg: colors.surfaceAlt,
           text: 'Processing',
           icon: Clock,
         };
@@ -334,6 +338,9 @@ const ActiveBookingScreen = () => {
     latitude: booking.rider.currentLatitude || booking.pickupLatitude,
     longitude: booking.rider.currentLongitude || booking.pickupLongitude,
   };
+  const vehicleId = normalizeVehicleId(
+    booking.rider?.vehicleType || (booking as any).serviceType,
+  );
 
   return (
     <View style={styles.container}>
@@ -341,6 +348,8 @@ const ActiveBookingScreen = () => {
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
+        customMapStyle={darkMapStyle}
+        userInterfaceStyle="dark"
         initialRegion={{
           latitude: booking.pickupLatitude,
           longitude: booking.pickupLongitude,
@@ -353,22 +362,23 @@ const ActiveBookingScreen = () => {
             longitude: animatedLongitude,
           }}
           title="Rider"
-          anchor={{x: 0.5, y: 0.5}}>
-          <View style={styles.riderMarker}>
-            <Text style={styles.riderMarkerEmoji}>🏍️</Text>
+          anchor={{x: 0.5, y: 0.62}}>
+          <View style={styles.vehicleMarkerWrap}>
+            <Image
+              source={getVehicleImage(vehicleId)}
+              style={styles.vehicleMarkerImg}
+              resizeMode="contain"
+            />
+            <View style={styles.vehicleMarkerShadow} />
           </View>
         </AnimatedMarker>
 
-        <Marker
+        <UserLocationMarker
           coordinate={{
             latitude: booking.pickupLatitude,
             longitude: booking.pickupLongitude,
           }}
-          title="Pickup Location">
-          <View style={styles.pickupMarker}>
-            <MapPin size={24} color="white" fill="#3B82F6" />
-          </View>
-        </Marker>
+        />
 
         {booking.status !== 'ACCEPTED' &&
           booking.status !== 'RIDER_ARRIVED' && (
@@ -399,7 +409,7 @@ const ActiveBookingScreen = () => {
           }
           apikey={GOOGLE_PLACES_API_KEY}
           strokeWidth={4}
-          strokeColor="#3B82F6"
+          strokeColor={colors.accent}
           onError={error => console.log('Directions error:', error)}
         />
       </MapView>
@@ -427,13 +437,14 @@ const ActiveBookingScreen = () => {
         )}
 
         <View style={styles.riderCard}>
+          <CardGradient radius={20} />
           <View style={styles.riderAvatar}>
-            <User size={24} color="#3B82F6" />
+            <User size={24} color={colors.info} />
           </View>
           <View style={styles.riderInfo}>
             <Text style={styles.riderName}>{booking.rider.user.fullName}</Text>
             <View style={styles.ratingRow}>
-              <Star size={14} color="#EAB308" fill="#EAB308" />
+              <Star size={14} color={colors.accent} fill={colors.accent} />
               <Text style={styles.ratingText}>
                 {booking.rider.averageRating.toFixed(1)}
               </Text>
@@ -446,11 +457,12 @@ const ActiveBookingScreen = () => {
             </Text>
           </View>
           <TouchableOpacity style={styles.callButton} onPress={handleCallRider}>
-            <Phone size={20} color="white" />
+            <Phone size={20} color={colors.white} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.locationCard}>
+          <CardGradient radius={20} />
           <View style={styles.locationRow}>
             <View style={[styles.locationDot, {backgroundColor: '#10B981'}]} />
             <View style={styles.locationDetails}>
@@ -476,6 +488,7 @@ const ActiveBookingScreen = () => {
         </View>
 
         <View style={styles.fareCard}>
+          <CardGradient radius={16} />
           <Text style={styles.fareLabel}>Fare Amount</Text>
           <Text style={styles.fareAmount}>
             ₹{booking.finalFare || booking.estimatedFare}
@@ -497,21 +510,39 @@ const ActiveBookingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   loadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   map: {
     flex: 1,
+  },
+  vehicleMarkerWrap: {
+    width: 70,
+    height: 76,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  vehicleMarkerImg: {
+    width: 68,
+    height: 68,
+  },
+  vehicleMarkerShadow: {
+    position: 'absolute',
+    bottom: 0,
+    width: 26,
+    height: 7,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   riderMarkerEmoji: {
     fontSize: 22,
@@ -522,7 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: colors.accent,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
@@ -566,7 +597,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
@@ -574,7 +607,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
   },
@@ -598,18 +631,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   otpCard: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.accentSoft,
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#F59E0B',
+    borderColor: colors.accent,
   },
   otpLabel: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#92400E',
+    color: colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 8,
@@ -617,19 +650,20 @@ const styles = StyleSheet.create({
   otpValue: {
     fontSize: 42,
     fontWeight: '900',
-    color: '#92400E',
+    color: colors.text,
     letterSpacing: 8,
     marginBottom: 8,
   },
   otpHint: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#92400E',
+    color: colors.textSub,
   },
   riderCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     padding: 16,
     borderRadius: 20,
     marginBottom: 16,
@@ -638,7 +672,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.surfaceHigh,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -649,7 +683,7 @@ const styles = StyleSheet.create({
   riderName: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginBottom: 4,
   },
   ratingRow: {
@@ -661,29 +695,30 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   vehicleText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.textSub,
     marginBottom: 2,
   },
   vehicleNumber: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMute,
   },
   callButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
     alignItems: 'center',
     justifyContent: 'center',
   },
   locationCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
@@ -706,7 +741,7 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#6B7280',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 4,
@@ -714,7 +749,7 @@ const styles = StyleSheet.create({
   locationAddress: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#000',
+    color: colors.text,
     lineHeight: 20,
   },
   cancelButton: {
@@ -722,33 +757,34 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerSoft,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.danger,
   },
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#DC2626',
+    color: colors.danger,
   },
   fareCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     padding: 16,
     borderRadius: 16,
   },
   fareLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#166534',
+    color: colors.textSub,
   },
   fareAmount: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#166534',
+    color: colors.success,
   },
 });
 

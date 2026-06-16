@@ -13,7 +13,20 @@ import Settings from './pages/Settings';
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#161618',
+            color: '#fafafa',
+            border: '1px solid #27272a',
+            borderRadius: '12px',
+            fontSize: '14px',
+          },
+          success: { iconTheme: { primary: '#34d399', secondary: '#161618' } },
+          error: { iconTheme: { primary: '#f87171', secondary: '#161618' } },
+        }}
+      />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />

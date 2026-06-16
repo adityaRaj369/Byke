@@ -29,6 +29,8 @@ import {
 } from 'lucide-react-native';
 import {useNavigation} from '@react-navigation/native';
 import api from '../config/api';
+import {colors} from '../theme';
+import CardGradient from '../components/CardGradient';
 
 const ProfileScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -106,25 +108,25 @@ const ProfileScreen = () => {
     {
       icon: Bike,
       label: 'Vehicle & KYC Documents',
-      color: '#EAB308',
+      color: colors.accent,
       screen: 'Documents',
     },
     {
       icon: CreditCard,
       label: 'Earnings & Payouts',
-      color: '#10B981',
+      color: colors.success,
       screen: 'Earnings',
     },
     {
       icon: Bell,
       label: 'Notifications',
-      color: '#F59E0B',
+      color: colors.warning,
       screen: 'Notifications',
     },
     {
       icon: HelpCircle,
       label: 'Help & Support',
-      color: '#8B5CF6',
+      color: colors.info,
       screen: null,
     },
   ];
@@ -133,6 +135,7 @@ const ProfileScreen = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <CardGradient radius={30} />
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
@@ -140,7 +143,7 @@ const ProfileScreen = () => {
               </Text>
             </View>
             <View style={styles.verifiedBadge}>
-              <ShieldCheck size={16} color="black" />
+              <ShieldCheck size={16} color={colors.onAccent} />
             </View>
           </View>
 
@@ -148,6 +151,7 @@ const ProfileScreen = () => {
           <Text style={styles.phoneText}>{profile?.user?.mobileNumber || user?.mobileNumber || ''}</Text>
 
           <View style={styles.vehicleCard}>
+            <CardGradient radius={12} />
             <Text style={styles.vehicleTitle}>Vehicle Details</Text>
             <Text style={styles.vehicleLine}>{profile?.vehicleType || 'Type not set'}</Text>
             <Text style={styles.vehicleLine}>{profile?.vehicleModel || 'Model not set'}</Text>
@@ -155,7 +159,7 @@ const ProfileScreen = () => {
           </View>
 
           <TouchableOpacity style={styles.editBtn} onPress={() => setEditVisible(true)}>
-            <Edit3 size={16} color="white" />
+            <Edit3 size={16} color={colors.onAccent} />
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -181,20 +185,21 @@ const ProfileScreen = () => {
                 }
               }}
               style={styles.menuItem}>
+              <CardGradient radius={18} />
               <View style={[styles.menuIcon, {backgroundColor: `${item.color}15`}]}>
                 <item.icon size={20} color={item.color} strokeWidth={2.5} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
-              <ChevronRight size={18} color="#D1D5DB" strokeWidth={3} />
+              <ChevronRight size={18} color={colors.textMute} strokeWidth={3} />
             </TouchableOpacity>
           ))}
 
           <TouchableOpacity activeOpacity={0.7} onPress={handleLogout} style={styles.logoutBtn}>
             <View style={styles.logoutIcon}>
-              <LogOut size={20} color="#EF4444" strokeWidth={2.5} />
+              <LogOut size={20} color={colors.danger} strokeWidth={2.5} />
             </View>
             <Text style={styles.logoutText}>Sign Out</Text>
-            <ChevronRight size={18} color="#FCA5A5" strokeWidth={3} />
+            <ChevronRight size={18} color={colors.danger} strokeWidth={3} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -208,21 +213,21 @@ const ProfileScreen = () => {
               value={form.fullName}
               onChangeText={fullName => setForm(prev => ({...prev, fullName}))}
               placeholder="Full name"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMute}
             />
             <TextInput
               style={styles.input}
               value={form.vehicleType}
               onChangeText={vehicleType => setForm(prev => ({...prev, vehicleType}))}
               placeholder="Vehicle type"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMute}
             />
             <TextInput
               style={styles.input}
               value={form.vehicleModel}
               onChangeText={vehicleModel => setForm(prev => ({...prev, vehicleModel}))}
               placeholder="Vehicle model"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMute}
             />
             <TextInput
               style={styles.input}
@@ -232,14 +237,14 @@ const ProfileScreen = () => {
               }
               placeholder="Registration number"
               autoCapitalize="characters"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMute}
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-                {saving ? <CheckCircle2 size={16} color="white" /> : <Text style={styles.saveBtnText}>Save</Text>}
+                {saving ? <CheckCircle2 size={16} color={colors.onAccent} /> : <Text style={styles.saveBtnText}>Save</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -250,13 +255,14 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#fff'},
+  container: {flex: 1, backgroundColor: colors.bg},
   content: {flex: 1},
   header: {
     alignItems: 'center',
     paddingTop: 32,
     paddingBottom: 24,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
@@ -265,56 +271,54 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 30,
-    backgroundColor: '#111827',
+    backgroundColor: colors.surfaceHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {fontSize: 36, fontWeight: '900', color: '#EAB308'},
+  avatarText: {fontSize: 36, fontWeight: '900', color: colors.accent},
   verifiedBadge: {
     position: 'absolute',
     bottom: -4,
     right: -4,
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     padding: 5,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.surface,
   },
-  name: {fontSize: 24, fontWeight: '900', color: '#111827'},
-  phoneText: {fontSize: 12, fontWeight: '700', color: '#6B7280', marginTop: 5},
+  name: {fontSize: 24, fontWeight: '900', color: colors.text},
+  phoneText: {fontSize: 12, fontWeight: '700', color: colors.textSub, marginTop: 5},
   vehicleCard: {
     marginTop: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     minWidth: '78%',
   },
-  vehicleTitle: {fontSize: 11, fontWeight: '900', color: '#9CA3AF', textTransform: 'uppercase'},
-  vehicleLine: {fontSize: 13, fontWeight: '700', color: '#111827', marginTop: 2},
+  vehicleTitle: {fontSize: 11, fontWeight: '900', color: colors.textMute, textTransform: 'uppercase'},
+  vehicleLine: {fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 2},
   editBtn: {
     marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: colors.accent,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  editBtnText: {marginLeft: 6, color: '#fff', fontWeight: '800'},
+  editBtnText: {marginLeft: 6, color: colors.onAccent, fontWeight: '800'},
   menuSection: {paddingHorizontal: 18, marginTop: 20, marginBottom: 34},
-  sectionTitle: {fontSize: 12, fontWeight: '900', color: '#9CA3AF', marginBottom: 14},
+  sectionTitle: {fontSize: 12, fontWeight: '900', color: colors.textMute, marginBottom: 14},
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     padding: 14,
     borderRadius: 18,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   menuIcon: {
     width: 40,
@@ -324,63 +328,70 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  menuLabel: {flex: 1, fontSize: 15, fontWeight: '800', color: '#374151'},
+  menuLabel: {flex: 1, fontSize: 15, fontWeight: '800', color: colors.text},
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerSoft,
     padding: 14,
     borderRadius: 18,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: colors.danger,
   },
   logoutIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  logoutText: {flex: 1, fontSize: 15, fontWeight: '800', color: '#EF4444'},
+  logoutText: {flex: 1, fontSize: 15, fontWeight: '800', color: colors.danger},
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  modalCard: {backgroundColor: 'white', borderRadius: 14, padding: 16},
-  modalTitle: {fontSize: 18, fontWeight: '900', color: '#111827', marginBottom: 10},
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: {fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 10},
   input: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 11,
     marginTop: 10,
-    color: '#111827',
+    color: colors.text,
     fontWeight: '700',
+    backgroundColor: colors.surfaceAlt,
   },
   modalActions: {flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14},
   cancelBtn: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     marginRight: 8,
   },
-  cancelBtnText: {fontWeight: '800', color: '#111827'},
+  cancelBtnText: {fontWeight: '800', color: colors.text},
   saveBtn: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#111827',
+    backgroundColor: colors.accent,
     minWidth: 68,
     alignItems: 'center',
   },
-  saveBtnText: {fontWeight: '800', color: '#fff'},
+  saveBtnText: {fontWeight: '800', color: colors.onAccent},
 });
 
 export default ProfileScreen;

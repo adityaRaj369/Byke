@@ -16,10 +16,10 @@ interface Booking {
 }
 
 const statusColors: Record<string, string> = {
-  IN_PROGRESS: 'bg-green-100 text-green-800',
-  ACCEPTED: 'bg-blue-100 text-blue-800',
-  BIDDING: 'bg-yellow-100 text-yellow-800',
-  RIDER_ARRIVED: 'bg-purple-100 text-purple-800',
+  IN_PROGRESS: 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20',
+  ACCEPTED: 'bg-sky-400/10 text-sky-300 border border-sky-400/20',
+  BIDDING: 'bg-brand-400/10 text-brand-300 border border-brand-400/20',
+  RIDER_ARRIVED: 'bg-violet-400/10 text-violet-300 border border-violet-400/20',
 };
 
 const LiveMonitoring = () => {
@@ -47,8 +47,8 @@ const LiveMonitoring = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-600">Loading live bookings...</div>
+      <div className="flex items-center justify-center h-[60vh] text-zinc-500">
+        Loading live bookings…
       </div>
     );
   }
@@ -57,74 +57,90 @@ const LiveMonitoring = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Live Monitoring</h1>
-          <p className="text-gray-500 mt-1 flex items-center">
-            <Clock size={14} className="mr-1" />
-            Last updated: {lastUpdated.toLocaleTimeString()} · Auto-refreshes every 10s
+          <h1 className="text-2xl font-bold text-white tracking-tight">Live Monitoring</h1>
+          <p className="text-zinc-500 mt-1 flex items-center text-sm">
+            <Clock size={14} className="mr-1.5" />
+            Updated {lastUpdated.toLocaleTimeString()} · auto-refresh 10s
           </p>
         </div>
         <button
           onClick={fetchActiveBookings}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="flex items-center px-4 py-2.5 bg-brand-400 text-black font-semibold rounded-xl hover:bg-brand-300 transition text-sm"
         >
           <RefreshCw size={16} className="mr-2" />
           Refresh
         </button>
       </div>
 
-      {/* Summary row */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-green-700">{bookings.filter(b => b.status === 'IN_PROGRESS').length}</p>
-          <p className="text-green-600 text-sm mt-1">In Progress</p>
+        <div className="bg-emerald-400/5 border border-emerald-400/20 rounded-2xl p-5 text-center">
+          <p className="text-3xl font-bold text-emerald-300">
+            {bookings.filter((b) => b.status === 'IN_PROGRESS').length}
+          </p>
+          <p className="text-emerald-400/80 text-xs mt-1 uppercase tracking-wider">In Progress</p>
         </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-blue-700">{bookings.filter(b => b.status === 'ACCEPTED').length}</p>
-          <p className="text-blue-600 text-sm mt-1">Accepted / En Route</p>
+        <div className="bg-sky-400/5 border border-sky-400/20 rounded-2xl p-5 text-center">
+          <p className="text-3xl font-bold text-sky-300">
+            {bookings.filter((b) => b.status === 'ACCEPTED').length}
+          </p>
+          <p className="text-sky-400/80 text-xs mt-1 uppercase tracking-wider">Accepted / En Route</p>
         </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-yellow-700">{bookings.filter(b => b.status === 'BIDDING').length}</p>
-          <p className="text-yellow-600 text-sm mt-1">Bidding Open</p>
+        <div className="bg-brand-400/5 border border-brand-400/20 rounded-2xl p-5 text-center">
+          <p className="text-3xl font-bold text-brand-300">
+            {bookings.filter((b) => b.status === 'BIDDING').length}
+          </p>
+          <p className="text-brand-400/80 text-xs mt-1 uppercase tracking-wider">Bidding Open</p>
         </div>
       </div>
 
       {bookings.length === 0 ? (
-        <div className="bg-white rounded-xl shadow p-12 text-center">
-          <div className="text-6xl mb-4">🏍️</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">No active rides</h2>
-          <p className="text-gray-500">All rides are completed. Monitoring for new activity...</p>
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl p-12 text-center">
+          <div className="text-5xl mb-4 opacity-60">🏍️</div>
+          <h2 className="text-lg font-semibold text-white mb-1">No active rides</h2>
+          <p className="text-zinc-500 text-sm">All rides are completed. Monitoring for new activity…</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {bookings.map((booking) => (
-            <div key={booking.id} className="bg-white rounded-xl shadow border border-gray-100 p-5">
+            <div
+              key={booking.id}
+              className="bg-ink-900 border border-ink-700 rounded-2xl p-5 hover:border-ink-600 transition-colors"
+            >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-mono text-gray-400">#{booking.id}</span>
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-600'}`}>
+                <span className="text-xs font-mono text-zinc-500">#{booking.id}</span>
+                <span
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                    statusColors[booking.status] || 'bg-ink-700 text-zinc-300'
+                  }`}
+                >
                   {booking.status.replace(/_/g, ' ')}
                 </span>
               </div>
               <div className="flex items-center mb-1">
-                <span className="text-xs font-semibold bg-blue-600 text-white px-2 py-0.5 rounded mr-2">{booking.serviceType}</span>
-                <span className="text-gray-500 text-sm">₹{booking.estimatedFare?.toFixed(0)} · {booking.estimatedDistance?.toFixed(1)} km</span>
+                <span className="text-[11px] font-bold bg-ink-700 text-zinc-200 px-2 py-0.5 rounded mr-2 uppercase tracking-wide">
+                  {booking.serviceType}
+                </span>
+                <span className="text-zinc-400 text-sm">
+                  ₹{booking.estimatedFare?.toFixed(0)} · {booking.estimatedDistance?.toFixed(1)} km
+                </span>
               </div>
-              <div className="mt-3 space-y-1">
+              <div className="mt-3 space-y-1.5">
                 <div className="flex items-start">
-                  <MapPin size={14} className="text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-700 truncate">{booking.pickupAddress}</p>
+                  <MapPin size={14} className="text-emerald-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-zinc-300 truncate">{booking.pickupAddress}</p>
                 </div>
                 <div className="flex items-start">
-                  <Navigation size={14} className="text-red-500 mr-2 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-700 truncate">{booking.dropAddress}</p>
+                  <Navigation size={14} className="text-red-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-zinc-300 truncate">{booking.dropAddress}</p>
                 </div>
               </div>
-              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between">
+              <div className="mt-4 pt-3 border-t border-ink-700 flex justify-between">
                 <div className="flex items-center">
-                  <User size={13} className="text-gray-400 mr-1" />
-                  <span className="text-xs text-gray-600">{booking.user?.fullName || 'Unknown User'}</span>
+                  <User size={13} className="text-zinc-500 mr-1.5" />
+                  <span className="text-xs text-zinc-400">{booking.user?.fullName || 'Unknown User'}</span>
                 </div>
                 {booking.rider && (
-                  <span className="text-xs text-gray-500">🏍️ {booking.rider.user?.fullName}</span>
+                  <span className="text-xs text-zinc-500">🏍️ {booking.rider.user?.fullName}</span>
                 )}
               </div>
             </div>

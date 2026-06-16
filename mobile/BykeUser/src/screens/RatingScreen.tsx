@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Bike,
 } from 'lucide-react-native';
+import {colors} from '../theme';
 
 const RatingScreen = ({navigation, route}: any) => {
   const {bookingId} = route.params || {};
@@ -97,20 +98,34 @@ const RatingScreen = ({navigation, route}: any) => {
 
   if (submitted) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center px-10">
-        <View className="bg-green-50 p-10 rounded-[50px] mb-8 border border-green-100">
-          <CheckCircle2 size={64} color="#22C55E" strokeWidth={2.5} />
+      <SafeAreaView
+        className="flex-1 items-center justify-center px-10"
+        style={{backgroundColor: colors.bg}}>
+        <View
+          className="p-10 rounded-[50px] mb-8 border"
+          style={{
+            backgroundColor: colors.successSoft,
+            borderColor: colors.success,
+          }}>
+          <CheckCircle2 size={64} color={colors.success} strokeWidth={2.5} />
         </View>
-        <Text className="text-3xl font-black text-black text-center mb-4">
+        <Text
+          className="text-3xl font-black text-center mb-4"
+          style={{color: colors.text}}>
           Feedback Sent!
         </Text>
-        <Text className="text-gray-400 font-bold text-center leading-6 mb-12">
+        <Text
+          className="font-bold text-center leading-6 mb-12"
+          style={{color: colors.textMute}}>
           Your feedback helps us keep the BYKE community safe and reliable.
         </Text>
         <TouchableOpacity
           onPress={goHome}
-          className="bg-black w-full py-6 rounded-3xl items-center shadow-xl shadow-black/20">
-          <Text className="text-white font-black uppercase tracking-widest">
+          className="w-full py-6 rounded-3xl items-center shadow-xl"
+          style={{backgroundColor: colors.accent}}>
+          <Text
+            className="font-black uppercase tracking-widest"
+            style={{color: colors.onAccent}}>
             Back to Home
           </Text>
         </TouchableOpacity>
@@ -119,29 +134,44 @@ const RatingScreen = ({navigation, route}: any) => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1" style={{backgroundColor: colors.bg}}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 pt-4 pb-10">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 self-start mb-10">
-            <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+            className="p-2.5 rounded-xl border self-start mb-10"
+            style={{
+              backgroundColor: colors.surfaceAlt,
+              borderColor: colors.border,
+            }}>
+            <ArrowLeft size={24} color={colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
 
           <View className="items-center mb-12">
-            <View className="bg-yellow-400 p-6 rounded-[40px] shadow-2xl shadow-yellow-400/30 mb-8">
-              <Bike size={48} color="black" strokeWidth={2.5} />
+            <View
+              className="p-6 rounded-[40px] shadow-2xl mb-8"
+              style={{backgroundColor: colors.accent}}>
+              <Bike size={48} color={colors.onAccent} strokeWidth={2.5} />
             </View>
-            <Text className="text-4xl font-black text-black text-center">
+            <Text
+              className="text-4xl font-black text-center"
+              style={{color: colors.text}}>
               Rate Your Trip
             </Text>
-            <Text className="text-gray-400 font-bold mt-2">
+            <Text className="font-bold mt-2" style={{color: colors.textMute}}>
               How was your journey with us?
             </Text>
           </View>
 
-          <View className="bg-gray-50 rounded-[40px] p-8 border border-gray-100 mb-8">
-            <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] text-center mb-8">
+          <View
+            className="rounded-[40px] p-8 border mb-8"
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            }}>
+            <Text
+              className="text-xs font-black uppercase tracking-[4px] text-center mb-8"
+              style={{color: colors.textMute}}>
               Tap to Rate
             </Text>
 
@@ -153,8 +183,8 @@ const RatingScreen = ({navigation, route}: any) => {
                   className="mx-1">
                   <Star
                     size={42}
-                    color={s <= rating ? '#EAB308' : '#D1D5DB'}
-                    fill={s <= rating ? '#EAB308' : 'transparent'}
+                    color={s <= rating ? colors.accent : colors.borderStrong}
+                    fill={s <= rating ? colors.accent : 'transparent'}
                     strokeWidth={2.5}
                   />
                 </TouchableOpacity>
@@ -163,7 +193,9 @@ const RatingScreen = ({navigation, route}: any) => {
 
             {rating > 0 && rating < 5 && (
               <View className="mb-6">
-                <Text className="text-xs font-black text-gray-400 uppercase tracking-[4px] mb-4">
+                <Text
+                  className="text-xs font-black uppercase tracking-[4px] mb-4"
+                  style={{color: colors.textMute}}>
                   What went wrong?
                 </Text>
                 <View className="flex-row flex-wrap gap-2">
@@ -175,17 +207,25 @@ const RatingScreen = ({navigation, route}: any) => {
                           reason === selectedReason ? '' : reason,
                         )
                       }
-                      className={`px-4 py-3 rounded-2xl border-2 ${
-                        selectedReason === reason
-                          ? 'bg-red-50 border-red-400'
-                          : 'bg-white border-gray-200'
-                      }`}>
-                      <Text
-                        className={`text-sm font-bold ${
+                      className="px-4 py-3 rounded-2xl border-2"
+                      style={{
+                        backgroundColor:
                           selectedReason === reason
-                            ? 'text-red-600'
-                            : 'text-gray-600'
-                        }`}>
+                            ? colors.dangerSoft
+                            : colors.surfaceAlt,
+                        borderColor:
+                          selectedReason === reason
+                            ? colors.danger
+                            : colors.border,
+                      }}>
+                      <Text
+                        className="text-sm font-bold"
+                        style={{
+                          color:
+                            selectedReason === reason
+                              ? colors.danger
+                              : colors.textSub,
+                        }}>
                         {reason}
                       </Text>
                     </TouchableOpacity>
@@ -194,16 +234,26 @@ const RatingScreen = ({navigation, route}: any) => {
               </View>
             )}
 
-            <View className="flex-row items-start bg-white border border-gray-100 rounded-[32px] px-6 py-5 shadow-sm">
-              <MessageSquare size={20} color="#9CA3AF" className="mt-1" />
+            <View
+              className="flex-row items-start border rounded-[32px] px-6 py-5 shadow-sm"
+              style={{
+                backgroundColor: colors.surfaceAlt,
+                borderColor: colors.border,
+              }}>
+              <MessageSquare
+                size={20}
+                color={colors.textMute}
+                className="mt-1"
+              />
               <TextInput
-                className="flex-1 ml-4 text-base font-bold text-black min-h-[100px]"
+                className="flex-1 ml-4 text-base font-bold min-h-[100px]"
+                style={{color: colors.text}}
                 placeholder={
                   rating < 5
                     ? 'Add more details (optional)'
                     : 'Share your experience (optional)'
                 }
-                placeholderTextColor="#D1D5DB"
+                placeholderTextColor={colors.textMute}
                 value={comment}
                 onChangeText={setComment}
                 multiline
@@ -216,17 +266,20 @@ const RatingScreen = ({navigation, route}: any) => {
             activeOpacity={0.9}
             onPress={handleSubmitRating}
             disabled={submitting}
-            className={`rounded-3xl py-6 flex-row items-center justify-center shadow-xl ${
-              submitting ? 'bg-gray-200' : 'bg-yellow-400 shadow-yellow-400/20'
-            }`}>
+            className="rounded-3xl py-6 flex-row items-center justify-center shadow-xl"
+            style={{
+              backgroundColor: submitting ? colors.surfaceHigh : colors.accent,
+            }}>
             {submitting ? (
-              <ActivityIndicator color="black" />
+              <ActivityIndicator color={colors.accent} />
             ) : (
               <>
-                <Text className="text-black text-lg font-black uppercase tracking-widest mr-3">
+                <Text
+                  className="text-lg font-black uppercase tracking-widest mr-3"
+                  style={{color: colors.onAccent}}>
                   Submit Review
                 </Text>
-                <Send size={20} color="black" strokeWidth={3} />
+                <Send size={20} color={colors.onAccent} strokeWidth={3} />
               </>
             )}
           </TouchableOpacity>

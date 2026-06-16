@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import MapView, {Marker, PROVIDER_GOOGLE, Polyline} from 'react-native-maps';
+import {colors, darkMapStyle} from '../theme';
 import {useSelector, useDispatch} from 'react-redux';
 import {RootState, AppDispatch} from '../store';
 import {setAvailableBookings, addBid} from '../store/slices/riderSlice';
@@ -29,6 +30,7 @@ import {
   Info,
 } from 'lucide-react-native';
 import {Image} from 'react-native';
+import CardGradient from '../components/CardGradient';
 
 const AvailableBookingsScreen = ({navigation}: any) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -257,25 +259,25 @@ const AvailableBookingsScreen = ({navigation}: any) => {
       case 'ride':
         return {
           icon: require('../../assets/icons/bike.png'),
-          color: '#EAB308',
+          color: colors.accent,
           label: 'Ride Request',
         };
       case 'errand':
         return {
           icon: require('../../assets/icons/auto.png'),
-          color: '#10B981',
+          color: colors.success,
           label: 'Errand Task',
         };
       case 'parcel':
         return {
           icon: require('../../assets/icons/parcel.png'),
-          color: '#3B82F6',
+          color: colors.info,
           label: 'Parcel Delivery',
         };
       default:
         return {
           icon: require('../../assets/icons/bike.png'),
-          color: '#6B7280',
+          color: colors.textMute,
           label: type,
         };
     }
@@ -284,7 +286,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
   if (loading && availableBookings.length === 0) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Searching for nearby rides...</Text>
       </View>
     );
@@ -297,7 +299,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backBtn}>
-            <ArrowLeft size={24} color="black" />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Requests</Text>
         </View>
@@ -330,12 +332,12 @@ const AvailableBookingsScreen = ({navigation}: any) => {
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backBtn}>
-            <ArrowLeft size={24} color="black" />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>New Requests</Text>
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.loadingText}>Refreshing request details...</Text>
         </View>
       </SafeAreaView>
@@ -351,6 +353,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
+        customMapStyle={darkMapStyle}
         initialRegion={{
           latitude: currentBooking.pickupLocation.latitude,
           longitude: currentBooking.pickupLocation.longitude,
@@ -368,7 +371,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
               longitude: currentBooking.dropLocation.longitude,
             },
           ]}
-          strokeColor="#000"
+          strokeColor={colors.accent}
           strokeWidth={3}
           lineDashPattern={[5, 5]}
         />
@@ -377,8 +380,8 @@ const AvailableBookingsScreen = ({navigation}: any) => {
             latitude: currentBooking.pickupLocation.latitude,
             longitude: currentBooking.pickupLocation.longitude,
           }}>
-          <View style={[styles.marker, {backgroundColor: 'black'}]}>
-            <User size={20} color="white" />
+          <View style={[styles.marker, {backgroundColor: colors.surface}]}>
+            <User size={20} color={colors.text} />
           </View>
         </Marker>
         <Marker
@@ -386,7 +389,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
             latitude: currentBooking.dropLocation.latitude,
             longitude: currentBooking.dropLocation.longitude,
           }}>
-          <View style={[styles.marker, {backgroundColor: '#EF4444'}]}>
+          <View style={[styles.marker, {backgroundColor: colors.danger}]}>
             <MapPin size={20} color="white" />
           </View>
         </Marker>
@@ -397,7 +400,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtnOverlay}>
-          <ArrowLeft size={24} color="black" />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.counterBadge}>
           <Text style={styles.counterText}>
@@ -413,6 +416,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
           {paddingBottom: Math.max(insets.bottom + 84, 96)},
         ]}>
         <View style={styles.card}>
+          <CardGradient radius={24} />
           <ScrollView
             style={styles.cardScroll}
             contentContainerStyle={styles.cardScrollContent}
@@ -422,12 +426,12 @@ const AvailableBookingsScreen = ({navigation}: any) => {
               style={[styles.serviceTag, {backgroundColor: serviceInfo.color}]}>
               <Image
                 source={serviceInfo.icon}
-                style={{width: 16, height: 16, tintColor: 'white'}}
+                style={{width: 16, height: 16, tintColor: colors.onAccent}}
               />
               <Text style={styles.serviceLabel}>{serviceInfo.label}</Text>
             </View>
             <View style={styles.userContainer}>
-              <User size={16} color="#6B7280" />
+              <User size={16} color={colors.textSub} />
               <Text style={styles.userName}>{currentBooking.user.name}</Text>
               <Text style={styles.userRating}>
                 ⭐ {currentBooking.user.rating}
@@ -437,14 +441,14 @@ const AvailableBookingsScreen = ({navigation}: any) => {
 
           <View style={styles.locationContainer}>
             <View style={styles.locationRow}>
-              <View style={[styles.dot, {backgroundColor: '#10B981'}]} />
+              <View style={[styles.dot, {backgroundColor: colors.success}]} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {currentBooking.pickupLocation.address}
               </Text>
             </View>
             <View style={styles.line} />
             <View style={styles.locationRow}>
-              <View style={[styles.dot, {backgroundColor: '#EF4444'}]} />
+              <View style={[styles.dot, {backgroundColor: colors.danger}]} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {currentBooking.dropLocation.address}
               </Text>
@@ -453,7 +457,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
 
           {currentBooking.description && (
             <View style={styles.descriptionBox}>
-              <Info size={14} color="#6B7280" />
+              <Info size={14} color={colors.textSub} />
               <Text style={styles.descriptionText} numberOfLines={2}>
                 {currentBooking.description}
               </Text>
@@ -486,7 +490,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
 
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
-                <X size={24} color="#6B7280" />
+                <X size={24} color={colors.textSub} />
                 <Text style={styles.skipText}>Skip</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -494,11 +498,11 @@ const AvailableBookingsScreen = ({navigation}: any) => {
                 onPress={handlePlaceBid}
                 disabled={loading}>
                 {loading ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.onAccent} />
                 ) : (
                   <>
                     <Text style={styles.bidBtnText}>Place Bid</Text>
-                    <ChevronRight size={20} color="white" />
+                    <ChevronRight size={20} color={colors.onAccent} />
                   </>
                 )}
               </TouchableOpacity>
@@ -513,7 +517,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -522,13 +526,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
     fontWeight: '700',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   header: {
     flexDirection: 'row',
@@ -536,12 +540,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '900',
     marginLeft: 15,
+    color: colors.text,
   },
   headerOverlay: {
     position: 'absolute',
@@ -557,24 +562,28 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
   counterBadge: {
-    backgroundColor: 'black',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 24,
     justifyContent: 'center',
   },
   counterText: {
-    color: 'white',
+    color: colors.text,
     fontSize: 12,
     fontWeight: '900',
   },
@@ -591,13 +600,14 @@ const styles = StyleSheet.create({
     elevation: 999,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 24,
     padding: 18,
     maxHeight: 440,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 10,
   },
@@ -615,7 +625,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 56,
@@ -623,14 +633,14 @@ const styles = StyleSheet.create({
   rupeeSymbol: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
     marginRight: 8,
   },
   bidInput: {
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#000',
+    color: colors.text,
     height: '100%',
   },
   cardHeader: {
@@ -642,7 +652,7 @@ const styles = StyleSheet.create({
   serviceTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     paddingRight: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -658,7 +668,7 @@ const styles = StyleSheet.create({
   serviceLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.onAccent,
     textTransform: 'uppercase',
   },
   userContainer: {
@@ -669,13 +679,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     marginLeft: 6,
-    color: '#374151',
+    color: colors.textSub,
   },
   userRating: {
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 8,
-    color: '#EAB308',
+    color: colors.accent,
   },
   locationContainer: {
     marginBottom: 20,
@@ -693,19 +703,19 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4B5563',
+    color: colors.textSub,
     flex: 1,
   },
   line: {
     width: 2,
     height: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.border,
     marginLeft: 3,
     marginVertical: 4,
   },
   descriptionBox: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     padding: 12,
     borderRadius: 16,
     marginBottom: 20,
@@ -714,7 +724,7 @@ const styles = StyleSheet.create({
   descriptionText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
     marginLeft: 8,
     fontStyle: 'italic',
   },
@@ -722,24 +732,24 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: colors.border,
   },
   fareLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   fareAmount: {
     fontSize: 24,
     fontWeight: '900',
-    color: 'black',
+    color: colors.accent,
   },
   bidLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -747,7 +757,7 @@ const styles = StyleSheet.create({
   currency: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#6B7280',
+    color: colors.textSub,
     marginRight: 4,
   },
   actionRow: {
@@ -761,13 +771,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     height: 56,
     borderRadius: 20,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     marginRight: 12,
   },
   skipText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#6B7280',
+    color: colors.textSub,
     marginLeft: 4,
   },
   bidBtn: {
@@ -777,7 +787,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'black',
+    backgroundColor: colors.accent,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
@@ -787,7 +797,7 @@ const styles = StyleSheet.create({
   bidBtnText: {
     fontSize: 16,
     fontWeight: '900',
-    color: 'white',
+    color: colors.onAccent,
     marginRight: 8,
   },
   marker: {
@@ -811,7 +821,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -819,25 +829,25 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 12,
   },
   emptySubtitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 30,
   },
   refreshBtn: {
-    backgroundColor: 'black',
+    backgroundColor: colors.accent,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 32,
   },
   refreshText: {
-    color: 'white',
+    color: colors.onAccent,
     fontSize: 14,
     fontWeight: '900',
     textTransform: 'uppercase',
@@ -846,7 +856,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },

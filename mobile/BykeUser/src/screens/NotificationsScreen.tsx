@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import api from '../config/api';
 import {Bell, ArrowLeft, CheckCircle2, Info, Inbox} from 'lucide-react-native';
+import {colors} from '../theme';
+import CardGradient from '../components/CardGradient';
 
 interface Notification {
   id: string;
@@ -54,11 +56,11 @@ const NotificationsScreen = ({navigation}: any) => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'RIDE_ACCEPTED':
-        return {icon: CheckCircle2, color: '#10B981'};
+        return {icon: CheckCircle2, color: colors.success};
       case 'RIDER_ARRIVED':
-        return {icon: Bell, color: '#EAB308'};
+        return {icon: Bell, color: colors.accent};
       default:
-        return {icon: Info, color: '#3B82F6'};
+        return {icon: Info, color: colors.info};
     }
   };
 
@@ -69,6 +71,7 @@ const NotificationsScreen = ({navigation}: any) => {
         activeOpacity={0.7}
         style={[styles.notifCard, !item.read && styles.notifUnread]}
         onPress={() => markAsRead(item.id)}>
+        <CardGradient radius={32} />
         <View style={[styles.iconContainer, {backgroundColor: `${color}15`}]}>
           <Icon size={20} color={color} strokeWidth={2.5} />
         </View>
@@ -102,7 +105,7 @@ const NotificationsScreen = ({navigation}: any) => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}>
-          <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+          <ArrowLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -118,13 +121,14 @@ const NotificationsScreen = ({navigation}: any) => {
           <RefreshControl
             refreshing={loading}
             onRefresh={fetchNotifications}
-            tintColor="#EAB308"
+            tintColor={colors.accent}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
-              <Inbox size={64} color="#D1D5DB" strokeWidth={1.5} />
+              <CardGradient radius={50} />
+              <Inbox size={64} color={colors.textMute} strokeWidth={1.5} />
             </View>
             <Text style={styles.emptyTitle}>No updates yet</Text>
             <Text style={styles.emptySubtitle}>
@@ -139,7 +143,7 @@ const NotificationsScreen = ({navigation}: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: 'white'},
+  container: {flex: 1, backgroundColor: colors.bg},
   header: {
     paddingHorizontal: 24,
     paddingTop: 16,
@@ -148,18 +152,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButton: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     marginRight: 16,
   },
-  headerTitle: {fontSize: 24, fontWeight: '900', color: 'black'},
+  headerTitle: {fontSize: 24, fontWeight: '900', color: colors.text},
   headerSubtitle: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 2,
@@ -170,11 +174,10 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     borderRadius: 32,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    backgroundColor: 'white',
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
-  notifUnread: {backgroundColor: '#FFFBEB', borderColor: '#FEF9C3'},
+  notifUnread: {backgroundColor: colors.accentSoft, borderColor: colors.accent},
   iconContainer: {
     width: 48,
     height: 48,
@@ -195,27 +198,27 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 8,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.textSub,
   },
-  fontBlack: {fontWeight: '900', color: 'black'},
+  fontBlack: {fontWeight: '900', color: colors.text},
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     marginTop: 8,
   },
   notifMessage: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
     lineHeight: 20,
     marginBottom: 8,
   },
   notifTime: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
   },
   emptyContainer: {
@@ -226,22 +229,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyIconContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     padding: 40,
     borderRadius: 50,
     marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textMute,
     textAlign: 'center',
     fontWeight: '600',
     lineHeight: 20,

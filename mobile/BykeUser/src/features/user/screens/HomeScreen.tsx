@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   ScrollView,
   TextInput,
@@ -16,6 +17,8 @@ import MapView, {
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
+import {colors, darkMapStyle, vehicleImages} from '../../../theme';
+import CardGradient from '../../../components/CardGradient';
 import {useSelector} from 'react-redux';
 import {RootState} from '../../../store';
 import api from '../../../config/api';
@@ -37,9 +40,6 @@ import {
   Search,
   Clock,
   X,
-  Bike,
-  Car,
-  Package,
   LayoutGrid,
   Crosshair,
   LocateFixed,
@@ -327,6 +327,7 @@ const HomeScreen = ({navigation}: any) => {
           showsUserLocation={false}
           showsMyLocationButton={false}
           showsCompass={false}
+          customMapStyle={darkMapStyle}
           onRegionChangeComplete={handleMapRegionChangeComplete}>
           {/* User location - Google Maps style blue dot with direction cone */}
           {currentCoords && (
@@ -400,7 +401,7 @@ const HomeScreen = ({navigation}: any) => {
             {user?.profilePhoto ? (
               <View style={styles.profilePhotoCircle} />
             ) : (
-              <User size={22} color="black" />
+              <User size={22} color={colors.text} />
             )}
           </TouchableOpacity>
           <View style={styles.locationBadge}>
@@ -438,7 +439,7 @@ const HomeScreen = ({navigation}: any) => {
             onPress={handleTogglePickupMode}>
             <MapPin
               size={20}
-              color={pickupMode === 'pin' ? '#fff' : '#1F2937'}
+              color={pickupMode === 'pin' ? '#000' : colors.text}
               strokeWidth={2.5}
             />
           </TouchableOpacity>
@@ -449,20 +450,21 @@ const HomeScreen = ({navigation}: any) => {
             {pickupMode === 'pin' ? (
               <LocateFixed size={20} color="#3B82F6" strokeWidth={2.5} />
             ) : (
-              <Crosshair size={20} color="#1F2937" strokeWidth={2.5} />
+              <Crosshair size={20} color={colors.text} strokeWidth={2.5} />
             )}
           </TouchableOpacity>
         </View>
 
         {loading && (
           <View style={styles.mapLoader}>
-            <ActivityIndicator size="small" color="#EAB308" />
+            <ActivityIndicator size="small" color={colors.accent} />
           </View>
         )}
       </View>
 
       {/* Bottom sheet — 30% */}
       <View style={[styles.sheet, {height: sheetHeight}]}>
+        <CardGradient radius={32} />
         <View style={styles.sheetHandle} />
         <Text style={styles.sheetTitle}>Where to go?</Text>
         <TouchableOpacity
@@ -474,18 +476,23 @@ const HomeScreen = ({navigation}: any) => {
         </TouchableOpacity>
         <View style={styles.serviceGrid}>
           {[
-            {id: 'bike', label: 'Bike', icon: Bike, color: '#EAB308'},
-            {id: 'auto', label: 'Auto', icon: Car, color: '#10B981'},
-            {id: 'parcel', label: 'Parcel', icon: Package, color: '#3B82F6'},
-            {id: 'more', label: 'More', icon: LayoutGrid, color: '#6B7280'},
+            {id: 'bike', label: 'Bike', img: vehicleImages.bike},
+            {id: 'auto', label: 'Auto', img: vehicleImages.auto},
+            {id: 'parcel', label: 'Parcel', img: vehicleImages.parcel},
+            {id: 'more', label: 'More', icon: LayoutGrid},
           ].map(s => (
             <TouchableOpacity
               key={s.id}
               style={styles.serviceItem}
+              activeOpacity={0.8}
               onPress={() => setShowSearch(true)}>
-              <View
-                style={[styles.serviceIcon, {backgroundColor: `${s.color}18`}]}>
-                <s.icon size={24} color={s.color} strokeWidth={2.5} />
+              <View style={styles.serviceIcon}>
+                <CardGradient radius={18} />
+                {s.img ? (
+                  <Image source={s.img} style={styles.serviceImg} resizeMode="contain" />
+                ) : (
+                  <LayoutGrid size={24} color={colors.accent} strokeWidth={2.5} />
+                )}
               </View>
               <Text style={styles.serviceLabel}>{s.label}</Text>
             </TouchableOpacity>
@@ -503,7 +510,7 @@ const HomeScreen = ({navigation}: any) => {
                 setSearchText('');
               }}
               style={styles.closeBtn}>
-              <X size={26} color="black" />
+              <X size={26} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.searchTitle}>Search</Text>
           </View>
@@ -530,7 +537,7 @@ const HomeScreen = ({navigation}: any) => {
             style={styles.results}
             showsVerticalScrollIndicator={false}>
             {searchLoading ? (
-              <ActivityIndicator color="#EAB308" style={{marginTop: 40}} />
+              <ActivityIndicator color={colors.accent} style={{marginTop: 40}} />
             ) : (
               searchResults.map(place => (
                 <TouchableOpacity
@@ -563,7 +570,7 @@ const HomeScreen = ({navigation}: any) => {
                     handleSelectPlace(place);
                   }}>
                   <View style={styles.resultIcon}>
-                    <Clock size={18} color="#EAB308" />
+                    <Clock size={18} color={colors.textMute} />
                   </View>
                   <View style={{flex: 1}}>
                     <Text style={styles.resultName}>{place.name}</Text>
@@ -581,7 +588,7 @@ const HomeScreen = ({navigation}: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: 'white'},
+  container: {flex: 1, backgroundColor: colors.bg},
   mapContainer: {overflow: 'hidden'},
 
   // Google Maps style blue dot
@@ -663,7 +670,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 14,
@@ -683,7 +690,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     marginRight: 10,
   },
-  pinAddressText: {flex: 1, fontSize: 13, fontWeight: '700', color: '#1F2937'},
+  pinAddressText: {flex: 1, fontSize: 13, fontWeight: '700', color: colors.text},
 
   headerOverlay: {
     position: 'absolute',
@@ -695,12 +702,14 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   profileBtn: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: 12,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -708,12 +717,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
   },
   locationBadge: {
     flex: 1,
     marginLeft: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 16,
@@ -721,7 +732,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -729,16 +740,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#22C55E',
+    backgroundColor: colors.success,
     marginRight: 10,
   },
-  locationText: {fontSize: 13, fontWeight: '700', color: '#1F2937', flex: 1},
+  locationText: {fontSize: 13, fontWeight: '700', color: colors.text, flex: 1},
   ongoingRideBtn: {
     position: 'absolute',
     top: 118,
     right: 16,
     zIndex: 11,
-    backgroundColor: '#111827',
+    backgroundColor: colors.accent,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -746,12 +757,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
   ongoingRideText: {
-    color: 'white',
+    color: colors.onAccent,
     fontSize: 11,
     fontWeight: '900',
     marginLeft: 7,
@@ -762,7 +773,9 @@ const styles = StyleSheet.create({
   // Map action buttons
   mapActions: {position: 'absolute', bottom: 16, right: 16},
   mapActionBtn: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     width: 46,
     height: 46,
     borderRadius: 14,
@@ -770,15 +783,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,
   },
-  mapActionBtnActive: {backgroundColor: '#3B82F6'},
+  mapActionBtnActive: {backgroundColor: colors.accent, borderColor: colors.accent},
 
   mapLoader: {position: 'absolute', bottom: 16, left: 16},
   sheet: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
@@ -786,14 +800,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 16,
   },
   sheetHandle: {
     width: 40,
     height: 5,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.borderStrong,
     borderRadius: 3,
     alignSelf: 'center',
     marginBottom: 12,
@@ -801,15 +815,15 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 12,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -818,23 +832,26 @@ const styles = StyleSheet.create({
   searchPlaceholder: {
     marginLeft: 12,
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '600',
   },
   serviceGrid: {flexDirection: 'row', justifyContent: 'space-between'},
   serviceItem: {alignItems: 'center'},
   serviceIcon: {
-    width: 54,
-    height: 54,
+    width: 60,
+    height: 60,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
+  serviceImg: {width: 46, height: 46},
   serviceLabel: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#4B5563',
+    color: colors.textSub,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -844,7 +861,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'white',
+    backgroundColor: colors.bg,
     zIndex: 100,
     paddingTop: 52,
   },
@@ -855,17 +872,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   closeBtn: {padding: 8, marginLeft: -8, marginRight: 8},
-  searchTitle: {fontSize: 22, fontWeight: '900', color: 'black'},
+  searchTitle: {fontSize: 22, fontWeight: '900', color: colors.text},
   searchInputs: {paddingHorizontal: 20, marginBottom: 8},
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     marginBottom: 12,
   },
   dot: {width: 8, height: 8, borderRadius: 4, marginRight: 12},
@@ -873,14 +890,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     lineHeight: 46,
-    color: '#374151',
+    color: colors.textSub,
     fontWeight: '700',
     fontSize: 15,
   },
   textIn: {
     flex: 1,
     height: 46,
-    color: 'black',
+    color: colors.text,
     fontWeight: '700',
     fontSize: 15,
   },
@@ -890,16 +907,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    borderBottomColor: colors.border,
   },
   resultIcon: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     padding: 10,
     borderRadius: 12,
     marginRight: 14,
   },
-  resultName: {fontSize: 15, fontWeight: '800', color: 'black'},
-  resultAddr: {fontSize: 13, color: '#9CA3AF', fontWeight: '600', marginTop: 2},
+  resultName: {fontSize: 15, fontWeight: '800', color: colors.text},
+  resultAddr: {fontSize: 13, color: colors.textMute, fontWeight: '600', marginTop: 2},
 });
 
 export default HomeScreen;

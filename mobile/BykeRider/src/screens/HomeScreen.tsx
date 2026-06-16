@@ -35,6 +35,8 @@ import {
   Shield,
   List,
 } from 'lucide-react-native';
+import {colors, darkMapStyle} from '../theme';
+import CardGradient from '../components/CardGradient';
 
 const HomeScreen = ({navigation}: any) => {
   const {height} = useWindowDimensions();
@@ -201,13 +203,14 @@ const HomeScreen = ({navigation}: any) => {
           ref={mapRef}
           provider={PROVIDER_GOOGLE}
           style={StyleSheet.absoluteFill}
+          customMapStyle={darkMapStyle}
           region={location}
           showsUserLocation
           showsMyLocationButton={false}
           showsCompass={false}>
           <Marker coordinate={location}>
             <View style={styles.riderMarker}>
-              <Navigation size={20} color="white" fill="white" />
+              <Navigation size={20} color={colors.onAccent} fill={colors.onAccent} />
             </View>
           </Marker>
         </MapView>
@@ -217,7 +220,7 @@ const HomeScreen = ({navigation}: any) => {
             <View
               style={[
                 styles.statusBadge,
-                {backgroundColor: isOnline ? '#10B981' : '#6B7280'},
+                {backgroundColor: isOnline ? colors.success : colors.surfaceAlt},
               ]}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>
@@ -228,16 +231,16 @@ const HomeScreen = ({navigation}: any) => {
           <TouchableOpacity
             style={styles.notificationBtn}
             onPress={() => navigation.navigate('Notifications')}>
-            <Bell size={22} color="black" />
+            <Bell size={22} color={colors.text} />
             <View style={styles.notificationDot} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.recenterBtn} onPress={getCurrentLocation}>
           {locationLoading ? (
-            <ActivityIndicator size="small" color="#000" />
+            <ActivityIndicator size="small" color={colors.text} />
           ) : (
-            <Navigation size={20} color="black" />
+            <Navigation size={20} color={colors.text} />
           )}
         </TouchableOpacity>
       </View>
@@ -252,7 +255,7 @@ const HomeScreen = ({navigation}: any) => {
         <View
           style={[
             styles.onlineCard,
-            {backgroundColor: isOnline ? '#10B98115' : '#F3F4F6'},
+            {backgroundColor: isOnline ? colors.successSoft : colors.surfaceAlt},
           ]}>
           <View style={styles.onlineCardLeft}>
             <Text style={styles.onlineLabel}>
@@ -265,22 +268,23 @@ const HomeScreen = ({navigation}: any) => {
           <Switch
             value={isOnline}
             onValueChange={handleToggleOnline}
-            trackColor={{false: '#D1D5DB', true: '#10B981'}}
+            trackColor={{false: colors.borderStrong, true: colors.success}}
             thumbColor="#fff"
           />
         </View>
 
         <View style={styles.earningsCard}>
+          <CardGradient radius={24} />
           <View style={styles.earningsHeader}>
             <View style={styles.earningsIcon}>
-              <Wallet size={18} color="#EAB308" />
+              <Wallet size={18} color={colors.accent} />
             </View>
             <Text style={styles.earningsTitle}>Today's Earnings</Text>
           </View>
           <View style={styles.earningsRow}>
             <Text style={styles.earningsAmount}>₹{earnings.today}</Text>
             <View style={styles.earningsBadge}>
-              <TrendingUp size={12} color="#166534" />
+              <TrendingUp size={12} color={colors.success} />
               <Text style={styles.earningsBadgeText}>+12%</Text>
             </View>
           </View>
@@ -294,23 +298,23 @@ const HomeScreen = ({navigation}: any) => {
 
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, {backgroundColor: '#EAB30815'}]}
+            style={[styles.actionBtn, {backgroundColor: colors.accentSoft}]}
             onPress={() => navigation.navigate('AvailableBookings')}>
-            <List size={22} color="#EAB308" strokeWidth={2.5} />
+            <List size={22} color={colors.accent} strokeWidth={2.5} />
             <Text style={styles.actionText}>Orders</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionBtn, {backgroundColor: '#3B82F615'}]}
+            style={[styles.actionBtn, {backgroundColor: 'rgba(59,130,246,0.16)'}]}
             onPress={() => navigation.navigate('MyBids')}>
-            <Clock size={22} color="#3B82F6" strokeWidth={2.5} />
+            <Clock size={22} color={colors.info} strokeWidth={2.5} />
             <Text style={styles.actionText}>My Bids</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionBtn, {backgroundColor: '#10B98115'}]}
+            style={[styles.actionBtn, {backgroundColor: colors.successSoft}]}
             onPress={() => navigation.navigate('Documents')}>
-            <Shield size={22} color="#10B981" strokeWidth={2.5} />
+            <Shield size={22} color={colors.success} strokeWidth={2.5} />
             <Text style={styles.actionText}>Docs</Text>
           </TouchableOpacity>
         </View>
@@ -322,7 +326,7 @@ const HomeScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   mapContainer: {
     width: '100%',
@@ -331,11 +335,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#10B981',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.bg,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
@@ -378,12 +382,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -394,9 +400,9 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.danger,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: colors.surface,
   },
   recenterBtn: {
     position: 'absolute',
@@ -405,25 +411,27 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
   bottomSheet: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
     paddingTop: 24,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
   },
@@ -444,21 +452,20 @@ const styles = StyleSheet.create({
   onlineLabel: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginBottom: 4,
   },
   onlineSubtext: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   earningsCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    overflow: 'hidden',
   },
   earningsHeader: {
     flexDirection: 'row',
@@ -469,7 +476,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -477,7 +484,7 @@ const styles = StyleSheet.create({
   earningsTitle: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#6B7280',
+    color: colors.textSub,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -489,13 +496,13 @@ const styles = StyleSheet.create({
   earningsAmount: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#000',
+    color: colors.accent,
     marginRight: 12,
   },
   earningsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.successSoft,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -503,7 +510,7 @@ const styles = StyleSheet.create({
   earningsBadgeText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#166534',
+    color: colors.success,
     marginLeft: 4,
   },
   earningsFooter: {
@@ -514,12 +521,12 @@ const styles = StyleSheet.create({
   earningsWeekly: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   earningsLink: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#3B82F6',
+    color: colors.accent,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -535,7 +542,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginTop: 8,
   },
 });

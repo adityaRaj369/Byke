@@ -10,6 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import api from '../config/api';
+import {colors} from '../theme';
+import CardGradient from '../components/CardGradient';
 import {
   ArrowLeft,
   Wallet,
@@ -66,11 +68,11 @@ const EarningsScreen = ({navigation}: any) => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}>
-          <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+          <ArrowLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Financials</Text>
         <TouchableOpacity style={styles.payoutBtn}>
-          <IndianRupee size={18} color="black" strokeWidth={3} />
+          <IndianRupee size={18} color={colors.onAccent} strokeWidth={3} />
         </TouchableOpacity>
       </View>
 
@@ -81,11 +83,12 @@ const EarningsScreen = ({navigation}: any) => {
           <RefreshControl
             refreshing={loading}
             onRefresh={fetchEarnings}
-            tintColor="#000"
+            tintColor={colors.accent}
           />
         }>
         {/* Balance Card */}
         <View style={styles.balanceCard}>
+          <CardGradient radius={32} />
           <View style={styles.balanceHeader}>
             <View style={styles.walletIcon}>
               <Wallet size={20} color="white" />
@@ -102,7 +105,7 @@ const EarningsScreen = ({navigation}: any) => {
             </View>
             <TouchableOpacity style={styles.withdrawBtn}>
               <Text style={styles.withdrawText}>Withdraw</Text>
-              <ArrowUpRight size={16} color="black" strokeWidth={3} />
+              <ArrowUpRight size={16} color={colors.onAccent} strokeWidth={3} />
             </TouchableOpacity>
           </View>
         </View>
@@ -110,6 +113,7 @@ const EarningsScreen = ({navigation}: any) => {
         {/* Quick Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
+            <CardGradient radius={24} />
             <View
               style={[
                 styles.statIconContainer,
@@ -126,6 +130,7 @@ const EarningsScreen = ({navigation}: any) => {
           </View>
 
           <View style={styles.statCard}>
+            <CardGradient radius={24} />
             <View
               style={[
                 styles.statIconContainer,
@@ -153,18 +158,19 @@ const EarningsScreen = ({navigation}: any) => {
         {transactions.length > 0 ? (
           transactions.map((item: any) => (
             <View key={item.id} style={styles.transactionItem}>
+              <CardGradient radius={24} />
               <View
                 style={[
                   styles.itemIcon,
                   {
                     backgroundColor:
-                      item.type === 'credit' ? '#D1FAE5' : '#F3F4F6',
+                      item.type === 'credit' ? colors.successSoft : colors.surfaceAlt,
                   },
                 ]}>
                 {item.type === 'credit' ? (
-                  <ArrowDownLeft size={20} color="#10B981" strokeWidth={2.5} />
+                  <ArrowDownLeft size={20} color={colors.success} strokeWidth={2.5} />
                 ) : (
-                  <CreditCard size={20} color="#6B7280" strokeWidth={2.5} />
+                  <CreditCard size={20} color={colors.textSub} strokeWidth={2.5} />
                 )}
               </View>
               <View style={styles.itemInfo}>
@@ -179,7 +185,7 @@ const EarningsScreen = ({navigation}: any) => {
                 <Text
                   style={[
                     styles.itemAmount,
-                    {color: item.type === 'credit' ? '#10B981' : '#000'},
+                    {color: item.type === 'credit' ? colors.success : colors.text},
                   ]}>
                   {item.type === 'credit' ? '+' : '-'} ₹{Math.abs(item.amount)}
                 </Text>
@@ -207,7 +213,7 @@ const EarningsScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -216,26 +222,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
   },
   payoutBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -244,13 +250,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   balanceCard: {
-    backgroundColor: 'black',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 32,
     padding: 30,
     marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 10},
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.4,
     shadowRadius: 20,
     elevation: 8,
   },
@@ -278,7 +285,7 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 48,
     fontWeight: '900',
-    color: 'white',
+    color: colors.accent,
     marginBottom: 30,
   },
   balanceFooter: {
@@ -307,7 +314,7 @@ const styles = StyleSheet.create({
   withdrawBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 16,
@@ -315,7 +322,7 @@ const styles = StyleSheet.create({
   withdrawText: {
     fontSize: 14,
     fontWeight: '900',
-    color: 'black',
+    color: colors.onAccent,
     marginRight: 6,
   },
   statsRow: {
@@ -325,11 +332,10 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '47%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 24,
     padding: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   statIconContainer: {
     width: 40,
@@ -342,20 +348,20 @@ const styles = StyleSheet.create({
   statCardLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   statCardValue: {
     fontSize: 20,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 10,
   },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.successSoft,
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -364,7 +370,7 @@ const styles = StyleSheet.create({
   trendText: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#10B981',
+    color: colors.success,
     marginLeft: 4,
   },
   sectionHeader: {
@@ -376,22 +382,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
   },
   seeAllText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#3B82F6',
+    color: colors.accent,
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 24,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F9FAFB',
   },
   itemIcon: {
     width: 48,
@@ -407,12 +412,12 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
   },
   itemSubtitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     marginTop: 2,
   },
@@ -426,7 +431,7 @@ const styles = StyleSheet.create({
   itemTime: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMute,
     marginTop: 2,
   },
   emptyState: {
@@ -436,7 +441,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textMute,
   },
 });
 

@@ -13,6 +13,7 @@ import {
 import {useRoute, useNavigation} from '@react-navigation/native';
 import {ArrowLeft, Send, Phone, User} from 'lucide-react-native';
 import api from '../config/api';
+import {colors} from '../theme';
 
 type ChatMessage = {
   id: string;
@@ -93,22 +94,22 @@ const ChatScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
-      <View style={{paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+    <SafeAreaView style={{flex: 1, backgroundColor: colors.bg}}>
+      <View style={{paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={{marginRight: 12}}>
-            <ArrowLeft size={24} color="black" />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
-          <View style={{width: 40, height: 40, borderRadius: 20, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center'}}>
-            <User size={20} color="#9CA3AF" />
+          <View style={{width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center'}}>
+            <User size={20} color={colors.textMute} />
           </View>
           <View style={{marginLeft: 10}}>
-            <Text style={{fontSize: 16, fontWeight: '800', color: '#111'}}>{userName}</Text>
-            <Text style={{fontSize: 10, fontWeight: '700', color: '#9CA3AF'}}>Ride Chat</Text>
+            <Text style={{fontSize: 16, fontWeight: '800', color: colors.text}}>{userName}</Text>
+            <Text style={{fontSize: 10, fontWeight: '700', color: colors.textMute}}>Ride Chat</Text>
           </View>
         </View>
-        <TouchableOpacity style={{backgroundColor: '#F9FAFB', padding: 10, borderRadius: 10}}>
-          <Phone size={20} color="black" />
+        <TouchableOpacity style={{backgroundColor: colors.surfaceAlt, padding: 10, borderRadius: 10}}>
+          <Phone size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -118,14 +119,14 @@ const ChatScreen = () => {
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({animated: true})}>
         {loading ? (
           <View style={{marginTop: 40, alignItems: 'center'}}>
-            <ActivityIndicator size="small" color="#111" />
-            <Text style={{marginTop: 8, color: '#9CA3AF', fontWeight: '700'}}>Loading chat...</Text>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={{marginTop: 8, color: colors.textMute, fontWeight: '700'}}>Loading chat...</Text>
           </View>
         ) : null}
 
         {!loading && messages.length === 0 ? (
           <View style={{marginTop: 40, alignItems: 'center'}}>
-            <Text style={{color: '#9CA3AF', fontWeight: '700'}}>No messages yet</Text>
+            <Text style={{color: colors.textMute, fontWeight: '700'}}>No messages yet</Text>
           </View>
         ) : null}
 
@@ -139,36 +140,36 @@ const ChatScreen = () => {
             }}>
             <View
               style={{
-                backgroundColor: msg.sender === 'rider' ? '#111827' : '#F3F4F6',
+                backgroundColor: msg.sender === 'rider' ? colors.accent : colors.surfaceAlt,
                 borderRadius: 18,
                 paddingHorizontal: 14,
                 paddingVertical: 10,
               }}>
-              <Text style={{color: msg.sender === 'rider' ? '#fff' : '#111', fontWeight: '700'}}>
+              <Text style={{color: msg.sender === 'rider' ? colors.onAccent : colors.text, fontWeight: '700'}}>
                 {msg.text}
               </Text>
             </View>
-            <Text style={{fontSize: 10, color: '#9CA3AF', marginTop: 4}}>{msg.time}</Text>
+            <Text style={{fontSize: 10, color: colors.textMute, marginTop: 4}}>{msg.time}</Text>
           </View>
         ))}
       </ScrollView>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={{padding: 14, borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center'}}>
-          <View style={{flex: 1, backgroundColor: '#F9FAFB', borderRadius: 24, paddingHorizontal: 14}}>
+        <View style={{padding: 14, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', alignItems: 'center'}}>
+          <View style={{flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: 24, paddingHorizontal: 14}}>
             <TextInput
               value={message}
               onChangeText={setMessage}
               placeholder="Type message..."
-              placeholderTextColor="#9CA3AF"
-              style={{paddingVertical: 11, color: '#111', fontWeight: '600'}}
+              placeholderTextColor={colors.textMute}
+              style={{paddingVertical: 11, color: colors.text, fontWeight: '600'}}
             />
           </View>
           <TouchableOpacity
             onPress={sendMessage}
             disabled={sending}
-            style={{marginLeft: 10, width: 46, height: 46, borderRadius: 23, backgroundColor: '#111', alignItems: 'center', justifyContent: 'center'}}>
-            {sending ? <ActivityIndicator size="small" color="#fff" /> : <Send size={18} color="#fff" />}
+            style={{marginLeft: 10, width: 46, height: 46, borderRadius: 23, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center'}}>
+            {sending ? <ActivityIndicator size="small" color={colors.onAccent} /> : <Send size={18} color={colors.onAccent} />}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

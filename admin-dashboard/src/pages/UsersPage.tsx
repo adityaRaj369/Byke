@@ -12,88 +12,96 @@ export default function UsersPage() {
     queryFn: () => adminApi.getUsers({ search: searchQuery }),
   });
 
+  const th = 'px-6 py-3.5 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider';
+
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">User Management</h1>
+      <h1 className="text-2xl font-bold text-white tracking-tight mb-8">User Management</h1>
 
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
+      <div className="bg-ink-900 border border-ink-700 rounded-2xl mb-6 p-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search by name or mobile number..."
+            placeholder="Search by name or mobile number…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 bg-ink-850 border border-ink-700 rounded-xl text-sm text-zinc-100 placeholder-zinc-500 focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400 outline-none"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12">
-          <div className="text-xl text-gray-600">Loading users...</div>
-        </div>
+        <div className="text-center py-12 text-zinc-500">Loading users…</div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl overflow-hidden">
+          <table className="min-w-full">
+            <thead className="bg-ink-850">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Rides</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                <th className={th}>User</th>
+                <th className={th}>Contact</th>
+                <th className={th}>Role</th>
+                <th className={th}>Total Rides</th>
+                <th className={th}>Status</th>
+                <th className={th}>Joined</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-ink-700">
               {users?.data?.map((user: any) => (
-                <tr key={user.id}>
+                <tr key={user.id} className="hover:bg-ink-850 transition">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                        <div className="h-10 w-10 rounded-full bg-brand-400 flex items-center justify-center text-black font-bold">
                           {user.fullName?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
-                        <div className="text-sm text-gray-500">ID: {user.id}</div>
+                        <div className="text-sm font-medium text-zinc-100">{user.fullName}</div>
+                        <div className="text-sm text-zinc-500">ID: {user.id}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900 mb-1">
-                      <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-zinc-200 mb-1">
+                      <Phone className="w-4 h-4 mr-2 text-zinc-500" />
                       {user.mobileNumber}
                     </div>
                     {user.email && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                      <div className="flex items-center text-sm text-zinc-500">
+                        <Mail className="w-4 h-4 mr-2 text-zinc-500" />
                         {user.email}
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span
+                      className={`px-2.5 inline-flex text-[11px] leading-5 font-semibold rounded-full ${
+                        user.role === 'ADMIN'
+                          ? 'bg-violet-400/10 text-violet-300 border border-violet-400/20'
+                          : 'bg-sky-400/10 text-sky-300 border border-sky-400/20'
+                      }`}
+                    >
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-300">
                     {user.totalRides || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.accountStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`px-2.5 inline-flex text-[11px] leading-5 font-semibold rounded-full ${
+                        user.accountStatus === 'ACTIVE'
+                          ? 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20'
+                          : 'bg-red-400/10 text-red-300 border border-red-400/20'
+                      }`}
+                    >
                       {user.accountStatus}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-zinc-300">
+                      <Calendar className="w-4 h-4 mr-2 text-zinc-500" />
                       {user.createdAt ? format(new Date(user.createdAt), 'MMM dd, yyyy') : 'N/A'}
                     </div>
                   </td>

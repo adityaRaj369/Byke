@@ -13,6 +13,7 @@ import {
 import {useRoute, useNavigation} from '@react-navigation/native';
 import {ArrowLeft, Send, Phone, User} from 'lucide-react-native';
 import api from '../../../config/api';
+import {colors} from '../../../theme';
 
 type ChatMessage = {
   id: string;
@@ -95,26 +96,36 @@ const ChatScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="px-6 py-4 flex-row items-center justify-between border-b border-gray-100">
+    <SafeAreaView className="flex-1" style={{backgroundColor: colors.bg}}>
+      <View
+        className="px-6 py-4 flex-row items-center justify-between border-b"
+        style={{borderColor: colors.border, backgroundColor: colors.surface}}>
         <View className="flex-row items-center">
           <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-            <ArrowLeft size={24} color="black" />
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View className="relative">
-            <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
-              <User size={24} color="#9CA3AF" />
+            <View
+              className="w-10 h-10 rounded-full items-center justify-center"
+              style={{backgroundColor: colors.surfaceAlt}}>
+              <User size={24} color={colors.textMute} />
             </View>
           </View>
           <View className="ml-3">
-            <Text className="text-base font-black text-black">{riderName}</Text>
-            <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <Text className="text-base font-black" style={{color: colors.text}}>
+              {riderName}
+            </Text>
+            <Text
+              className="text-[10px] font-bold uppercase tracking-widest"
+              style={{color: colors.textMute}}>
               Ride Chat
             </Text>
           </View>
         </View>
-        <TouchableOpacity className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-          <Phone size={20} color="black" />
+        <TouchableOpacity
+          className="p-2.5 rounded-xl border"
+          style={{backgroundColor: colors.surfaceAlt, borderColor: colors.border}}>
+          <Phone size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -127,17 +138,23 @@ const ChatScreen = () => {
         }>
         {loading ? (
           <View className="mt-12 items-center">
-            <ActivityIndicator size="small" color="#111" />
-            <Text className="text-xs font-bold text-gray-400 mt-3">Loading chat...</Text>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text className="text-xs font-bold mt-3" style={{color: colors.textMute}}>
+              Loading chat...
+            </Text>
           </View>
         ) : null}
 
         {!loading && messages.length === 0 && (
           <View className="mt-8 items-center">
-            <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            <Text
+              className="text-xs font-bold uppercase tracking-widest"
+              style={{color: colors.textMute}}>
               No messages yet
             </Text>
-            <Text className="text-sm font-semibold text-gray-500 mt-2 text-center">
+            <Text
+              className="text-sm font-semibold mt-2 text-center"
+              style={{color: colors.textSub}}>
               Start chat with your rider
             </Text>
           </View>
@@ -151,13 +168,23 @@ const ChatScreen = () => {
             }`}>
             <View
               className={`px-5 py-4 rounded-[24px] ${
-                msg.sender === 'user'
-                  ? 'bg-yellow-400 rounded-tr-none'
-                  : 'bg-gray-100 rounded-tl-none'
-              }`}>
-              <Text className="text-black text-sm font-bold leading-5">{msg.text}</Text>
+                msg.sender === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'
+              }`}
+              style={{
+                backgroundColor:
+                  msg.sender === 'user' ? colors.accent : colors.surfaceAlt,
+              }}>
+              <Text
+                className="text-sm font-bold leading-5"
+                style={{
+                  color: msg.sender === 'user' ? colors.onAccent : colors.text,
+                }}>
+                {msg.text}
+              </Text>
             </View>
-            <Text className="text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-tighter">
+            <Text
+              className="text-[10px] font-bold mt-2 uppercase tracking-tighter"
+              style={{color: colors.textMute}}>
               {msg.time}
             </Text>
           </View>
@@ -167,12 +194,17 @@ const ChatScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
-        <View className="p-6 bg-white border-t border-gray-100 flex-row items-center">
-          <View className="flex-1 flex-row items-center bg-gray-50 rounded-[32px] px-6 py-2 border border-gray-100">
+        <View
+          className="p-6 border-t flex-row items-center"
+          style={{backgroundColor: colors.surface, borderColor: colors.border}}>
+          <View
+            className="flex-1 flex-row items-center rounded-[32px] px-6 py-2 border"
+            style={{backgroundColor: colors.surfaceAlt, borderColor: colors.border}}>
             <TextInput
-              className="flex-1 py-3 text-black font-bold text-base"
+              className="flex-1 py-3 font-bold text-base"
+              style={{color: colors.text}}
               placeholder="Message your rider..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMute}
               value={message}
               onChangeText={setMessage}
               multiline
@@ -181,11 +213,12 @@ const ChatScreen = () => {
           <TouchableOpacity
             onPress={sendMessage}
             disabled={sending}
-            className="ml-4 bg-black w-14 h-14 rounded-full items-center justify-center shadow-lg shadow-black/20">
+            className="ml-4 w-14 h-14 rounded-full items-center justify-center shadow-lg shadow-black/20"
+            style={{backgroundColor: colors.accent}}>
             {sending ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color={colors.onAccent} />
             ) : (
-              <Send size={20} color="white" strokeWidth={2.5} />
+              <Send size={20} color={colors.onAccent} strokeWidth={2.5} />
             )}
           </TouchableOpacity>
         </View>

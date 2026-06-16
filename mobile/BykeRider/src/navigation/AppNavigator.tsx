@@ -9,6 +9,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useSelector} from 'react-redux';
 import {RootState} from '../store';
 import {Home, ListOrdered, Wallet, User} from 'lucide-react-native';
+import {colors} from '../theme';
 
 import {
   NotificationProvider,
@@ -72,7 +73,7 @@ const TabIcon = ({
     <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
       <Icon
         size={22}
-        color={focused ? '#000' : '#9CA3AF'}
+        color={focused ? colors.text : colors.textMute}
         strokeWidth={focused ? 2.5 : 2}
       />
     </View>
@@ -237,14 +238,15 @@ const AppNavigator = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: '#fff',
-    borderTopWidth: 0,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     height: Platform.OS === 'ios' ? 88 : 70,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 28 : 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 20,
   },
@@ -261,16 +263,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   iconWrapperActive: {
-    backgroundColor: '#EAB30820',
+    backgroundColor: colors.accentSoft,
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textMute,
     letterSpacing: 0.3,
   },
   tabLabelActive: {
-    color: '#000',
+    color: colors.text,
     fontWeight: '800',
   },
 });

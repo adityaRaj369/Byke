@@ -20,6 +20,7 @@ import {RootState, AppDispatch} from '../../../store';
 import api from '../../../config/api';
 import {USER_PROFILE_KEY} from '../../../constants/storageKeys';
 import {User, Camera} from 'lucide-react-native';
+import {colors} from '../../../theme';
 
 const RegisterScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -131,11 +132,11 @@ const RegisterScreen = () => {
               <Image source={{uri: photoUri}} style={styles.photo} />
             ) : (
               <View style={styles.photoPlaceholder}>
-                <User size={48} color="#9CA3AF" />
+                <User size={48} color={colors.textMute} />
               </View>
             )}
             <View style={styles.cameraBtn}>
-              <Camera size={18} color="white" />
+              <Camera size={18} color={colors.onAccent} />
             </View>
           </TouchableOpacity>
           <Text style={styles.photoHint}>
@@ -148,7 +149,7 @@ const RegisterScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Enter your full name"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textMute}
               value={fullName}
               onChangeText={setFullName}
               autoCapitalize="words"
@@ -165,7 +166,7 @@ const RegisterScreen = () => {
             disabled={loading || uploading}
             style={[styles.btn, (loading || uploading) && {opacity: 0.6}]}>
             {loading || uploading ? (
-              <ActivityIndicator color="black" />
+              <ActivityIndicator color={colors.onAccent} />
             ) : (
               <Text style={styles.btnText}>
                 {uploading ? 'Uploading...' : 'GET STARTED'}
@@ -179,18 +180,18 @@ const RegisterScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#FAFAFA'},
+  container: {flex: 1, backgroundColor: colors.bg},
   content: {flex: 1, paddingHorizontal: 28, justifyContent: 'center'},
   title: {
     fontSize: 32,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '600',
     marginBottom: 40,
     textAlign: 'center',
@@ -201,15 +202,15 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 4,
-    borderColor: '#EAB308',
+    borderColor: colors.accent,
   },
   photoPlaceholder: {
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -218,18 +219,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: 'white',
+    borderColor: colors.bg,
   },
   photoHint: {
     textAlign: 'center',
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 32,
@@ -238,43 +239,48 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#374151',
+    color: colors.textSub,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     paddingHorizontal: 20,
     paddingVertical: 18,
     fontSize: 18,
     fontWeight: '700',
-    color: 'black',
+    color: colors.text,
   },
   infoBox: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
-  infoText: {fontSize: 15, color: '#374151', fontWeight: '700'},
+  infoText: {fontSize: 15, color: colors.textSub, fontWeight: '700'},
   btn: {
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     borderRadius: 16,
     paddingVertical: 20,
     alignItems: 'center',
-    shadowColor: '#EAB308',
+    shadowColor: '#000',
     shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
   },
-  btnText: {fontSize: 16, fontWeight: '900', color: 'black', letterSpacing: 1},
+  btnText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: colors.onAccent,
+    letterSpacing: 1,
+  },
 });
 
 export default RegisterScreen;

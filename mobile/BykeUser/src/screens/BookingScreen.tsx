@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import api from '../config/api';
+import {colors} from '../theme';
 
 const BookingScreen = ({route, navigation}: any) => {
   const {serviceType} = route.params;
@@ -98,6 +99,7 @@ const BookingScreen = ({route, navigation}: any) => {
             <TextInput
               style={styles.input}
               placeholder="Enter pickup address"
+              placeholderTextColor={colors.textMute}
               value={pickupAddress}
               onChangeText={setPickupAddress}
             />
@@ -110,6 +112,7 @@ const BookingScreen = ({route, navigation}: any) => {
             <TextInput
               style={styles.input}
               placeholder="Enter drop address"
+              placeholderTextColor={colors.textMute}
               value={dropAddress}
               onChangeText={setDropAddress}
             />
@@ -128,6 +131,7 @@ const BookingScreen = ({route, navigation}: any) => {
                   ? 'Describe what you need done (e.g., buy groceries, collect medicine)'
                   : 'Describe the parcel (type, size, weight)'
               }
+              placeholderTextColor={colors.textMute}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -142,6 +146,7 @@ const BookingScreen = ({route, navigation}: any) => {
             <TextInput
               style={styles.input}
               placeholder="Enter estimated amount for purchases"
+              placeholderTextColor={colors.textMute}
               value={estimatedBudget}
               onChangeText={setEstimatedBudget}
               keyboardType="numeric"
@@ -160,7 +165,7 @@ const BookingScreen = ({route, navigation}: any) => {
         </View>
 
         <TouchableOpacity
-          style={[styles.submitButton, {backgroundColor: config.color}]}
+          style={[styles.submitButton, {backgroundColor: colors.accent}]}
           onPress={handleSubmit}
           disabled={loading}>
           <Text style={styles.submitButtonText}>
@@ -175,14 +180,14 @@ const BookingScreen = ({route, navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bg,
   },
   header: {
     alignItems: 'center',
     paddingVertical: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: colors.border,
   },
   icon: {
     fontSize: 48,
@@ -191,7 +196,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: colors.text,
   },
   form: {
     padding: 16,
@@ -202,40 +207,42 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSub,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surfaceAlt,
     fontSize: 16,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    color: '#374151',
+    color: colors.text,
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
   },
   infoCard: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 24,
     borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1e40af',
+    color: colors.text,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: '#1e40af',
+    color: colors.textSub,
     lineHeight: 20,
   },
   submitButton: {
@@ -245,7 +252,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.onAccent,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {X, Bell, CheckCircle, AlertCircle} from 'lucide-react-native';
 import {useNotification} from '../context/NotificationContext';
+import {colors} from '../theme';
 
 const NotificationItem: React.FC<{
   id: string;
@@ -56,39 +57,30 @@ const NotificationItem: React.FC<{
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle size={24} color="#10B981" />;
+        return <CheckCircle size={24} color={colors.success} />;
       case 'error':
-        return <AlertCircle size={24} color="#EF4444" />;
+        return <AlertCircle size={24} color={colors.danger} />;
       case 'warning':
-        return <AlertCircle size={24} color="#F59E0B" />;
+        return <AlertCircle size={24} color={colors.warning} />;
       default:
-        return <Bell size={24} color="#3B82F6" />;
+        return <Bell size={24} color={colors.accent} />;
     }
   };
 
   const getBgColor = () => {
-    switch (type) {
-      case 'success':
-        return '#F0FDF4';
-      case 'error':
-        return '#FEF2F2';
-      case 'warning':
-        return '#FFFBEB';
-      default:
-        return '#EFF6FF';
-    }
+    return colors.surface;
   };
 
   const getBorderColor = () => {
     switch (type) {
       case 'success':
-        return '#10B981';
+        return colors.success;
       case 'error':
-        return '#EF4444';
+        return colors.danger;
       case 'warning':
-        return '#F59E0B';
+        return colors.warning;
       default:
-        return '#3B82F6';
+        return colors.accent;
     }
   };
 
@@ -124,7 +116,7 @@ const NotificationItem: React.FC<{
       <TouchableOpacity
         style={styles.closeButton}
         onPress={() => hideNotification(id)}>
-        <X size={18} color="#6B7280" />
+        <X size={18} color={colors.textSub} />
       </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
@@ -171,7 +163,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
     marginBottom: 10,
@@ -190,13 +182,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1F2937',
+    color: colors.text,
     marginBottom: 2,
   },
   body: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6B7280',
+    color: colors.textSub,
     lineHeight: 18,
   },
   closeButton: {

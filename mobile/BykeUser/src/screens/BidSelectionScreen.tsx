@@ -12,6 +12,8 @@ import {
 import {useRoute, useNavigation} from '@react-navigation/native';
 import api from '../config/api';
 import {Star, User, Clock, CheckCircle} from 'lucide-react-native';
+import {colors} from '../theme';
+import CardGradient from '../components/CardGradient';
 
 interface Bid {
   id: number;
@@ -119,14 +121,15 @@ const BidSelectionScreen = () => {
 
   const renderBid = ({item}: {item: Bid}) => (
     <View style={styles.bidCard}>
+      <CardGradient radius={20} />
       <View style={styles.riderHeader}>
         <View style={styles.riderAvatar}>
-          <User size={24} color="#3B82F6" />
+          <User size={24} color={colors.info} />
         </View>
         <View style={styles.riderInfo}>
           <Text style={styles.riderName}>{item?.rider?.user?.fullName || 'Rider'}</Text>
           <View style={styles.ratingRow}>
-            <Star size={14} color="#EAB308" fill="#EAB308" />
+            <Star size={14} color={colors.accent} fill={colors.accent} />
             <Text style={styles.ratingText}>
               {(Number(item?.rider?.averageRating) || 0).toFixed(1)} ({item?.rider?.totalRides || 0} rides)
             </Text>
@@ -150,7 +153,7 @@ const BidSelectionScreen = () => {
         style={styles.acceptButton}
         onPress={() => handleAcceptBid(item.id)}
         disabled={accepting}>
-        <CheckCircle size={20} color="white" />
+        <CheckCircle size={20} color={colors.text} />
         <Text style={styles.acceptButtonText}>Accept Bid</Text>
       </TouchableOpacity>
     </View>
@@ -159,7 +162,7 @@ const BidSelectionScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Finding riders...</Text>
       </View>
     );
@@ -213,7 +216,7 @@ const BidSelectionScreen = () => {
   if (bids.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Clock size={64} color="#9CA3AF" />
+        <Clock size={64} color={colors.textMute} />
         <Text style={styles.emptyTitle}>Waiting for Bids</Text>
         <Text style={styles.emptyText}>
           Nearby riders will bid on your request soon
@@ -254,71 +257,72 @@ const BidSelectionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
     padding: 32,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
     textAlign: 'center',
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   listContainer: {
     padding: 16,
     paddingBottom: 24,
   },
   bidCard: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 3,
   },
@@ -331,7 +335,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -342,7 +346,7 @@ const styles = StyleSheet.create({
   riderName: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginBottom: 4,
   },
   ratingRow: {
@@ -353,10 +357,10 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   bidAmountContainer: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -364,10 +368,10 @@ const styles = StyleSheet.create({
   bidAmount: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#166534',
+    color: colors.accent,
   },
   vehicleInfo: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     padding: 12,
     borderRadius: 12,
     marginBottom: 12,
@@ -375,19 +379,19 @@ const styles = StyleSheet.create({
   vehicleText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#374151',
+    color: colors.textSub,
     marginBottom: 4,
   },
   vehicleNumber: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   acceptButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: colors.success,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
@@ -395,21 +399,21 @@ const styles = StyleSheet.create({
   acceptButtonText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#fff',
+    color: colors.text,
   },
   cancelBookingButton: {
     marginTop: 24,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 14,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.danger,
   },
   cancelBookingButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#DC2626',
+    color: colors.danger,
     textAlign: 'center',
   },
 });

@@ -23,6 +23,11 @@ import {
 } from 'lucide-react-native';
 import api from '../config/api';
 import {GOOGLE_PLACES_API_KEY} from '../config/env';
+import {colors, darkMapStyle, normalizeVehicleId} from '../theme';
+import {
+  ApproachingVehicleMarker,
+  UserLocationMarker,
+} from '../components/MapMarkers';
 
 const RiderApproachingScreen = ({route, navigation}: any) => {
   const {height: windowHeight} = useWindowDimensions();
@@ -152,7 +157,7 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#111827" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Finding your rider...</Text>
       </View>
     );
@@ -161,7 +166,7 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
   if (error) {
     return (
       <View style={styles.centered}>
-        <AlertCircle size={48} color="#EF4444" />
+        <AlertCircle size={48} color={colors.danger} />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={fetchBookingDetails}>
           <Text style={styles.retryBtnText}>Retry</Text>
@@ -173,7 +178,7 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
   if (!booking) {
     return (
       <View style={styles.centered}>
-        <AlertCircle size={48} color="#EF4444" />
+        <AlertCircle size={48} color={colors.danger} />
         <Text style={styles.errorText}>Booking not found</Text>
       </View>
     );
@@ -198,6 +203,8 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
+        customMapStyle={darkMapStyle}
+        userInterfaceStyle="dark"
         initialRegion={{
           latitude: booking.pickupLatitude,
           longitude: booking.pickupLongitude,
@@ -205,23 +212,22 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
           longitudeDelta: 0.05,
         }}>
         {riderLocation && (
-          <Marker coordinate={riderLocation} title="Rider Location">
-            <View style={styles.riderMarker}>
-              <Navigation size={18} color="white" fill="white" />
-            </View>
-          </Marker>
+          <ApproachingVehicleMarker
+            coordinate={riderLocation}
+            vehicleId={normalizeVehicleId(
+              booking.rider?.vehicleType ||
+                booking.rider?.vehicleModel ||
+                booking.serviceType,
+            )}
+          />
         )}
 
-        <Marker
+        <UserLocationMarker
           coordinate={{
             latitude: booking.pickupLatitude,
             longitude: booking.pickupLongitude,
           }}
-          title="Pickup">
-          <View style={styles.pickupMarker}>
-            <User size={18} color="white" />
-          </View>
-        </Marker>
+        />
 
         {riderLocation && (
           <MapViewDirections
@@ -232,7 +238,7 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
             }}
             apikey={GOOGLE_PLACES_API_KEY}
             strokeWidth={4}
-            strokeColor="#111827"
+            strokeColor={colors.accent}
             onReady={result => {
               const minutes = Math.ceil(result.duration);
               setEta(`${minutes} min${minutes !== 1 ? 's' : ''}`);
@@ -243,7 +249,7 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
 
       <SafeAreaView style={styles.topBadgeWrap} pointerEvents="box-none">
         <View style={styles.topBadge}>
-          <Clock size={14} color="#111827" />
+          <Clock size={14} color={colors.text} />
           <Text style={styles.topBadgeText}>
             {isRiderArrived ? 'Rider arrived' : `Arriving in ${eta}`}
           </Text>
@@ -258,7 +264,7 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
             <Text style={styles.vehicleText}>{vehicleModel} • {vehicleNumber}</Text>
           </View>
           <View style={styles.ratingChip}>
-            <Star size={12} color="#EAB308" fill="#EAB308" />
+            <Star size={12} color={colors.accent} fill={colors.accent} />
             <Text style={styles.ratingText}>{Number(riderRating).toFixed(1)}</Text>
           </View>
         </View>
@@ -276,11 +282,11 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
 
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-            <Phone size={18} color="black" />
+            <Phone size={18} color={colors.text} />
             <Text style={styles.actionText}>Call</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleChat}>
-            <MessageCircle size={18} color="black" />
+            <MessageCircle size={18} color={colors.text} />
             <Text style={styles.actionText}>Chat</Text>
           </TouchableOpacity>
         </View>
@@ -296,30 +302,30 @@ const RiderApproachingScreen = ({route, navigation}: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#fff'},
+  container: {flex: 1, backgroundColor: colors.bg},
   map: {flex: 1},
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
-  loadingText: {marginTop: 12, color: '#374151', fontWeight: '700'},
-  errorText: {marginTop: 12, textAlign: 'center', color: '#EF4444', fontWeight: '700'},
+  loadingText: {marginTop: 12, color: colors.textSub, fontWeight: '700'},
+  errorText: {marginTop: 12, textAlign: 'center', color: colors.danger, fontWeight: '700'},
   retryBtn: {
     marginTop: 12,
-    backgroundColor: '#111827',
+    backgroundColor: colors.accent,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
   },
-  retryBtnText: {color: '#fff', fontWeight: '800'},
+  retryBtnText: {color: colors.onAccent, fontWeight: '800'},
   riderMarker: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#111827',
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -346,32 +352,34 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     shadowOffset: {width: 0, height: 2},
     elevation: 4,
   },
-  topBadgeText: {marginLeft: 6, color: '#111827', fontWeight: '700', fontSize: 12},
+  topBadgeText: {marginLeft: 6, color: colors.text, fontWeight: '700', fontSize: 12},
   bottomSheet: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     shadowOffset: {width: 0, height: -2},
     elevation: 20,
@@ -380,60 +388,62 @@ const styles = StyleSheet.create({
     width: 44,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.borderStrong,
     alignSelf: 'center',
     marginBottom: 10,
   },
   rowTop: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-  riderName: {fontSize: 20, fontWeight: '900', color: '#111827'},
-  vehicleText: {fontSize: 13, fontWeight: '700', color: '#4B5563', marginTop: 2},
+  riderName: {fontSize: 20, fontWeight: '900', color: colors.text},
+  vehicleText: {fontSize: 13, fontWeight: '700', color: colors.textSub, marginTop: 2},
   ratingChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.accentSoft,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.accent,
     borderRadius: 14,
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  ratingText: {marginLeft: 4, color: '#92400E', fontWeight: '800', fontSize: 12},
+  ratingText: {marginLeft: 4, color: colors.accent, fontWeight: '800', fontSize: 12},
   metaRow: {marginTop: 8},
-  metaText: {fontSize: 12, color: '#6B7280', fontWeight: '700'},
+  metaText: {fontSize: 12, color: colors.textMute, fontWeight: '700'},
   otpCard: {
     marginTop: 12,
-    backgroundColor: '#111827',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  otpTitle: {color: '#D1D5DB', fontSize: 12, fontWeight: '700'},
-  otpValue: {color: '#fff', fontSize: 32, fontWeight: '900', marginTop: 2, letterSpacing: 3},
+  otpTitle: {color: colors.textSub, fontSize: 12, fontWeight: '700'},
+  otpValue: {color: colors.text, fontSize: 32, fontWeight: '900', marginTop: 2, letterSpacing: 3},
   actionsRow: {flexDirection: 'row', marginTop: 14},
   actionBtn: {
     flex: 1,
     marginHorizontal: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
   },
-  actionText: {marginLeft: 8, color: '#111827', fontWeight: '800'},
+  actionText: {marginLeft: 8, color: colors.text, fontWeight: '800'},
   cancelBtn: {
     marginTop: 12,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.danger,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  cancelText: {color: '#DC2626', fontWeight: '900'},
+  cancelText: {color: colors.danger, fontWeight: '900'},
 });
 
 export default RiderApproachingScreen;

@@ -35,6 +35,12 @@ import {
   Bike,
   CheckCircle2,
 } from 'lucide-react-native';
+import {colors, darkMapStyle, normalizeVehicleId} from '../../../theme';
+import {
+  ApproachingVehicleMarker,
+  UserLocationMarker,
+} from '../../../components/MapMarkers';
+import CardGradient from '../../../components/CardGradient';
 
 type RootStackParamList = {
   UserTracking: {
@@ -236,6 +242,12 @@ export default function TrackingScreen() {
     longitude: asCoordinate(booking?.dropLongitude) ?? pickupCoords.longitude,
   };
   const mapCenter = riderLocation || pickupCoords;
+  const vehicleId = normalizeVehicleId(
+    booking?.rider?.vehicleType ||
+      booking?.serviceType ||
+      rider?.vehicle ||
+      rider?.vehicleType,
+  );
   const destination = phase === 'pickup' || phase === 'arrived' ? pickupCoords : dropCoords;
   const canRenderDirections =
     Boolean(GOOGLE_PLACES_API_KEY) &&
@@ -320,22 +332,22 @@ export default function TrackingScreen() {
             longitudeDelta: 0.015,
           }}
           mapType="standard"
-          userInterfaceStyle="light"
+          userInterfaceStyle="dark"
+          customMapStyle={darkMapStyle}
           loadingEnabled={true}
-          showsUserLocation={true}
+          showsUserLocation={false}
           showsMyLocationButton={false}
           toolbarEnabled={false}>
-          <Marker coordinate={mapCenter}>
-            <View style={styles.riderMarker}>
-              <Navigation size={20} color="black" fill="black" />
-            </View>
-          </Marker>
+          <ApproachingVehicleMarker
+            coordinate={mapCenter}
+            vehicleId={vehicleId}
+          />
 
-          <Marker coordinate={pickupCoords}>
-            <View style={styles.pickupPin} />
-          </Marker>
+          {(phase === 'pickup' || phase === 'arrived') && (
+            <UserLocationMarker coordinate={pickupCoords} />
+          )}
 
-          <Marker coordinate={dropCoords}>
+          <Marker coordinate={dropCoords} anchor={{x: 0.5, y: 0.5}}>
             <View style={styles.dropPin} />
           </Marker>
 
@@ -345,7 +357,7 @@ export default function TrackingScreen() {
               destination={destination}
               apikey={GOOGLE_PLACES_API_KEY}
               strokeWidth={4}
-              strokeColor="#EAB308"
+              strokeColor={colors.accent}
               onError={error => console.log('Directions error:', error)}
             />
           )}
@@ -357,14 +369,14 @@ export default function TrackingScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.navigate('UserHome')}>
-          <ArrowLeft size={24} color="black" />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
 
         <View style={styles.statusBadge}>
           <View
             style={[
               styles.statusDot,
-              {backgroundColor: phase === 'arrived' ? '#22C55E' : '#EAB308'},
+              {backgroundColor: phase === 'arrived' ? colors.success : colors.accent},
             ]}
           />
           <Text style={styles.statusText}>
@@ -386,12 +398,13 @@ export default function TrackingScreen() {
           <View style={styles.sheetHandle} />
 
           <View style={styles.riderRow}>
+            <CardGradient radius={20} />
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
-                <User size={40} color="#9CA3AF" />
+                <User size={40} color={colors.textMute} />
               </View>
               <View style={styles.starBadge}>
-                <Star size={12} color="black" fill="black" />
+                <Star size={12} color={colors.onAccent} fill={colors.onAccent} />
               </View>
             </View>
 
@@ -411,7 +424,7 @@ export default function TrackingScreen() {
 
             <View style={styles.actionRow}>
               <TouchableOpacity onPress={handleCall} style={styles.iconButton}>
-                <Phone size={24} color="#22C55E" />
+                <Phone size={24} color={colors.success} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() =>
@@ -419,9 +432,9 @@ export default function TrackingScreen() {
                 }
                 style={[
                   styles.iconButton,
-                  {marginLeft: 12, backgroundColor: '#EFF6FF'},
+                  {marginLeft: 12, backgroundColor: colors.surfaceHigh},
                 ]}>
-                <MessageSquare size={24} color="#3B82F6" />
+                <MessageSquare size={24} color={colors.info} />
               </TouchableOpacity>
             </View>
           </View>
@@ -438,29 +451,30 @@ export default function TrackingScreen() {
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Fare</Text>
-              <Text style={[styles.statValue, {color: '#22C55E'}]}>
+              <Text style={[styles.statValue, {color: colors.success}]}>
                 ₹{riderProfile.bidAmount}
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Saved</Text>
-              <Text style={[styles.statValue, {color: '#3B82F6'}]}>
+              <Text style={[styles.statValue, {color: colors.info}]}>
                 ₹{Math.max(0, maxFareValue - riderProfile.bidAmount)}
               </Text>
             </View>
           </View>
 
           <View style={styles.locationContainer}>
+            <CardGradient radius={16} />
             <View style={styles.locationRow}>
-              <View style={[styles.routeDot, {backgroundColor: '#22C55E'}]} />
+              <View style={[styles.routeDot, {backgroundColor: colors.success}]} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {pickupAddress}
               </Text>
             </View>
             <View style={styles.routeLine} />
             <View style={styles.locationRow}>
-              <View style={[styles.routeDot, {backgroundColor: '#EF4444'}]} />
+              <View style={[styles.routeDot, {backgroundColor: colors.danger}]} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {dropAddress}
               </Text>
@@ -476,7 +490,7 @@ export default function TrackingScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sosButton}>
-              <Shield size={18} color="white" strokeWidth={3} />
+              <Shield size={18} color={colors.white} strokeWidth={3} />
               <Text style={styles.sosText}>SOS</Text>
             </TouchableOpacity>
           </View>
@@ -486,7 +500,7 @@ export default function TrackingScreen() {
               <Animated.View
                 style={{transform: [{scale: pulseAnim}], marginBottom: 24}}>
                 <View style={styles.arrivalIcon}>
-                  <Check size={48} color="white" strokeWidth={4} />
+                  <Check size={48} color={colors.white} strokeWidth={4} />
                 </View>
               </Animated.View>
               <Text style={styles.arrivalTitle}>{riderProfile.name} is here!</Text>
@@ -542,7 +556,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
         <View style={styles.completedContent}>
           <Animated.View style={{transform: [{scale: scaleAnim}]}}>
             <View style={styles.completedIcon}>
-              <Check size={64} color="white" strokeWidth={4} />
+              <Check size={64} color={colors.white} strokeWidth={4} />
             </View>
           </Animated.View>
 
@@ -552,6 +566,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
           </Text>
 
           <View style={styles.receiptCard}>
+            <CardGradient radius={40} />
             <View style={styles.receiptHeader}>
               <Text style={styles.receiptLabel}>Trip Receipt</Text>
               <View style={styles.receiptBadge}>
@@ -564,7 +579,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
             <View style={styles.receiptDetails}>
               <View style={styles.receiptRow}>
                 <View style={styles.receiptIconText}>
-                  <User size={16} color="#6B7280" />
+                  <User size={16} color={colors.textSub} />
                   <Text style={styles.receiptRowLabel}>Captain</Text>
                 </View>
                 <Text style={styles.receiptRowValue}>{rider.name}</Text>
@@ -572,7 +587,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
 
               <View style={styles.receiptRow}>
                 <View style={styles.receiptIconText}>
-                  <Bike size={16} color="#6B7280" />
+                  <Bike size={16} color={colors.textSub} />
                   <Text style={styles.receiptRowLabel}>Vehicle</Text>
                 </View>
                 <Text style={styles.receiptRowValue}>
@@ -582,7 +597,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
 
               <View style={styles.receiptRow}>
                 <View style={styles.receiptIconText}>
-                  <CreditCard size={16} color="#6B7280" />
+                  <CreditCard size={16} color={colors.textSub} />
                   <Text style={styles.receiptRowLabel}>Payment</Text>
                 </View>
                 <Text style={styles.receiptRowValue}>UPI / Cash</Text>
@@ -609,8 +624,8 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
                       style={{marginLeft: 8}}>
                       <Star
                         size={40}
-                        color={s <= rating ? '#EAB308' : '#E5E7EB'}
-                        fill={s <= rating ? '#EAB308' : 'transparent'}
+                        color={s <= rating ? colors.accent : colors.border}
+                        fill={s <= rating ? colors.accent : 'transparent'}
                         strokeWidth={2.5}
                       />
                     </TouchableOpacity>
@@ -626,7 +641,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
               </>
             ) : (
               <View style={styles.thanksCard}>
-                <CheckCircle2 size={32} color="#EAB308" strokeWidth={3} />
+                <CheckCircle2 size={32} color={colors.accent} strokeWidth={3} />
                 <Text style={styles.thanksText}>Thanks for the feedback!</Text>
               </View>
             )}
@@ -635,7 +650,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
           <TouchableOpacity
             onPress={() => navigation.navigate('UserHome')}
             style={styles.homeButton}>
-            <Home size={20} color="black" />
+            <Home size={20} color={colors.onAccent} />
             <Text style={styles.homeButtonText}>Back to Home</Text>
           </TouchableOpacity>
         </View>
@@ -645,7 +660,7 @@ const CompletedScreen = ({rider, fare, _from, _to, navigation}: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: 'white'},
+  container: {flex: 1, backgroundColor: colors.bg},
   mapContainer: {
     position: 'absolute',
     top: 0,
@@ -657,10 +672,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
   },
   loaderText: {
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '900',
     marginTop: 16,
     textTransform: 'uppercase',
@@ -678,7 +693,9 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   backButton: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     width: 48,
     height: 48,
     borderRadius: 16,
@@ -687,16 +704,16 @@ const styles = StyleSheet.create({
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
   },
   statusBadge: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 5,
@@ -705,7 +722,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -718,7 +735,9 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   sheet: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
@@ -727,14 +746,14 @@ const styles = StyleSheet.create({
     elevation: 18,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -10},
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.4,
     shadowRadius: 14,
   },
   sheetContent: {paddingBottom: 40},
   sheetHandle: {
     width: 48,
     height: 6,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.borderStrong,
     borderRadius: 3,
     alignSelf: 'center',
     marginBottom: 32,
@@ -743,38 +762,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 20,
     padding: 14,
-    borderWidth: 1,
-    borderColor: '#EEF2F7',
   },
   avatarContainer: {position: 'relative'},
   avatar: {
     width: 80,
     height: 80,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceHigh,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
   starBadge: {
     position: 'absolute',
     bottom: -4,
     right: -4,
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     padding: 6,
     borderRadius: 12,
     borderWidth: 4,
-    borderColor: 'white',
+    borderColor: colors.surface,
   },
   riderInfo: {flex: 1, marginLeft: 20},
-  riderName: {fontSize: 20, fontWeight: '800', color: '#0F172A'},
+  riderName: {fontSize: 20, fontWeight: '800', color: colors.text},
   vehicleRow: {flexDirection: 'row', alignItems: 'center', marginTop: 4},
   vehicleBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceHigh,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -782,12 +800,12 @@ const styles = StyleSheet.create({
   vehicleNumber: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#4B5563',
+    color: colors.textSub,
     textTransform: 'uppercase',
   },
   vehicleModel: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '700',
     marginLeft: 12,
   },
@@ -795,42 +813,41 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 56,
     height: 56,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.surfaceHigh,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#DCFCE7',
+    borderColor: colors.border,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFBEB',
+    backgroundColor: colors.accentSoft,
     borderRadius: 20,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: colors.accent,
   },
   statItem: {alignItems: 'center', flex: 1},
   statLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 4,
   },
-  statValue: {fontSize: 20, fontWeight: '900', color: 'black'},
-  statDivider: {width: 1, height: 40, backgroundColor: '#E5E7EB'},
+  statValue: {fontSize: 20, fontWeight: '900', color: colors.text},
+  statDivider: {width: 1, height: 40, backgroundColor: colors.border},
   locationContainer: {
     marginBottom: 20,
     paddingHorizontal: 10,
     paddingVertical: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#EEF2F7',
   },
   locationRow: {flexDirection: 'row', alignItems: 'center'},
   routeDot: {width: 12, height: 12, borderRadius: 6, marginRight: 16},
@@ -838,28 +855,28 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: colors.textSub,
   },
   routeLine: {
     width: 2,
     height: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.border,
     marginLeft: 5,
     marginVertical: 4,
   },
   buttonRow: {flexDirection: 'row', gap: 12},
   cancelButton: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceAlt,
     height: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   cancelText: {
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -879,7 +896,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   sosText: {
-    color: 'white',
+    color: colors.white,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -891,7 +908,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.98)',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     alignItems: 'center',
@@ -912,12 +929,12 @@ const styles = StyleSheet.create({
   arrivalTitle: {
     fontSize: 32,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 8,
   },
   arrivalSubtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 20,
@@ -926,7 +943,7 @@ const styles = StyleSheet.create({
   otpLabel: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 2,
     marginBottom: 12,
@@ -935,16 +952,16 @@ const styles = StyleSheet.create({
   otpBox: {
     width: 56,
     height: 72,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#EAB308',
+    borderColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  otpDigit: {fontSize: 32, fontWeight: '900', color: 'black'},
+  otpDigit: {fontSize: 32, fontWeight: '900', color: colors.text},
   boardedButton: {
-    backgroundColor: 'black',
+    backgroundColor: colors.accent,
     width: '100%',
     height: 72,
     borderRadius: 24,
@@ -957,7 +974,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
   },
   boardedText: {
-    color: 'white',
+    color: colors.onAccent,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -981,23 +998,22 @@ const styles = StyleSheet.create({
   completedTitle: {
     fontSize: 36,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     textAlign: 'center',
   },
   completedSubtitle: {
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textMute,
     fontWeight: '700',
     marginTop: 8,
   },
   receiptCard: {
     width: '100%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 40,
     padding: 32,
     marginTop: 40,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
   },
   receiptHeader: {
     flexDirection: 'row',
@@ -1008,19 +1024,19 @@ const styles = StyleSheet.create({
   receiptLabel: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 2,
   },
   receiptBadge: {
-    backgroundColor: 'white',
+    backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
-  receiptId: {fontSize: 10, fontWeight: '900', color: 'black'},
+  receiptId: {fontSize: 10, fontWeight: '900', color: colors.text},
   receiptDetails: {gap: 24},
   receiptRow: {
     flexDirection: 'row',
@@ -1031,28 +1047,28 @@ const styles = StyleSheet.create({
   receiptRowLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#6B7280',
+    color: colors.textSub,
     marginLeft: 12,
   },
-  receiptRowValue: {fontSize: 14, fontWeight: '900', color: 'black'},
-  receiptDashedLine: {height: 1, backgroundColor: '#E5E7EB', marginVertical: 8},
+  receiptRowValue: {fontSize: 14, fontWeight: '900', color: colors.text},
+  receiptDashedLine: {height: 1, backgroundColor: colors.border, marginVertical: 8},
   receiptTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  totalLabel: {fontSize: 20, fontWeight: '900', color: 'black'},
-  totalValue: {fontSize: 32, fontWeight: '900', color: '#22C55E'},
+  totalLabel: {fontSize: 20, fontWeight: '900', color: colors.text},
+  totalValue: {fontSize: 32, fontWeight: '900', color: colors.success},
   ratingSection: {width: '100%', marginTop: 40, alignItems: 'center'},
   ratingTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 24,
   },
   starsRow: {flexDirection: 'row', marginBottom: 32},
   submitButton: {
-    backgroundColor: 'black',
+    backgroundColor: colors.accent,
     width: '100%',
     height: 72,
     borderRadius: 24,
@@ -1060,26 +1076,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitText: {
-    color: 'white',
+    color: colors.onAccent,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   thanksCard: {
-    backgroundColor: '#FEFCE8',
+    backgroundColor: colors.accentSoft,
     width: '100%',
     padding: 32,
     borderRadius: 40,
     borderWidth: 1,
-    borderColor: '#FEF9C3',
+    borderColor: colors.accent,
     alignItems: 'center',
   },
-  thanksText: {color: '#854D0E', fontWeight: '900', marginTop: 16},
+  thanksText: {color: colors.accent, fontWeight: '900', marginTop: 16},
   homeButton: {
     marginTop: 32,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.accent,
     paddingHorizontal: 32,
     paddingVertical: 20,
     borderRadius: 24,
@@ -1087,17 +1103,17 @@ const styles = StyleSheet.create({
   homeButtonText: {
     fontSize: 14,
     fontWeight: '900',
-    color: 'black',
+    color: colors.onAccent,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginLeft: 12,
   },
   riderMarker: {
-    backgroundColor: '#EAB308',
+    backgroundColor: colors.accent,
     padding: 10,
     borderRadius: 20,
     borderWidth: 4,
-    borderColor: 'white',
+    borderColor: colors.white,
     elevation: 15,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 10},

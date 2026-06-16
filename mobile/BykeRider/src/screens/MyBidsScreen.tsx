@@ -9,6 +9,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import api from '../config/api';
+import {colors} from '../theme';
+import CardGradient from '../components/CardGradient';
 import {
   Clock,
   ChevronRight,
@@ -61,13 +63,13 @@ const MyBidsScreen = ({navigation}: any) => {
   const getServiceInfo = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'ride':
-        return {icon: Bike, color: '#EAB308', label: 'Ride'};
+        return {icon: Bike, color: colors.accent, label: 'Ride'};
       case 'errand':
-        return {icon: ShoppingBag, color: '#10B981', label: 'Errand'};
+        return {icon: ShoppingBag, color: colors.success, label: 'Errand'};
       case 'parcel':
-        return {icon: Package, color: '#3B82F6', label: 'Parcel'};
+        return {icon: Package, color: colors.info, label: 'Parcel'};
       default:
-        return {icon: Bike, color: '#6B7280', label: type || 'Ride'};
+        return {icon: Bike, color: colors.textMute, label: type || 'Ride'};
     }
   };
 
@@ -75,22 +77,22 @@ const MyBidsScreen = ({navigation}: any) => {
     switch (status) {
       case 'ACCEPTED':
         return {
-          color: '#10B981',
-          bg: '#D1FAE5',
+          color: colors.success,
+          bg: colors.successSoft,
           icon: CheckCircle2,
           text: 'Accepted',
         };
       case 'REJECTED':
         return {
-          color: '#EF4444',
-          bg: '#FEE2E2',
+          color: colors.danger,
+          bg: colors.dangerSoft,
           icon: XCircle,
           text: 'Rejected',
         };
       case 'EXPIRED':
-        return {color: '#6B7280', bg: '#F3F4F6', icon: Clock, text: 'Expired'};
+        return {color: colors.textMute, bg: colors.surfaceAlt, icon: Clock, text: 'Expired'};
       default:
-        return {color: '#3B82F6', bg: '#DBEAFE', icon: Timer, text: 'Pending'};
+        return {color: colors.info, bg: 'rgba(59,130,246,0.16)', icon: Timer, text: 'Pending'};
     }
   };
 
@@ -112,6 +114,7 @@ const MyBidsScreen = ({navigation}: any) => {
             alert('Complete your current active ride before opening another accepted offer.');
           }
         }}>
+        <CardGradient radius={28} />
         <View style={styles.cardHeader}>
           <View style={styles.headerLeft}>
             <View
@@ -136,14 +139,14 @@ const MyBidsScreen = ({navigation}: any) => {
 
         <View style={styles.locationContainer}>
           <View style={styles.locationRow}>
-            <View style={[styles.dot, {backgroundColor: '#10B981'}]} />
+            <View style={[styles.dot, {backgroundColor: colors.success}]} />
             <Text style={styles.locationText} numberOfLines={1}>
               {item.booking?.pickupAddress || 'Pickup Location'}
             </Text>
           </View>
           <View style={styles.line} />
           <View style={styles.locationRow}>
-            <View style={[styles.dot, {backgroundColor: '#EF4444'}]} />
+            <View style={[styles.dot, {backgroundColor: colors.danger}]} />
             <Text style={styles.locationText} numberOfLines={1}>
               {item.booking?.dropAddress || 'Drop Location'}
             </Text>
@@ -152,7 +155,7 @@ const MyBidsScreen = ({navigation}: any) => {
 
         <View style={styles.cardFooter}>
           <View style={styles.timeContainer}>
-            <Clock size={12} color="#9CA3AF" />
+            <Clock size={12} color={colors.textMute} />
             <Text style={styles.timeText}>
               Placed{' '}
               {new Date(item.createdAt).toLocaleTimeString([], {
@@ -168,7 +171,7 @@ const MyBidsScreen = ({navigation}: any) => {
                   ? 'Locked'
                   : 'Start Ride'}
               </Text>
-              <ChevronRight size={16} color="#10B981" strokeWidth={3} />
+              <ChevronRight size={16} color={colors.success} strokeWidth={3} />
             </View>
           )}
         </View>
@@ -182,7 +185,7 @@ const MyBidsScreen = ({navigation}: any) => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}>
-          <ArrowLeft size={24} color="black" strokeWidth={2.5} />
+          <ArrowLeft size={24} color={colors.text} strokeWidth={2.5} />
         </TouchableOpacity>
         <View>
           <Text style={styles.headerTitle}>Active Bids</Text>
@@ -198,13 +201,13 @@ const MyBidsScreen = ({navigation}: any) => {
           <RefreshControl
             refreshing={loading}
             onRefresh={fetchMyBids}
-            tintColor="#000"
+            tintColor={colors.accent}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
-              <AlertCircle size={64} color="#D1D5DB" strokeWidth={1.5} />
+              <AlertCircle size={64} color={colors.textFaint} strokeWidth={1.5} />
             </View>
             <Text style={styles.emptyTitle}>No active bids</Text>
             <Text style={styles.emptySubtitle}>
@@ -227,7 +230,7 @@ const MyBidsScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -235,13 +238,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   backBtn: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -249,12 +252,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
   },
   headerSubtitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -263,15 +266,14 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   bidCard: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 28,
     padding: 20,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 3,
   },
@@ -296,14 +298,14 @@ const styles = StyleSheet.create({
   serviceLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   bidAmount: {
     fontSize: 20,
     fontWeight: '900',
-    color: 'black',
+    color: colors.accent,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -334,13 +336,13 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4B5563',
+    color: colors.textSub,
     flex: 1,
   },
   line: {
     width: 2,
     height: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.border,
     marginLeft: 3,
     marginVertical: 4,
   },
@@ -350,7 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#F9FAFB',
+    borderTopColor: colors.border,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -359,7 +361,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#9CA3AF',
+    color: colors.textMute,
     marginLeft: 6,
     textTransform: 'uppercase',
   },
@@ -370,7 +372,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#10B981',
+    color: colors.success,
     marginRight: 4,
   },
   emptyContainer: {
@@ -383,7 +385,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -391,19 +393,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 30,
   },
   browseBtn: {
-    backgroundColor: 'black',
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 20,
@@ -414,7 +416,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   browseBtnText: {
-    color: 'white',
+    color: colors.onAccent,
     fontSize: 14,
     fontWeight: '900',
     textTransform: 'uppercase',

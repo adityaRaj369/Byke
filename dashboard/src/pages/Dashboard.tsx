@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Bike, TrendingUp, DollarSign, Activity, AlertCircle } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, Bike, DollarSign, Activity, AlertCircle, ArrowUpRight } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import api from '../lib/api';
 
 interface DashboardStats {
@@ -12,6 +22,18 @@ interface DashboardStats {
   activeBookings: number;
   todayRevenue: number;
 }
+
+const chartTooltip = {
+  contentStyle: {
+    background: '#161618',
+    border: '1px solid #27272a',
+    borderRadius: 12,
+    color: '#fafafa',
+    fontSize: 12,
+  },
+  labelStyle: { color: '#a1a1aa' },
+  cursor: { fill: 'rgba(255,255,255,0.06)' },
+};
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -35,34 +57,10 @@ const Dashboard = () => {
   };
 
   const statCards = [
-    {
-      title: 'Total Users',
-      value: stats?.totalUsers || 0,
-      icon: Users,
-      color: 'bg-blue-500',
-      change: '+12%',
-    },
-    {
-      title: 'Active Riders',
-      value: stats?.activeRiders || 0,
-      icon: Bike,
-      color: 'bg-green-500',
-      change: '+8%',
-    },
-    {
-      title: 'Today Bookings',
-      value: stats?.todayBookings || 0,
-      icon: Activity,
-      color: 'bg-purple-500',
-      change: '+23%',
-    },
-    {
-      title: 'Today Revenue',
-      value: `₹${stats?.todayRevenue || 0}`,
-      icon: DollarSign,
-      color: 'bg-yellow-500',
-      change: '+15%',
-    },
+    { title: 'Total Users', value: stats?.totalUsers ?? 0, icon: Users, change: '+12%', tint: 'text-sky-400 bg-sky-400/10' },
+    { title: 'Active Riders', value: stats?.activeRiders ?? 0, icon: Bike, change: '+8%', tint: 'text-emerald-400 bg-emerald-400/10' },
+    { title: "Today's Bookings", value: stats?.todayBookings ?? 0, icon: Activity, change: '+23%', tint: 'text-violet-400 bg-violet-400/10' },
+    { title: "Today's Revenue", value: `₹${stats?.todayRevenue ?? 0}`, icon: DollarSign, change: '+15%', tint: 'text-brand-400 bg-brand-400/10' },
   ];
 
   const bookingData = [
@@ -77,8 +75,8 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-600">Loading dashboard...</div>
+      <div className="flex items-center justify-center h-[60vh] text-zinc-500">
+        Loading dashboard…
       </div>
     );
   }
@@ -86,155 +84,141 @@ const Dashboard = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome to BYKE Admin Panel</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Overview</h1>
+        <p className="text-zinc-500 mt-1 text-sm">Real-time snapshot of the BYKE platform</p>
       </div>
 
-      {stats?.pendingRiders > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-          <div className="flex items-center">
-            <AlertCircle className="text-yellow-400 mr-3" size={20} />
-            <div>
-              <p className="text-yellow-800 font-semibold">
-                {stats.pendingRiders} rider applications pending review
-              </p>
-              <p className="text-yellow-700 text-sm">
-                Click on "Rider Verification" to review applications
-              </p>
-            </div>
+      {!!stats?.pendingRiders && stats.pendingRiders > 0 && (
+        <div className="bg-brand-400/10 border border-brand-400/30 rounded-2xl p-4 mb-6 flex items-center">
+          <AlertCircle className="text-brand-400 mr-3 flex-shrink-0" size={20} />
+          <div>
+            <p className="text-brand-200 font-semibold text-sm">
+              {stats.pendingRiders} rider application{stats.pendingRiders !== 1 ? 's' : ''} pending review
+            </p>
+            <p className="text-zinc-400 text-xs mt-0.5">
+              Head to “Rider Verification” to review and approve them.
+            </p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statCards.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
+          <div
+            key={index}
+            className="bg-ink-900 border border-ink-700 rounded-2xl p-5 hover:border-ink-600 transition-colors"
+          >
             <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="text-white" size={24} />
+              <div className={`p-2.5 rounded-xl ${stat.tint}`}>
+                <stat.icon size={20} strokeWidth={2.2} />
               </div>
-              <span className="text-green-600 text-sm font-semibold">{stat.change}</span>
+              <span className="text-emerald-400 text-xs font-semibold flex items-center gap-0.5">
+                <ArrowUpRight size={13} />
+                {stat.change}
+              </span>
             </div>
-            <h3 className="text-gray-600 text-sm mb-1">{stat.title}</h3>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">{stat.title}</p>
+            <p className="text-2xl font-bold text-white">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weekly Bookings</h2>
-          <ResponsiveContainer width="100%" height={300}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-zinc-300 mb-5">Weekly Bookings</h2>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={bookingData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="bookings" fill="#3b82f6" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+              <XAxis dataKey="name" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip {...chartTooltip} />
+              <Bar dataKey="bookings" fill="#fafafa" radius={[6, 6, 0, 0]} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={bookingData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} />
-            </LineChart>
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-zinc-300 mb-5">Revenue Trend</h2>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={bookingData}>
+              <defs>
+                <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+              <XAxis dataKey="name" stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#52525b" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip {...chartTooltip} />
+              <Area type="monotone" dataKey="revenue" stroke="#34d399" strokeWidth={2.5} fill="url(#revFill)" />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Service Distribution</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">🏍️ Rides</span>
-              <span className="font-semibold">65%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '65%' }}></div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">🛒 Errands</span>
-              <span className="font-semibold">25%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-green-600 h-2 rounded-full" style={{ width: '25%' }}></div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">📦 Parcels</span>
-              <span className="font-semibold">10%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-purple-600 h-2 rounded-full" style={{ width: '10%' }}></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Riders</h2>
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-sm font-semibold">{i}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Rider {i}</p>
-                    <p className="text-xs text-gray-500">{50 - i * 5} rides</p>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-zinc-300 mb-5">Service Distribution</h2>
+          <div className="space-y-4">
+            {[
+              { label: 'Rides', pct: 65, color: 'bg-brand-400' },
+              { label: 'Errands', pct: 25, color: 'bg-emerald-400' },
+              { label: 'Parcels', pct: 10, color: 'bg-violet-400' },
+            ].map((s) => (
+              <div key={s.label}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-zinc-400 text-sm">{s.label}</span>
+                  <span className="font-semibold text-zinc-200 text-sm">{s.pct}%</span>
                 </div>
-                <div className="flex items-center">
-                  <span className="text-yellow-400 mr-1">⭐</span>
-                  <span className="text-sm font-semibold">{(5 - i * 0.1).toFixed(1)}</span>
+                <div className="w-full bg-ink-700 rounded-full h-2">
+                  <div className={`${s.color} h-2 rounded-full`} style={{ width: `${s.pct}%` }} />
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-zinc-300 mb-5">Top Riders</h2>
           <div className="space-y-3">
-            <div className="flex items-start">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
-              <div>
-                <p className="text-sm text-gray-900">New rider approved</p>
-                <p className="text-xs text-gray-500">2 minutes ago</p>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-ink-700 rounded-full flex items-center justify-center mr-3 text-xs font-bold text-brand-300">
+                    {i}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">Rider {i}</p>
+                    <p className="text-xs text-zinc-500">{50 - i * 5} rides</p>
+                  </div>
+                </div>
+                <div className="flex items-center text-sm font-semibold text-brand-300">
+                  <span className="mr-1">★</span>
+                  {(5 - i * 0.1).toFixed(1)}
+                </div>
               </div>
-            </div>
-            <div className="flex items-start">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
-              <div>
-                <p className="text-sm text-gray-900">Booking completed</p>
-                <p className="text-xs text-gray-500">5 minutes ago</p>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-ink-900 border border-ink-700 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-zinc-300 mb-5">Recent Activity</h2>
+          <div className="space-y-4">
+            {[
+              { c: 'bg-emerald-400', t: 'New rider approved', s: '2 minutes ago' },
+              { c: 'bg-sky-400', t: 'Booking completed', s: '5 minutes ago' },
+              { c: 'bg-brand-400', t: 'New rider application', s: '10 minutes ago' },
+              { c: 'bg-violet-400', t: 'Payment received', s: '15 minutes ago' },
+            ].map((a, i) => (
+              <div key={i} className="flex items-start">
+                <div className={`w-2 h-2 ${a.c} rounded-full mt-1.5 mr-3 flex-shrink-0`} />
+                <div>
+                  <p className="text-sm text-zinc-200">{a.t}</p>
+                  <p className="text-xs text-zinc-500">{a.s}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3"></div>
-              <div>
-                <p className="text-sm text-gray-900">New rider application</p>
-                <p className="text-xs text-gray-500">10 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-start">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3"></div>
-              <div>
-                <p className="text-sm text-gray-900">Payment received</p>
-                <p className="text-xs text-gray-500">15 minutes ago</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

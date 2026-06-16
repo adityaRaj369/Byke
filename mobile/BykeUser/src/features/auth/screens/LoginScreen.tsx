@@ -29,6 +29,7 @@ import {
 import {ChevronLeft} from 'lucide-react-native';
 import {API_BASE_URL} from '../../../config/env';
 import {getFCMToken} from '../../../services/notificationService';
+import {colors} from '../../../theme';
 
 const LoginScreen = () => {
   const [phone, setPhone] = useState('');
@@ -171,7 +172,7 @@ const LoginScreen = () => {
                 setOtp('');
               }}
               style={styles.backBtn}>
-              <ChevronLeft size={24} color="#374151" />
+              <ChevronLeft size={24} color={colors.textSub} />
             </TouchableOpacity>
           )}
 
@@ -193,7 +194,7 @@ const LoginScreen = () => {
                   <TextInput
                     style={styles.input}
                     placeholder="Enter 10-digit number"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.textMute}
                     keyboardType="number-pad"
                     maxLength={10}
                     value={phone}
@@ -206,7 +207,7 @@ const LoginScreen = () => {
                 disabled={loading}
                 style={[styles.button, loading && {opacity: 0.5}]}>
                 {loading ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.onAccent} />
                 ) : (
                   <Text style={styles.buttonText}>Send OTP</Text>
                 )}
@@ -247,7 +248,7 @@ const LoginScreen = () => {
                 disabled={loading}
                 style={[styles.button, loading && {opacity: 0.5}]}>
                 {loading ? (
-                  <ActivityIndicator color="white" />
+                  <ActivityIndicator color={colors.onAccent} />
                 ) : (
                   <Text style={styles.buttonText}>Verify & Continue</Text>
                 )}
@@ -268,7 +269,7 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: 'white'},
+  container: {flex: 1, backgroundColor: colors.bg},
   content: {
     flex: 1,
     paddingHorizontal: 24,
@@ -277,57 +278,62 @@ const styles = StyleSheet.create({
   },
   backBtn: {position: 'absolute', top: 20, left: 24, zIndex: 10},
   header: {marginBottom: 48},
-  title: {fontSize: 32, fontWeight: '700', color: '#111827', marginBottom: 8},
-  subtitle: {fontSize: 16, color: '#6B7280', lineHeight: 24},
+  title: {fontSize: 32, fontWeight: '700', color: colors.text, marginBottom: 8},
+  subtitle: {fontSize: 16, color: colors.textSub, lineHeight: 24},
   inputContainer: {marginBottom: 32},
-  label: {fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12},
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSub,
+    marginBottom: 12,
+  },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
   },
   countryCode: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
     paddingLeft: 16,
     paddingRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text,
     paddingVertical: 16,
     paddingRight: 16,
   },
   button: {
-    backgroundColor: '#111827',
+    backgroundColor: colors.accent,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: {fontSize: 16, fontWeight: '600', color: 'white'},
+  buttonText: {fontSize: 16, fontWeight: '600', color: colors.onAccent},
   otpContainer: {flexDirection: 'row', justifyContent: 'space-between'},
   otpBox: {
     width: 48,
     height: 56,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.border,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
   },
-  otpBoxFilled: {borderColor: '#111827', backgroundColor: 'white'},
-  otpText: {fontSize: 24, fontWeight: '600', color: '#111827'},
+  otpBoxFilled: {borderColor: colors.accent, backgroundColor: colors.surfaceHigh},
+  otpText: {fontSize: 24, fontWeight: '600', color: colors.text},
   hiddenInput: {position: 'absolute', opacity: 0},
   resendButton: {alignItems: 'center', marginTop: 24},
-  resendText: {fontSize: 14, color: '#6B7280'},
-  resendLink: {color: '#111827', fontWeight: '600'},
+  resendText: {fontSize: 14, color: colors.textSub},
+  resendLink: {color: colors.accent, fontWeight: '600'},
 });
 
 export default LoginScreen;

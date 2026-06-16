@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {ArrowLeft} from 'lucide-react-native';
 import api from '../config/api';
+import {colors} from '../theme';
 
 const OTPEntryScreen = ({route, navigation}: any) => {
   const {bookingId} = route.params;
@@ -51,7 +52,7 @@ const OTPEntryScreen = ({route, navigation}: any) => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}>
-          <ArrowLeft size={24} color="black" />
+          <ArrowLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enter OTP</Text>
       </View>
@@ -76,7 +77,7 @@ const OTPEntryScreen = ({route, navigation}: any) => {
             keyboardType="number-pad"
             maxLength={4}
             placeholder="0000"
-            placeholderTextColor="#D1D5DB"
+            placeholderTextColor={colors.textMute}
             autoFocus
           />
         </View>
@@ -89,7 +90,7 @@ const OTPEntryScreen = ({route, navigation}: any) => {
           onPress={handleVerifyOTP}
           disabled={loading || !otp || otp.length !== 4}>
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={colors.onAccent} />
           ) : (
             <Text style={styles.verifyBtnText}>Verify & Start Ride</Text>
           )}
@@ -106,7 +107,7 @@ const OTPEntryScreen = ({route, navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -114,13 +115,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -128,6 +129,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     marginLeft: 15,
+    color: colors.text,
   },
   content: {
     flex: 1,
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
@@ -150,13 +152,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: 'black',
+    color: colors.text,
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
     textAlign: 'center',
     marginBottom: 40,
     lineHeight: 22,
@@ -169,37 +171,38 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 80,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 20,
     fontSize: 40,
     fontWeight: '900',
     textAlign: 'center',
     letterSpacing: 20,
-    color: 'black',
+    color: colors.text,
+    backgroundColor: colors.surfaceAlt,
   },
   verifyBtn: {
     width: '100%',
     height: 56,
-    backgroundColor: 'black',
+    backgroundColor: colors.accent,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   verifyBtnDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.surfaceAlt,
   },
   verifyBtnText: {
     fontSize: 16,
     fontWeight: '900',
-    color: 'white',
+    color: colors.onAccent,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   helpText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textMute,
     textAlign: 'center',
     lineHeight: 20,
   },

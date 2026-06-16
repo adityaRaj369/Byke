@@ -15,7 +15,13 @@ import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import api from '../config/api';
+import {colors, darkMapStyle, normalizeVehicleId} from '../theme';
+import {
+  ApproachingVehicleMarker,
+  UserLocationMarker,
+} from '../components/MapMarkers';
 import {GOOGLE_PLACES_API_KEY} from '../config/env';
+import CardGradient from '../components/CardGradient';
 import {
   clearLocationWatch,
   watchLocation,
@@ -367,6 +373,7 @@ const RideTrackingScreen = () => {
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
+        customMapStyle={darkMapStyle}
         initialRegion={{
           ...currentLocation,
           latitudeDelta: 0.05,
@@ -374,16 +381,17 @@ const RideTrackingScreen = () => {
         }}
         showsUserLocation
         showsMyLocationButton={false}>
-        <Marker coordinate={currentLocation} title="Your Location">
-          <View style={styles.riderMarker}>
-            <Navigation size={20} color="white" fill="white" />
-          </View>
-        </Marker>
+        <ApproachingVehicleMarker
+          coordinate={currentLocation}
+          vehicleId={normalizeVehicleId(
+            (booking as any).rider?.vehicleType || (booking as any).serviceType,
+          )}
+        />
 
         {(rideStatus === 'ACCEPTED' ||
           rideStatus === 'RIDER_EN_ROUTE' ||
           rideStatus === 'RIDER_ARRIVED') && (
-          <Marker
+          <UserLocationMarker
             coordinate={{
               latitude: asCoordinate(
                 booking.pickupLatitude,
@@ -394,11 +402,7 @@ const RideTrackingScreen = () => {
                 currentLocation.longitude,
               ),
             }}
-            title="Pickup Location">
-            <View style={styles.pickupMarker}>
-              <MapPin size={24} color="white" fill="#3B82F6" />
-            </View>
-          </Marker>
+          />
         )}
 
         {rideStatus === 'IN_PROGRESS' && (
@@ -426,7 +430,7 @@ const RideTrackingScreen = () => {
             destination={destination}
             apikey={GOOGLE_PLACES_API_KEY}
             strokeWidth={4}
-            strokeColor="#3B82F6"
+            strokeColor={colors.accent}
             onError={error => console.log('Directions error:', error)}
           />
         )}
@@ -447,8 +451,9 @@ const RideTrackingScreen = () => {
         </View>
 
         <View style={styles.userCard}>
+          <CardGradient radius={20} />
           <View style={styles.userAvatar}>
-            <User size={24} color="#3B82F6" />
+            <User size={24} color={colors.accent} />
           </View>
           <View style={styles.userInfo}>
             <Text style={styles.userName}>
@@ -469,7 +474,7 @@ const RideTrackingScreen = () => {
               <Phone size={20} color="white" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.callBtn, styles.secondaryActionBtn, {backgroundColor: '#111827'}]}
+              style={[styles.callBtn, styles.secondaryActionBtn, {backgroundColor: colors.surfaceHigh}]}
               onPress={() =>
                 (navigation as any).navigate('Chat', {
                   bookingId: String(booking.id),
@@ -482,6 +487,7 @@ const RideTrackingScreen = () => {
         </View>
 
         <View style={styles.locationCard}>
+          <CardGradient radius={20} />
           <View style={styles.locationRow}>
             <View style={styles.locationDot} />
             <View style={styles.locationDetails}>
@@ -494,7 +500,7 @@ const RideTrackingScreen = () => {
           {booking.dropAddress && (
             <View style={styles.locationRow}>
               <View
-                style={[styles.locationDot, {backgroundColor: '#EF4444'}]}
+                style={[styles.locationDot, {backgroundColor: colors.danger}]}
               />
               <View style={styles.locationDetails}>
                 <Text style={styles.locationLabel}>Drop</Text>
@@ -508,7 +514,7 @@ const RideTrackingScreen = () => {
 
         {/* 3D Navigation Button */}
         <TouchableOpacity style={styles.navBtn} onPress={handleOpenNavigation}>
-          <Navigation size={18} color="white" />
+          <Navigation size={18} color={colors.onAccent} />
           <Text style={styles.navBtnText}>Open Navigation</Text>
         </TouchableOpacity>
 
@@ -533,7 +539,7 @@ const RideTrackingScreen = () => {
                 keyboardType="number-pad"
                 maxLength={4}
                 placeholder="0000"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textMute}
               />
               <TouchableOpacity
                 style={styles.verifyBtn}
@@ -543,7 +549,7 @@ const RideTrackingScreen = () => {
               </TouchableOpacity>
             </View>
             <View style={styles.otpHint}>
-              <AlertCircle size={14} color="#6B7280" />
+              <AlertCircle size={14} color={colors.textSub} />
               <Text style={styles.otpHintText}>
                 Ask the user for the 4-digit OTP
               </Text>
@@ -614,18 +620,18 @@ const RideTrackingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.bg,
   },
   loadingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   map: {
     flex: 1,
@@ -680,7 +686,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderColor: colors.border,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
@@ -688,7 +696,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
   },
@@ -702,7 +710,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     marginBottom: 16,
   },
   statusDot: {
@@ -714,14 +722,15 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     padding: 16,
     borderRadius: 20,
     marginBottom: 16,
@@ -730,7 +739,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -748,13 +757,13 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginBottom: 4,
   },
   userPhone: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   callBtn: {
     width: 44,
@@ -765,11 +774,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   callBtnDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: colors.textMute,
     opacity: 0.6,
   },
   locationCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
@@ -793,7 +803,7 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#6B7280',
+    color: colors.textSub,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 4,
@@ -801,7 +811,7 @@ const styles = StyleSheet.create({
   locationAddress: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#000',
+    color: colors.text,
     lineHeight: 20,
   },
   otpContainer: {
@@ -810,7 +820,7 @@ const styles = StyleSheet.create({
   otpLabel: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     marginBottom: 12,
   },
   otpInputRow: {
@@ -820,12 +830,12 @@ const styles = StyleSheet.create({
   otpInput: {
     flex: 1,
     height: 56,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceHigh,
     borderRadius: 16,
     paddingHorizontal: 20,
     fontSize: 24,
     fontWeight: '900',
-    color: '#000',
+    color: colors.text,
     textAlign: 'center',
     letterSpacing: 8,
   },
@@ -851,7 +861,7 @@ const styles = StyleSheet.create({
   otpHintText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSub,
   },
   actionBtn: {
     flexDirection: 'row',
@@ -872,13 +882,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#3B82F6',
+    backgroundColor: colors.accent,
     paddingVertical: 12,
     borderRadius: 14,
     marginBottom: 10,
   },
   navBtnText: {
-    color: '#fff',
+    color: colors.onAccent,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -886,20 +896,20 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 13,
     borderRadius: 14,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerSoft,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.danger,
   },
   cancelBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#DC2626',
+    color: colors.danger,
   },
   fareCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: colors.successSoft,
     padding: 16,
     borderRadius: 16,
     gap: 8,
@@ -908,12 +918,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
-    color: '#166534',
+    color: colors.success,
   },
   fareAmount: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#166534',
+    color: colors.success,
   },
 });
 

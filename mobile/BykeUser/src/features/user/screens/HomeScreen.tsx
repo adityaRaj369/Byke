@@ -20,7 +20,13 @@ import MapView, {
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
-import {colors, darkMapStyle, getVehicleImage} from '../../../theme';
+import {
+  colors,
+  darkMapStyle,
+  getMapVehicle,
+  getVehicleImage,
+  normalizeVehicleId,
+} from '../../../theme';
 import CardGradient from '../../../components/CardGradient';
 import {VEHICLE_TYPES} from '../../../data/mockData';
 import {useSelector} from 'react-redux';
@@ -55,8 +61,12 @@ const INITIAL_SHEET_VISIBLE_RATIO = 0.55;
 const EXPANDED_SHEET_VISIBLE_RATIO = 0.75;
 const COLLAPSED_SHEET_VISIBLE_RATIO = 0.28;
 
+const HOME_RIDE_VEHICLE_TYPES = VEHICLE_TYPES.filter(v =>
+  ['bike', 'auto', 'cab'].includes(v.id),
+);
+
 const HOME_VEHICLE_TYPES = [
-  ...VEHICLE_TYPES.filter(v => ['bike', 'auto', 'cab'].includes(v.id)),
+  ...HOME_RIDE_VEHICLE_TYPES,
   {
     id: 'parcel',
     label: 'Parcel',
@@ -67,6 +77,13 @@ const HOME_VEHICLE_TYPES = [
     desc: 'Delivery',
   },
 ];
+
+type NearbyRider = {
+  id?: number | string;
+  vehicleType?: string;
+  currentLatitude?: number;
+  currentLongitude?: number;
+};
 
 const HomeScreen = ({navigation}: any) => {
   const {width, height} = useWindowDimensions();
@@ -97,6 +114,7 @@ const HomeScreen = ({navigation}: any) => {
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeBooking, setActiveBooking] = useState<any | null>(null);
+  const [nearbyRiders, setNearbyRiders] = useState<NearbyRider[]>([]);
 
   // Pickup mode: 'current' = use GPS location, 'pin' = user picks on map
   const [pickupMode, setPickupMode] = useState<'current' | 'pin'>('current');
@@ -207,6 +225,40 @@ const HomeScreen = ({navigation}: any) => {
     const interval = setInterval(loadActiveBooking, 7000);
     return () => clearInterval(interval);
   }, [loadActiveBooking]);
+
+  const loadNearbyRiders = useCallback(async () => {
+    if (!currentCoords) {
+      setNearbyRiders([]);
+      return;
+    }
+
+    try {
+      const response = await api.get('/rider/nearby', {
+        params: {
+          latitude: currentCoords.latitude,
+          longitude: currentCoords.longitude,
+          radius: 5,
+        },
+      });
+      const riders = Array.isArray(response.data) ? response.data : [];
+      setNearbyRiders(
+        riders.filter(
+          rider =>
+            Number.isFinite(Number(rider.currentLatitude)) &&
+            Number.isFinite(Number(rider.currentLongitude)) &&
+            normalizeVehicleId(rider.vehicleType) === selectedVehicleId,
+        ),
+      );
+    } catch (error) {
+      console.log('Unable to load nearby riders:', error);
+    }
+  }, [currentCoords, selectedVehicleId]);
+
+  useEffect(() => {
+    void loadNearbyRiders();
+    const interval = setInterval(loadNearbyRiders, 8000);
+    return () => clearInterval(interval);
+  }, [loadNearbyRiders]);
 
   useEffect(() => {
     if (searchText.trim().length >= 2) {
@@ -444,6 +496,28 @@ const HomeScreen = ({navigation}: any) => {
           customMapStyle={darkMapStyle}
           onRegionChangeComplete={handleMapRegionChangeComplete}>
           {/* User location - Google Maps style blue dot with direction cone */}
+          {nearbyRiders.map((rider, index) => {
+            const mapVehicle = getMapVehicle(
+              normalizeVehicleId(rider.vehicleType),
+            );
+            return (
+              <Marker
+                key={`${rider.id || 'nearby'}-${index}`}
+                coordinate={{
+                  latitude: Number(rider.currentLatitude),
+                  longitude: Number(rider.currentLongitude),
+                }}
+                anchor={{x: 0.5, y: 0.5}}
+                flat
+                tracksViewChanges={false}>
+                <Image
+                  source={mapVehicle.source}
+                  style={styles.nearbyVehicleMarker}
+                  resizeMode="contain"
+                />
+              </Marker>
+            );
+          })}
           {currentCoords && (
             <>
               {/* Direction cone - light blue fan showing heading */}
@@ -689,22 +763,34 @@ const HomeScreen = ({navigation}: any) => {
             <Text style={styles.quickModalSubtitle} numberOfLines={2}>
               {quickPlace?.name}
             </Text>
-            <View style={styles.quickVehicleGrid}>
-              {HOME_VEHICLE_TYPES.map(vehicle => (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickVehicleCarousel}
+              snapToInterval={width - 40}
+              decelerationRate="fast">
+              {HOME_RIDE_VEHICLE_TYPES.map(vehicle => (
                 <TouchableOpacity
                   key={vehicle.id}
-                  activeOpacity={0.85}
-                  style={styles.quickVehicleCard}
+                  activeOpacity={0.9}
+                  style={[styles.vehicleHeroCard, {width: width - 40}]}
                   onPress={() => handleQuickVehicleSelect(vehicle)}>
+                  <View style={styles.vehicleGlow} />
                   <Image
                     source={getVehicleImage(vehicle.id)}
-                    style={styles.quickVehicleImage}
+                    style={styles.vehicleHeroImage}
                     resizeMode="contain"
                   />
-                  <Text style={styles.quickVehicleLabel}>{vehicle.label}</Text>
+                  <View style={styles.vehicleHeroTextWrap}>
+                    <Text style={styles.vehicleHeroTitle}>{vehicle.label}</Text>
+                    <Text style={styles.vehicleHeroSubtitle}>
+                      {vehicle.desc} · {vehicle.etaMin} min away
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
             <TouchableOpacity
               style={styles.quickCancelBtn}
               onPress={() => setQuickPlace(null)}>
@@ -735,7 +821,7 @@ const HomeScreen = ({navigation}: any) => {
                 {pickupInfo.address}
               </Text>
             </View>
-            <View style={[styles.inputRow, {backgroundColor: '#F3F4F6'}]}>
+            <View style={styles.inputRow}>
               <View style={[styles.dot, {backgroundColor: '#EF4444'}]} />
               <TextInput
                 style={styles.textIn}
@@ -827,6 +913,11 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     backgroundColor: '#4285F4',
+  },
+  nearbyVehicleMarker: {
+    width: 42,
+    height: 42,
+    backgroundColor: 'transparent',
   },
 
   // Direction cone
@@ -1074,7 +1165,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 6,
   },
   vehicleHeroCardActive: {
     borderColor: 'rgba(255,255,255,0.42)',
@@ -1113,8 +1204,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -6,
-    marginBottom: 10,
+    marginTop: -8,
+    marginBottom: 4,
   },
   vehicleSwipeHintText: {
     fontSize: 12,
@@ -1171,8 +1262,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 16,
+    paddingVertical: 12,
+    marginBottom: 14,
   },
   searchPlaceholder: {
     marginLeft: 12,
@@ -1223,29 +1314,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
   },
-  quickVehicleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
-  },
-  quickVehicleCard: {
-    width: '48%',
-    minHeight: 116,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    margin: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-  },
-  quickVehicleImage: {width: 104, height: 72},
-  quickVehicleLabel: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.text,
-    marginTop: 6,
+  quickVehicleCarousel: {
+    paddingVertical: 2,
   },
   quickCancelBtn: {
     marginTop: 14,

@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Modal,
+  useWindowDimensions,
   TextInput,
   Linking,
   Image,
@@ -33,15 +34,16 @@ import {colors, getVehicleImage, normalizeVehicleId} from '../theme';
 import CardGradient from '../components/CardGradient';
 
 const RIDER_VEHICLE_TYPES = [
-  {id: 'bike', label: 'Bike'},
-  {id: 'auto', label: 'Auto'},
-  {id: 'cab', label: 'Cab'},
-  {id: 'parcel', label: 'Parcel'},
+  {id: 'bike', label: 'Bike', desc: 'Two-wheeler rides'},
+  {id: 'auto', label: 'Auto', desc: 'Auto rickshaw rides'},
+  {id: 'cab', label: 'Cab', desc: 'Car ride requests'},
+  {id: 'parcel', label: 'Parcel', desc: 'Parcel delivery requests'},
 ];
 
 const ProfileScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
+  const {width} = useWindowDimensions();
   const {user} = useSelector((state: RootState) => state.auth);
 
   const [profile, setProfile] = useState<any>(null);
@@ -260,37 +262,46 @@ const ProfileScreen = () => {
               placeholderTextColor={colors.textMute}
             />
             <Text style={styles.vehiclePickerLabel}>Vehicle type</Text>
-            <View style={styles.vehiclePickerGrid}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.vehiclePickerCarousel}
+              snapToInterval={width - 72}
+              decelerationRate="fast">
               {RIDER_VEHICLE_TYPES.map(option => {
                 const selected =
                   normalizeVehicleId(form.vehicleType) === option.id;
                 return (
                   <TouchableOpacity
                     key={option.id}
-                    activeOpacity={0.85}
+                    activeOpacity={0.9}
                     style={[
-                      styles.vehicleTypeChip,
-                      selected && styles.vehicleTypeChipActive,
+                      styles.vehicleTypeHeroCard,
+                      {width: width - 72},
+                      selected && styles.vehicleTypeHeroCardActive,
                     ]}
                     onPress={() =>
                       setForm(prev => ({...prev, vehicleType: option.label}))
                     }>
+                    <View style={styles.vehicleTypeGlow} />
                     <Image
                       source={getVehicleImage(option.id)}
-                      style={styles.vehicleTypeChipImage}
+                      style={styles.vehicleTypeHeroImage}
                       resizeMode="contain"
                     />
-                    <Text
-                      style={[
-                        styles.vehicleTypeChipText,
-                        selected && styles.vehicleTypeChipTextActive,
-                      ]}>
-                      {option.label}
-                    </Text>
+                    <View style={styles.vehicleTypeHeroTextWrap}>
+                      <Text style={styles.vehicleTypeHeroTitle}>
+                        {option.label}
+                      </Text>
+                      <Text style={styles.vehicleTypeHeroSubtitle}>
+                        {option.desc}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
             <TextInput
               style={styles.input}
               value={form.vehicleModel}
@@ -460,10 +471,11 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
   },
   modalTitle: {
     fontSize: 18,
@@ -480,30 +492,43 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
-  vehiclePickerGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
+  vehiclePickerCarousel: {
+    paddingVertical: 2,
   },
-  vehicleTypeChip: {
-    width: '48%',
-    minHeight: 76,
-    borderRadius: 14,
+  vehicleTypeHeroCard: {
+    height: 136,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceAlt,
-    margin: 4,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  vehicleTypeChipActive: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accentSoft,
+  vehicleTypeHeroCardActive: {
+    borderColor: 'rgba(255,255,255,0.42)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  vehicleTypeChipImage: {width: 46, height: 34, marginBottom: 4},
-  vehicleTypeChipText: {fontSize: 12, fontWeight: '800', color: colors.textSub},
-  vehicleTypeChipTextActive: {color: colors.text},
+  vehicleTypeGlow: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    left: -36,
+    top: -26,
+  },
+  vehicleTypeHeroImage: {width: 128, height: 96, marginRight: 12},
+  vehicleTypeHeroTextWrap: {flex: 1, minWidth: 0},
+  vehicleTypeHeroTitle: {fontSize: 23, fontWeight: '900', color: colors.text},
+  vehicleTypeHeroSubtitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSub,
+    marginTop: 6,
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,

@@ -57,9 +57,9 @@ import {
 } from 'lucide-react-native';
 
 const FALLBACK_LOCATION = 'Getting your location...';
-const INITIAL_SHEET_VISIBLE_RATIO = 0.55;
+const INITIAL_SHEET_VISIBLE_RATIO = 0.4;
 const EXPANDED_SHEET_VISIBLE_RATIO = 0.75;
-const COLLAPSED_SHEET_VISIBLE_RATIO = 0.28;
+const COLLAPSED_SHEET_VISIBLE_RATIO = 0.4;
 
 const HOME_RIDE_VEHICLE_TYPES = VEHICLE_TYPES.filter(v =>
   ['bike', 'auto', 'cab'].includes(v.id),
@@ -264,7 +264,7 @@ const HomeScreen = ({navigation}: any) => {
     (offset: number) => {
       const nextOffset = Math.max(0, Math.min(collapsedSheetOffset, offset));
       sheetOffsetRef.current = nextOffset;
-      setSheetExpanded(nextOffset <= initialSheetOffset * 0.5);
+      setSheetExpanded(nextOffset <= collapsedSheetOffset * 0.5);
       Animated.spring(sheetTranslateY, {
         toValue: nextOffset,
         useNativeDriver: true,
@@ -273,7 +273,7 @@ const HomeScreen = ({navigation}: any) => {
         mass: 0.8,
       }).start();
     },
-    [collapsedSheetOffset, initialSheetOffset, sheetTranslateY],
+    [collapsedSheetOffset, sheetTranslateY],
   );
 
   useEffect(() => {
@@ -298,13 +298,12 @@ const HomeScreen = ({navigation}: any) => {
       },
       onPanResponderRelease: (_, gestureState) => {
         const projectedOffset = sheetOffsetRef.current + gestureState.dy;
-        const snapPoints = [0, initialSheetOffset, collapsedSheetOffset];
-        const target = snapPoints.reduce((closest, point) =>
-          Math.abs(point - projectedOffset) <
-          Math.abs(closest - projectedOffset)
-            ? point
-            : closest,
-        );
+        const target =
+          gestureState.dy < -40 || gestureState.vy < -0.25
+            ? 0
+            : projectedOffset < collapsedSheetOffset * 0.5
+            ? 0
+            : collapsedSheetOffset;
         snapSheetTo(target);
       },
     }),
@@ -468,6 +467,12 @@ const HomeScreen = ({navigation}: any) => {
   };
 
   const pickupInfo = getPickupInfo();
+  const selectedVehicleIndex = Math.max(
+    0,
+    HOME_VEHICLE_TYPES.findIndex(v => v.id === selectedVehicleId),
+  );
+  const canSwipeToMoreVehicles =
+    selectedVehicleIndex < HOME_VEHICLE_TYPES.length - 1;
 
   return (
     <View style={styles.container}>
@@ -695,12 +700,14 @@ const HomeScreen = ({navigation}: any) => {
             );
           })}
         </ScrollView>
-        <View style={styles.vehicleSwipeHint}>
-          <Text style={styles.vehicleSwipeHintText}>
-            Swipe right for more vehicles
-          </Text>
-          <ArrowRight size={16} color={colors.textMute} />
-        </View>
+        {canSwipeToMoreVehicles && (
+          <View style={styles.vehicleSwipeHint}>
+            <Text style={styles.vehicleSwipeHintText}>
+              Swipe right for more vehicles
+            </Text>
+            <ArrowRight size={16} color={colors.textMute} />
+          </View>
+        )}
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.searchBar}

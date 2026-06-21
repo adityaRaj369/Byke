@@ -65,18 +65,7 @@ const HOME_RIDE_VEHICLE_TYPES = VEHICLE_TYPES.filter(v =>
   ['bike', 'auto', 'cab'].includes(v.id),
 );
 
-const HOME_VEHICLE_TYPES = [
-  ...HOME_RIDE_VEHICLE_TYPES,
-  {
-    id: 'parcel',
-    label: 'Parcel',
-    icon: '📦',
-    baseMin: 80,
-    baseMax: 160,
-    etaMin: 18,
-    desc: 'Delivery',
-  },
-];
+const HOME_VEHICLE_TYPES = HOME_RIDE_VEHICLE_TYPES;
 
 type NearbyRider = {
   id?: number | string;
@@ -115,6 +104,7 @@ const HomeScreen = ({navigation}: any) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeBooking, setActiveBooking] = useState<any | null>(null);
   const [nearbyRiders, setNearbyRiders] = useState<NearbyRider[]>([]);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
 
   // Pickup mode: 'current' = use GPS location, 'pin' = user picks on map
   const [pickupMode, setPickupMode] = useState<'current' | 'pin'>('current');
@@ -244,10 +234,10 @@ const HomeScreen = ({navigation}: any) => {
       setNearbyRiders(
         riders.filter(
           rider =>
-            (Number.isFinite(Number(rider.currentLatitude)) &&
-              Number.isFinite(Number(rider.currentLongitude)) &&
-              selectedVehicleId === 'parcel') ||
-            normalizeVehicleId(rider.vehicleType) === selectedVehicleId,
+            Number.isFinite(Number(rider.currentLatitude)) &&
+            Number.isFinite(Number(rider.currentLongitude)) &&
+            (selectedVehicleId === 'parcel' ||
+              normalizeVehicleId(rider.vehicleType) === selectedVehicleId),
         ),
       );
     } catch (error) {
@@ -274,6 +264,7 @@ const HomeScreen = ({navigation}: any) => {
     (offset: number) => {
       const nextOffset = Math.max(0, Math.min(collapsedSheetOffset, offset));
       sheetOffsetRef.current = nextOffset;
+      setSheetExpanded(nextOffset <= initialSheetOffset * 0.5);
       Animated.spring(sheetTranslateY, {
         toValue: nextOffset,
         useNativeDriver: true,
@@ -282,7 +273,7 @@ const HomeScreen = ({navigation}: any) => {
         mass: 0.8,
       }).start();
     },
-    [collapsedSheetOffset, sheetTranslateY],
+    [collapsedSheetOffset, initialSheetOffset, sheetTranslateY],
   );
 
   useEffect(() => {
@@ -717,7 +708,7 @@ const HomeScreen = ({navigation}: any) => {
           <Search size={20} color="#9CA3AF" strokeWidth={2.5} />
           <Text style={styles.searchPlaceholder}>Where to go?</Text>
         </TouchableOpacity>
-        {popularPlaces.length > 0 && (
+        {sheetExpanded && popularPlaces.length > 0 && (
           <View style={styles.nearbySection}>
             <View style={styles.nearbyHeader}>
               <Text style={styles.nearbyTitle}>Popular nearby</Text>

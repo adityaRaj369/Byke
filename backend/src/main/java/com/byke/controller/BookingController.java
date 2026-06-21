@@ -7,6 +7,7 @@ import com.byke.service.BookingService;
 import com.byke.service.BiddingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
+@Slf4j
 public class BookingController {
 
     private final BookingService bookingService;
@@ -25,7 +27,11 @@ public class BookingController {
         try {
             Long userId = (Long) request.getAttribute("userId");
             Booking createdBooking = bookingService.createBookingFromRequest(userId, bookingRequest);
-            biddingService.broadcastBookingToNearbyRiders(createdBooking.getId());
+            try {
+                biddingService.broadcastBookingToNearbyRiders(createdBooking.getId());
+            } catch (Exception broadcastError) {
+                log.warn("Booking {} created, but broadcast failed: {}", createdBooking.getId(), broadcastError.getMessage());
+            }
             return ResponseEntity.ok(createdBooking);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

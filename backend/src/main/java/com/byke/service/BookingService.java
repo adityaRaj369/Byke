@@ -76,7 +76,7 @@ public class BookingService {
     @Transactional
     public Booking createBookingFromRequest(Long userId, BookingRequest req) {
         User user = userService.getUserById(userId);
-        ServiceType serviceType = ServiceType.valueOf(req.getServiceType().toUpperCase());
+        ServiceType serviceType = resolveServiceType(req.getServiceType());
         Double distance = req.getEstimatedDistance() != null ? req.getEstimatedDistance() : 5.0;
 
         Double estimatedFare = calculateEstimatedFare(serviceType, distance);
@@ -103,7 +103,7 @@ public class BookingService {
                 .estimatedDuration(req.getEstimatedDuration())
                 .estimatedFare(estimatedFare)
                 .userEnteredAmount(userAmount)
-                .vehicleType(req.getVehicleType())
+                .vehicleType(resolveVehicleType(req.getVehicleType(), serviceType))
                 .biddingWindowSeconds(biddingWindowSeconds)
                 .biddingStartTime(LocalDateTime.now())
                 .biddingEndTime(LocalDateTime.now().plusSeconds(biddingWindowSeconds))
@@ -116,6 +116,27 @@ public class BookingService {
                 "Your booking is confirmed! Finding riders...");
 
         return savedBooking;
+    }
+
+    private ServiceType resolveServiceType(String rawServiceType) {
+        if (rawServiceType == null || rawServiceType.isBlank()) {
+            return ServiceType.RIDE;
+        }
+        try {
+            return ServiceType.valueOf(rawServiceType.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid service type: " + rawServiceType);
+        }
+    }
+
+    private String resolveVehicleType(String rawVehicleType, ServiceType serviceType) {
+        if (rawVehicleType != null && !rawVehicleType.isBlank()) {
+            String normalized = normalizeVehicleType(rawVehicleType);
+            return normalized.isBlank()
+                    ? rawVehicleType.trim()
+                    : normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
+        }
+        return serviceType == ServiceType.PARCEL ? "Parcel" : "Bike";
     }
 
     public Booking getBookingById(Long bookingId) {

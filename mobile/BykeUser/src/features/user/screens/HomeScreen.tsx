@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
   Animated,
   PanResponder,
+  Modal,
 } from 'react-native';
 import MapView, {
   Marker,
@@ -46,6 +47,7 @@ import {
   Crosshair,
   LocateFixed,
   Route,
+  ArrowRight,
 } from 'lucide-react-native';
 
 const FALLBACK_LOCATION = 'Getting your location...';
@@ -105,6 +107,7 @@ const HomeScreen = ({navigation}: any) => {
   const [pinAddress, setPinAddress] = useState('');
   const [pinGeocoding, setPinGeocoding] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState('bike');
+  const [quickPlace, setQuickPlace] = useState<PlaceResult | null>(null);
 
   const initializeLocation = useCallback(async () => {
     try {
@@ -371,11 +374,11 @@ const HomeScreen = ({navigation}: any) => {
     }
   };
 
-  const handleSelectPlace = (place: PlaceResult) => {
+  const getNavigationPayload = (place: PlaceResult, vehicle: any) => {
     const pickup = getPickupInfo();
     if (!pickup.coords) {
       Alert.alert('Error', 'Unable to get your pickup location');
-      return;
+      return null;
     }
     const distance = calculateDistance(
       pickup.coords.latitude,
@@ -383,17 +386,41 @@ const HomeScreen = ({navigation}: any) => {
       place.latitude,
       place.longitude,
     );
-    const selectedVehicle =
-      HOME_VEHICLE_TYPES.find(v => v.id === selectedVehicleId) ||
-      HOME_VEHICLE_TYPES[0];
-    navigation.navigate('SelectRide', {
+    const baseMin = Number(vehicle?.baseMin) || 100;
+    const baseFare = Math.max(Math.round((baseMin / 18) * distance), 30);
+    return {
       pickup: pickup.address,
       pickupCoords: pickup.coords,
       drop: place.address,
       dropCoords: {latitude: place.latitude, longitude: place.longitude},
       distanceKm: Math.round(distance * 10) / 10,
-      vehicle: selectedVehicle,
-    });
+      vehicle,
+      maxFare: baseFare + 80,
+    };
+  };
+
+  const handleQuickVehicleSelect = (vehicle: any) => {
+    if (!quickPlace) {
+      return;
+    }
+    const payload = getNavigationPayload(quickPlace, vehicle);
+    if (!payload) {
+      return;
+    }
+    setQuickPlace(null);
+    setSelectedVehicleId(vehicle.id);
+    navigation.navigate('SetPrice', payload);
+  };
+
+  const handleSelectPlace = (place: PlaceResult) => {
+    const selectedVehicle =
+      HOME_VEHICLE_TYPES.find(v => v.id === selectedVehicleId) ||
+      HOME_VEHICLE_TYPES[0];
+    const payload = getNavigationPayload(place, selectedVehicle);
+    if (!payload) {
+      return;
+    }
+    navigation.navigate('SelectRide', payload);
   };
 
   const pickupInfo = getPickupInfo();
@@ -601,6 +628,12 @@ const HomeScreen = ({navigation}: any) => {
             );
           })}
         </ScrollView>
+        <View style={styles.vehicleSwipeHint}>
+          <Text style={styles.vehicleSwipeHintText}>
+            Swipe right for more vehicles
+          </Text>
+          <ArrowRight size={16} color={colors.textMute} />
+        </View>
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.searchBar}
@@ -608,7 +641,78 @@ const HomeScreen = ({navigation}: any) => {
           <Search size={20} color="#9CA3AF" strokeWidth={2.5} />
           <Text style={styles.searchPlaceholder}>Where to go?</Text>
         </TouchableOpacity>
+        {popularPlaces.length > 0 && (
+          <View style={styles.nearbySection}>
+            <View style={styles.nearbyHeader}>
+              <Text style={styles.nearbyTitle}>Popular nearby</Text>
+              <Text style={styles.nearbyHint}>
+                Tap place, then choose vehicle
+              </Text>
+            </View>
+            <ScrollView
+              style={styles.nearbyList}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled>
+              {popularPlaces.slice(0, 5).map(place => (
+                <TouchableOpacity
+                  key={place.id}
+                  activeOpacity={0.85}
+                  style={styles.nearbyItem}
+                  onPress={() => setQuickPlace(place)}>
+                  <View style={styles.nearbyIcon}>
+                    <MapPin size={16} color={colors.onAccent} />
+                  </View>
+                  <View style={styles.nearbyTextWrap}>
+                    <Text style={styles.nearbyName} numberOfLines={1}>
+                      {place.name}
+                    </Text>
+                    <Text style={styles.nearbyAddress} numberOfLines={1}>
+                      {place.address}
+                    </Text>
+                  </View>
+                  <ArrowRight size={16} color={colors.textMute} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </Animated.View>
+
+      <Modal
+        visible={!!quickPlace}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQuickPlace(null)}>
+        <View style={styles.quickModalBackdrop}>
+          <View style={styles.quickModalCard}>
+            <Text style={styles.quickModalTitle}>Choose vehicle</Text>
+            <Text style={styles.quickModalSubtitle} numberOfLines={2}>
+              {quickPlace?.name}
+            </Text>
+            <View style={styles.quickVehicleGrid}>
+              {HOME_VEHICLE_TYPES.map(vehicle => (
+                <TouchableOpacity
+                  key={vehicle.id}
+                  activeOpacity={0.85}
+                  style={styles.quickVehicleCard}
+                  onPress={() => handleQuickVehicleSelect(vehicle)}>
+                  <Image
+                    source={getVehicleImage(vehicle.id)}
+                    style={styles.quickVehicleImage}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.quickVehicleLabel}>{vehicle.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.quickCancelBtn}
+              onPress={() => setQuickPlace(null)}>
+              <Text style={styles.quickCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Full-screen search overlay */}
       {showSearch && (
@@ -1005,6 +1109,60 @@ const styles = StyleSheet.create({
     color: colors.textSub,
     marginTop: 6,
   },
+  vehicleSwipeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -6,
+    marginBottom: 10,
+  },
+  vehicleSwipeHintText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textMute,
+    marginRight: 6,
+  },
+  nearbySection: {
+    marginTop: 2,
+    paddingBottom: 16,
+  },
+  nearbyHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  nearbyTitle: {fontSize: 16, fontWeight: '900', color: colors.text},
+  nearbyHint: {fontSize: 11, fontWeight: '700', color: colors.textMute},
+  nearbyList: {maxHeight: 180},
+  nearbyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  nearbyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  nearbyTextWrap: {flex: 1, minWidth: 0},
+  nearbyName: {fontSize: 13, fontWeight: '900', color: colors.text},
+  nearbyAddress: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textMute,
+    marginTop: 2,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1042,6 +1200,61 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  quickModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'flex-end',
+  },
+  quickModalCard: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 22,
+    paddingBottom: 30,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quickModalTitle: {fontSize: 24, fontWeight: '900', color: colors.text},
+  quickModalSubtitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSub,
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  quickVehicleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  quickVehicleCard: {
+    width: '48%',
+    minHeight: 116,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    margin: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  quickVehicleImage: {width: 104, height: 72},
+  quickVehicleLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.text,
+    marginTop: 6,
+  },
+  quickCancelBtn: {
+    marginTop: 14,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceAlt,
+  },
+  quickCancelText: {fontSize: 14, fontWeight: '900', color: colors.textSub},
   searchOverlay: {
     position: 'absolute',
     top: 0,

@@ -1,10 +1,9 @@
-import React, {useState} from 'react';
+import React, {useMemo} from 'react';
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   StyleSheet,
   SafeAreaView,
@@ -20,32 +19,43 @@ import CardGradient from '../../../components/CardGradient';
 
 const {height} = Dimensions.get('window');
 
-const SelectRideScreen = ({navigation, route}: any) => {
-  const {pickup, drop, distanceKm, pickupCoords, dropCoords} = route.params;
-  const [selectedVehicle, setSelectedVehicle] = useState('auto');
+const PARCEL_VEHICLE = {
+  id: 'parcel',
+  label: 'Parcel',
+  icon: '📦',
+  baseMin: 80,
+  baseMax: 160,
+  etaMin: 18,
+  desc: 'Delivery',
+};
 
-  const getBaseFareForVehicle = (v: any) => {
-    if (!v) {
-      return Math.round(15 * distanceKm);
+const SelectRideScreen = ({navigation, route}: any) => {
+  const {pickup, drop, distanceKm, pickupCoords, dropCoords, vehicle} =
+    route.params;
+
+  const selectedVehicle = useMemo(() => {
+    if (vehicle?.id) {
+      return vehicle;
     }
-    const perKm = Number(v.baseMin) / 18;
+    return VEHICLE_TYPES[0] || PARCEL_VEHICLE;
+  }, [vehicle]);
+
+  const getBaseFareForVehicle = (selected: any) => {
+    const perKm = Number(selected?.baseMin || 100) / 18;
     return Math.max(Math.round(perKm * distanceKm), 30);
   };
 
-  const vehicle = VEHICLE_TYPES.find(v => v.id === selectedVehicle);
-  const baseFare = getBaseFareForVehicle(vehicle);
-  const maxFare = baseFare + 80;
+  const baseFare = getBaseFareForVehicle(selectedVehicle);
 
-  const handleVehicleSelect = (v: any) => {
-    setSelectedVehicle(v.id);
+  const handleConfirmVehicle = () => {
     navigation.navigate('SetPrice', {
       pickup,
       drop,
       distanceKm,
       pickupCoords,
       dropCoords,
-      vehicle: v,
-      maxFare: getBaseFareForVehicle(v) + 80,
+      vehicle: selectedVehicle,
+      maxFare: baseFare + 80,
     });
   };
 
@@ -102,24 +112,23 @@ const SelectRideScreen = ({navigation, route}: any) => {
       <View style={styles.overlayContainer}>
         <View style={styles.sheet}>
           <View style={styles.sheetHandle} />
-
-          <Text style={styles.sheetTitle}>Choose a ride</Text>
+          <Text style={styles.sheetEyebrow}>Selected vehicle</Text>
+          <Text style={styles.sheetTitle}>Confirm your BYKE</Text>
 
           <View style={styles.routeCard}>
             <View style={styles.routeRow}>
-              <View style={[styles.routeDot, {backgroundColor: colors.success}]} />
+              <View style={[styles.routeDot, styles.pickupDot]} />
               <Text style={styles.routeText} numberOfLines={1}>
                 {pickup}
               </Text>
             </View>
             <View style={styles.routeLine} />
             <View style={styles.routeRow}>
-              <View style={[styles.routeDot, {backgroundColor: colors.danger}]} />
+              <View style={[styles.routeDot, styles.dropDot]} />
               <Text style={styles.routeText} numberOfLines={1}>
                 {drop}
               </Text>
             </View>
-
             <View style={styles.routeStats}>
               <Navigation size={14} color={colors.textSub} />
               <Text style={styles.statText}>{distanceKm} km</Text>
@@ -131,50 +140,32 @@ const SelectRideScreen = ({navigation, route}: any) => {
             </View>
           </View>
 
-          <ScrollView
-            style={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 12}}>
-            {VEHICLE_TYPES.map(v => {
-              const active = selectedVehicle === v.id;
-              return (
-                <TouchableOpacity
-                  key={v.id}
-                  activeOpacity={0.85}
-                  onPress={() => setSelectedVehicle(v.id)}
-                  style={[
-                    styles.vehicleRow,
-                    active ? styles.vehicleRowActive : styles.vehicleRowInactive,
-                  ]}>
-                  <CardGradient radius={16} />
-                  <View style={styles.vehicleThumb}>
-                    <Image
-                      source={getVehicleImage(v.id)}
-                      style={styles.vehicleImage}
-                      resizeMode="contain"
-                    />
-                  </View>
-                  <View style={styles.vehicleInfo}>
-                    <Text style={styles.vehicleLabel}>{v.label}</Text>
-                    <Text style={styles.vehicleDesc} numberOfLines={1}>
-                      {v.desc} · {v.etaMin} min away
-                    </Text>
-                  </View>
-                  <Text style={styles.vehiclePrice}>
-                    ₹{getBaseFareForVehicle(v)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <View style={styles.vehicleCard}>
+            <CardGradient radius={28} />
+            <View style={styles.vehicleGlow} />
+            <Image
+              source={getVehicleImage(selectedVehicle.id)}
+              style={styles.vehicleImage}
+              resizeMode="contain"
+            />
+            <View style={styles.vehicleInfo}>
+              <Text style={styles.vehicleLabel}>{selectedVehicle.label}</Text>
+              <Text style={styles.vehicleDesc} numberOfLines={2}>
+                {selectedVehicle.desc} · {selectedVehicle.etaMin} min away
+              </Text>
+              <Text style={styles.vehiclePrice}>
+                Estimated from ₹{baseFare}
+              </Text>
+            </View>
+          </View>
 
           <View style={styles.footer}>
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.confirmBtn}
-              onPress={() => vehicle && handleVehicleSelect(vehicle)}>
+              onPress={handleConfirmVehicle}>
               <Text style={styles.confirmBtnText}>
-                Choose {vehicle?.label || 'Ride'}
+                Continue with {selectedVehicle.label}
               </Text>
             </TouchableOpacity>
           </View>
@@ -215,16 +206,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: height * 0.65,
+    height: height * 0.58,
     zIndex: 5,
   },
-  scrollContent: {flex: 1, backgroundColor: 'transparent'},
   sheet: {
     flex: 1,
-    flexDirection: 'column',
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderTopWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 20,
@@ -241,28 +230,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.borderStrong,
     borderRadius: 3,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
+  },
+  sheetEyebrow: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.textMute,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    marginBottom: 6,
   },
   sheetTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
     color: colors.text,
-    marginBottom: 24,
+    marginBottom: 18,
   },
   routeCard: {
     backgroundColor: colors.surfaceAlt,
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 22,
+    padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 24,
+    marginBottom: 18,
   },
   routeRow: {flexDirection: 'row', alignItems: 'center'},
-  routeDot: {width: 10, height: 10, borderRadius: 5, marginRight: 16},
-  routeText: {flex: 1, fontSize: 16, fontWeight: '700', color: colors.text},
+  routeDot: {width: 10, height: 10, borderRadius: 5, marginRight: 14},
+  pickupDot: {backgroundColor: colors.success},
+  dropDot: {backgroundColor: colors.danger},
+  routeText: {flex: 1, fontSize: 15, fontWeight: '700', color: colors.text},
   routeLine: {
     width: 2,
-    height: 20,
+    height: 18,
     backgroundColor: colors.borderStrong,
     marginLeft: 4,
     marginVertical: 4,
@@ -277,65 +276,59 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    marginTop: 16,
+    marginTop: 14,
   },
-  statText: {marginLeft: 8, fontSize: 13, fontWeight: '900', color: colors.textSub},
+  statText: {
+    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '900',
+    color: colors.textSub,
+  },
   statDivider: {
     width: 1,
     height: 12,
     backgroundColor: colors.borderStrong,
     marginHorizontal: 12,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: colors.textMute,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  vehicleRow: {
+  vehicleCard: {
+    minHeight: 150,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    marginBottom: 10,
-    overflow: 'hidden',
+    padding: 18,
     backgroundColor: 'transparent',
   },
-  vehicleRowActive: {borderColor: colors.accent},
-  vehicleRowInactive: {borderColor: 'transparent'},
-  vehicleThumb: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceHigh,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
+  vehicleGlow: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    left: -26,
+    top: -28,
   },
-  vehicleImage: {width: 54, height: 54},
+  vehicleImage: {width: 128, height: 100, marginRight: 10},
   vehicleInfo: {flex: 1},
-  vehicleLabel: {fontSize: 16, fontWeight: '800', color: colors.text},
+  vehicleLabel: {fontSize: 24, fontWeight: '900', color: colors.text},
   vehicleDesc: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textMute,
-    fontWeight: '600',
-    marginTop: 3,
+    fontWeight: '700',
+    marginTop: 6,
   },
-  vehiclePrice: {fontSize: 17, fontWeight: '900', color: colors.text, marginLeft: 10},
-  footer: {
-    paddingTop: 12,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  vehiclePrice: {
+    fontSize: 15,
+    color: colors.accent,
+    fontWeight: '900',
+    marginTop: 12,
   },
+  footer: {paddingTop: 18, paddingBottom: 28},
   confirmBtn: {
     backgroundColor: colors.accent,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',

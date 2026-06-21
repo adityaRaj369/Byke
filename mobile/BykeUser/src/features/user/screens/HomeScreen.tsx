@@ -10,6 +10,8 @@ import {
   Alert,
   StyleSheet,
   useWindowDimensions,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import MapView, {
   Marker,
@@ -17,8 +19,9 @@ import MapView, {
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
-import {colors, darkMapStyle, vehicleImages} from '../../../theme';
+import {colors, darkMapStyle, getVehicleImage} from '../../../theme';
 import CardGradient from '../../../components/CardGradient';
+import {VEHICLE_TYPES} from '../../../data/mockData';
 import {useSelector} from 'react-redux';
 import {RootState} from '../../../store';
 import api from '../../../config/api';
@@ -40,22 +43,44 @@ import {
   Search,
   Clock,
   X,
-  LayoutGrid,
   Crosshair,
   LocateFixed,
   Route,
 } from 'lucide-react-native';
 
 const FALLBACK_LOCATION = 'Getting your location...';
+const INITIAL_SHEET_VISIBLE_RATIO = 0.55;
+const EXPANDED_SHEET_VISIBLE_RATIO = 0.75;
+const COLLAPSED_SHEET_VISIBLE_RATIO = 0.28;
+
+const HOME_VEHICLE_TYPES = [
+  ...VEHICLE_TYPES.filter(v => ['bike', 'auto', 'cab'].includes(v.id)),
+  {
+    id: 'parcel',
+    label: 'Parcel',
+    icon: '📦',
+    baseMin: 80,
+    baseMax: 160,
+    etaMin: 18,
+    desc: 'Delivery',
+  },
+];
 
 const HomeScreen = ({navigation}: any) => {
   const {width, height} = useWindowDimensions();
-  const mapHeight = height * 0.7;
-  const sheetHeight = Math.max(height * 0.3, 240);
+  const maxSheetHeight = height * EXPANDED_SHEET_VISIBLE_RATIO;
+  const initialSheetOffset =
+    maxSheetHeight - height * INITIAL_SHEET_VISIBLE_RATIO;
+  const collapsedSheetOffset =
+    maxSheetHeight - height * COLLAPSED_SHEET_VISIBLE_RATIO;
   const {user} = useSelector((s: RootState) => s.auth);
   const mapRef = useRef<MapView>(null);
   const watchIdRef = useRef<number | null>(null);
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetTranslateY = useRef(
+    new Animated.Value(initialSheetOffset),
+  ).current;
+  const sheetOffsetRef = useRef(initialSheetOffset);
 
   const [searchText, setSearchText] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -79,6 +104,7 @@ const HomeScreen = ({navigation}: any) => {
   } | null>(null);
   const [pinAddress, setPinAddress] = useState('');
   const [pinGeocoding, setPinGeocoding] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('bike');
 
   const initializeLocation = useCallback(async () => {
     try {
@@ -188,6 +214,55 @@ const HomeScreen = ({navigation}: any) => {
     }
   }, [searchPlacesDebounced, searchText]);
 
+  const snapSheetTo = useCallback(
+    (offset: number) => {
+      const nextOffset = Math.max(0, Math.min(collapsedSheetOffset, offset));
+      sheetOffsetRef.current = nextOffset;
+      Animated.spring(sheetTranslateY, {
+        toValue: nextOffset,
+        useNativeDriver: true,
+        damping: 24,
+        stiffness: 180,
+        mass: 0.8,
+      }).start();
+    },
+    [collapsedSheetOffset, sheetTranslateY],
+  );
+
+  useEffect(() => {
+    snapSheetTo(initialSheetOffset);
+  }, [initialSheetOffset, snapSheetTo]);
+
+  const sheetPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+        Math.abs(gestureState.dy) > 4,
+      onPanResponderMove: (_, gestureState) => {
+        const nextOffset = Math.max(
+          0,
+          Math.min(
+            collapsedSheetOffset,
+            sheetOffsetRef.current + gestureState.dy,
+          ),
+        );
+        sheetTranslateY.setValue(nextOffset);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const projectedOffset = sheetOffsetRef.current + gestureState.dy;
+        const snapPoints = [0, initialSheetOffset, collapsedSheetOffset];
+        const target = snapPoints.reduce((closest, point) =>
+          Math.abs(point - projectedOffset) <
+          Math.abs(closest - projectedOffset)
+            ? point
+            : closest,
+        );
+        snapSheetTo(target);
+      },
+    }),
+  ).current;
+
   const animateToCoords = (coords: {latitude: number; longitude: number}) => {
     mapRef.current?.animateToRegion(
       {
@@ -287,6 +362,15 @@ const HomeScreen = ({navigation}: any) => {
     return {coords: currentCoords, address: currentLocation};
   };
 
+  const handleVehicleScrollEnd = (event: any) => {
+    const cardWidth = width - 40;
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
+    const nextVehicle = HOME_VEHICLE_TYPES[nextIndex];
+    if (nextVehicle) {
+      setSelectedVehicleId(nextVehicle.id);
+    }
+  };
+
   const handleSelectPlace = (place: PlaceResult) => {
     const pickup = getPickupInfo();
     if (!pickup.coords) {
@@ -299,12 +383,16 @@ const HomeScreen = ({navigation}: any) => {
       place.latitude,
       place.longitude,
     );
+    const selectedVehicle =
+      HOME_VEHICLE_TYPES.find(v => v.id === selectedVehicleId) ||
+      HOME_VEHICLE_TYPES[0];
     navigation.navigate('SelectRide', {
       pickup: pickup.address,
       pickupCoords: pickup.coords,
       drop: place.address,
       dropCoords: {latitude: place.latitude, longitude: place.longitude},
       distanceKm: Math.round(distance * 10) / 10,
+      vehicle: selectedVehicle,
     });
   };
 
@@ -312,8 +400,7 @@ const HomeScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Map — top 70% */}
-      <View style={[styles.mapContainer, {height: mapHeight}]}>
+      <View style={styles.mapContainer}>
         <MapView
           ref={mapRef}
           provider={PROVIDER_GOOGLE}
@@ -370,7 +457,7 @@ const HomeScreen = ({navigation}: any) => {
           <View
             style={[
               styles.fixedPinContainer,
-              {top: mapHeight / 2 - 48, left: width / 2 - 16},
+              {top: height / 2 - 48, left: width / 2 - 16},
             ]}
             pointerEvents="none">
             <View style={styles.fixedPinShadow} />
@@ -383,7 +470,7 @@ const HomeScreen = ({navigation}: any) => {
 
         {/* Pin address badge - shows when in pin mode */}
         {pickupMode === 'pin' && (
-          <View style={[styles.pinAddressBadge, {top: mapHeight / 2 + 12}]}>
+          <View style={[styles.pinAddressBadge, {top: height / 2 + 12}]}>
             <View style={styles.pinAddressDot} />
             <Text style={styles.pinAddressText} numberOfLines={1}>
               {pinGeocoding
@@ -421,7 +508,9 @@ const HomeScreen = ({navigation}: any) => {
           <TouchableOpacity
             style={styles.ongoingRideBtn}
             onPress={() =>
-              navigation.navigate('UserTracking', {rideId: String(activeBooking.id)})
+              navigation.navigate('UserTracking', {
+                rideId: String(activeBooking.id),
+              })
             }>
             <Route size={16} color="white" strokeWidth={2.8} />
             <Text style={styles.ongoingRideText}>Ongoing Ride</Text>
@@ -462,43 +551,66 @@ const HomeScreen = ({navigation}: any) => {
         )}
       </View>
 
-      {/* Bottom sheet — 30% */}
-      <View style={[styles.sheet, {height: sheetHeight}]}>
+      <Animated.View
+        style={[
+          styles.sheet,
+          {height: maxSheetHeight, transform: [{translateY: sheetTranslateY}]},
+        ]}>
         <CardGradient radius={32} />
-        <View style={styles.sheetHandle} />
-        <Text style={styles.sheetTitle}>Where to go?</Text>
+        <View {...sheetPanResponder.panHandlers} style={styles.sheetDragZone}>
+          <View style={styles.sheetHandle} />
+        </View>
+        <Text style={styles.sheetEyebrow}>Select service</Text>
+        <Text style={styles.sheetTitle}>Choose your BYKE</Text>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.vehicleCarousel}
+          snapToInterval={width - 40}
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleVehicleScrollEnd}>
+          {HOME_VEHICLE_TYPES.map(vehicle => {
+            const active = selectedVehicleId === vehicle.id;
+            return (
+              <TouchableOpacity
+                key={vehicle.id}
+                activeOpacity={0.9}
+                onPress={() => setSelectedVehicleId(vehicle.id)}
+                style={[
+                  styles.vehicleHeroCard,
+                  {width: width - 40},
+                  active && styles.vehicleHeroCardActive,
+                ]}>
+                <View style={styles.vehicleGlow} />
+                <Image
+                  source={getVehicleImage(vehicle.id)}
+                  style={styles.vehicleHeroImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.vehicleHeroTextWrap}>
+                  <Text style={styles.vehicleHeroTitle}>{vehicle.label}</Text>
+                  <Text style={styles.vehicleHeroSubtitle}>
+                    {vehicle.desc} · {vehicle.etaMin} min away
+                  </Text>
+                </View>
+                <View style={styles.vehicleActivePill}>
+                  <Text style={styles.vehicleActiveText}>
+                    {active ? 'Selected' : 'Tap to select'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
         <TouchableOpacity
           activeOpacity={0.9}
           style={styles.searchBar}
           onPress={() => setShowSearch(true)}>
           <Search size={20} color="#9CA3AF" strokeWidth={2.5} />
-          <Text style={styles.searchPlaceholder}>Search destination...</Text>
+          <Text style={styles.searchPlaceholder}>Where to go?</Text>
         </TouchableOpacity>
-        <View style={styles.serviceGrid}>
-          {[
-            {id: 'bike', label: 'Bike', img: vehicleImages.bike},
-            {id: 'auto', label: 'Auto', img: vehicleImages.auto},
-            {id: 'parcel', label: 'Parcel', img: vehicleImages.parcel},
-            {id: 'more', label: 'More', icon: LayoutGrid},
-          ].map(s => (
-            <TouchableOpacity
-              key={s.id}
-              style={styles.serviceItem}
-              activeOpacity={0.8}
-              onPress={() => setShowSearch(true)}>
-              <View style={styles.serviceIcon}>
-                <CardGradient radius={18} />
-                {s.img ? (
-                  <Image source={s.img} style={styles.serviceImg} resizeMode="contain" />
-                ) : (
-                  <LayoutGrid size={24} color={colors.accent} strokeWidth={2.5} />
-                )}
-              </View>
-              <Text style={styles.serviceLabel}>{s.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+      </Animated.View>
 
       {/* Full-screen search overlay */}
       {showSearch && (
@@ -537,7 +649,10 @@ const HomeScreen = ({navigation}: any) => {
             style={styles.results}
             showsVerticalScrollIndicator={false}>
             {searchLoading ? (
-              <ActivityIndicator color={colors.accent} style={{marginTop: 40}} />
+              <ActivityIndicator
+                color={colors.accent}
+                style={{marginTop: 40}}
+              />
             ) : (
               searchResults.map(place => (
                 <TouchableOpacity
@@ -589,7 +704,7 @@ const HomeScreen = ({navigation}: any) => {
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.bg},
-  mapContainer: {overflow: 'hidden'},
+  mapContainer: {...StyleSheet.absoluteFillObject, overflow: 'hidden'},
 
   // Google Maps style blue dot
   blueDotOuter: {
@@ -690,7 +805,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     marginRight: 10,
   },
-  pinAddressText: {flex: 1, fontSize: 13, fontWeight: '700', color: colors.text},
+  pinAddressText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
 
   headerOverlay: {
     position: 'absolute',
@@ -787,7 +907,10 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
   },
-  mapActionBtnActive: {backgroundColor: colors.accent, borderColor: colors.accent},
+  mapActionBtnActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
 
   mapLoader: {position: 'absolute', bottom: 16, left: 16},
   sheet: {
@@ -916,7 +1039,12 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   resultName: {fontSize: 15, fontWeight: '800', color: colors.text},
-  resultAddr: {fontSize: 13, color: colors.textMute, fontWeight: '600', marginTop: 2},
+  resultAddr: {
+    fontSize: 13,
+    color: colors.textMute,
+    fontWeight: '600',
+    marginTop: 2,
+  },
 });
 
 export default HomeScreen;

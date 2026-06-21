@@ -22,6 +22,7 @@ import {
   Bike,
 } from 'lucide-react-native';
 import {colors} from '../theme';
+import {safeErrorMessage} from '../utils/safeErrorMessage';
 
 const RatingScreen = ({navigation, route}: any) => {
   const {bookingId} = route.params || {};
@@ -87,10 +88,7 @@ const RatingScreen = ({navigation, route}: any) => {
       }
       setSubmitted(true);
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to submit rating',
-      );
+      Alert.alert('Error', safeErrorMessage(error, 'Failed to submit rating'));
     } finally {
       setSubmitting(false);
     }

@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Animated, Image, StyleSheet, View} from 'react-native';
 import {Marker, MarkerAnimated, AnimatedRegion} from 'react-native-maps';
-import {colors, getVehicleImage, userMarkerImage} from '../theme';
+import {colors, getMapVehicle, userMarkerImage} from '../theme';
 
 type Coord = {latitude: number; longitude: number};
 
@@ -23,30 +23,30 @@ export function getBearing(a: Coord, b: Coord): number {
 }
 
 /**
- * A 3D vehicle marker that smoothly glides between location updates and faces
- * its direction of travel (Rapido / Uber / Zomato style).
+ * The moving vehicle marker (Rapido / Uber / Zomato style).
  *
- * - Position is interpolated natively via AnimatedRegion.timing (the "running"
- *   glide between discrete GPS pings).
- * - `rotates`: set TRUE for a top-down vehicle icon (it will spin to the travel
- *   bearing like Zomato's scooter). Leave FALSE for 3/4-perspective renders —
- *   they read best flipped left/right instead of rotated.
+ * - Uses the top/bottom-view vehicle art from the theme (getMapVehicle).
+ * - Glides smoothly between GPS pings via AnimatedRegion (continuous motion).
+ * - Rotates with `rotation = travelBearing - baseAngle` so the FRONT of the
+ *   vehicle always points the way it's driving (handles both top-view art with
+ *   front-up and bottom-view art with front-down).
+ * - Drawn with resizeMode="contain" inside a fixed square box, so it is always
+ *   scaled down and can NEVER overflow / cover the map.
  */
 export function ApproachingVehicleMarker({
   coordinate,
   vehicleId,
-  size = 68,
+  size = 58,
   zIndex = 9,
-  rotates = false,
   duration = 4500,
 }: {
   coordinate: Coord;
   vehicleId?: string;
   size?: number;
   zIndex?: number;
-  rotates?: boolean;
   duration?: number;
 }) {
+  const {source, baseAngle} = getMapVehicle(vehicleId);
   const region = useRef(
     new AnimatedRegion({
       latitude: coordinate.latitude,
@@ -56,8 +56,7 @@ export function ApproachingVehicleMarker({
     }),
   ).current;
   const prev = useRef<Coord>(coordinate);
-  const [facingLeft, setFacingLeft] = useState(false);
-  const [heading, setHeading] = useState(0);
+  const [rotation, setRotation] = useState(0);
   const [tracks, setTracks] = useState(true);
 
   useEffect(() => {
@@ -71,15 +70,11 @@ export function ApproachingVehicleMarker({
       Math.abs(next.longitude - prev.current.longitude) > 1e-7;
 
     if (moved) {
-      if (rotates) {
-        setHeading(getBearing(prev.current, next));
-      } else {
-        setFacingLeft(next.longitude < prev.current.longitude);
-      }
+      const bearing = getBearing(prev.current, next);
+      setRotation((bearing - baseAngle + 360) % 360);
     }
     prev.current = next;
 
-    // Smoothly glide to the new position (the continuous "running" motion).
     region
       .timing({
         latitude: next.latitude,
@@ -94,28 +89,27 @@ export function ApproachingVehicleMarker({
     setTracks(true);
     const t = setTimeout(() => setTracks(false), duration + 400);
     return () => clearTimeout(t);
-  }, [coordinate.latitude, coordinate.longitude, region, rotates, duration]);
-
-  const imgTransform = rotates
-    ? [{rotate: `${heading}deg`}]
-    : facingLeft
-    ? [{scaleX: -1}]
-    : [];
+  }, [coordinate.latitude, coordinate.longitude, region, baseAngle, duration]);
 
   return (
     <MarkerAnimated
       coordinate={region as any}
-      anchor={{x: 0.5, y: 0.62}}
-      flat={rotates}
+      anchor={{x: 0.5, y: 0.5}}
+      flat
+      rotation={rotation}
       tracksViewChanges={tracks}
       zIndex={zIndex}>
-      <View style={[styles.vehicleWrap, {width: size, height: size + 12}]}>
+      <View
+        collapsable={false}
+        pointerEvents="none"
+        renderToHardwareTextureAndroid
+        style={[styles.vehicleWrap, {width: size, height: size}]}>
         <Image
-          source={getVehicleImage(vehicleId)}
+          source={source}
           resizeMode="contain"
-          style={[styles.vehicleImg, {width: size, height: size}, {transform: imgTransform}]}
+          fadeDuration={0}
+          style={[styles.vehicleImage, {width: size, height: size}]}
         />
-        {!rotates && <View style={styles.groundShadow} />}
       </View>
     </MarkerAnimated>
   );
@@ -153,8 +147,14 @@ export function UserLocationMarker({
     ).start();
   }, [pulse]);
 
-  const haloScale = pulse.interpolate({inputRange: [0, 1], outputRange: [0.6, 2.2]});
-  const haloOpacity = pulse.interpolate({inputRange: [0, 1], outputRange: [0.35, 0]});
+  const haloScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.6, 2.2],
+  });
+  const haloOpacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.35, 0],
+  });
 
   return (
     <Marker
@@ -187,16 +187,13 @@ export function UserLocationMarker({
 }
 
 const styles = StyleSheet.create({
-  vehicleWrap: {alignItems: 'center', justifyContent: 'flex-end'},
-  vehicleImg: {},
-  groundShadow: {
-    position: 'absolute',
-    bottom: 0,
-    width: 26,
-    height: 7,
-    borderRadius: 7,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+  vehicleWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    overflow: 'visible',
   },
+  vehicleImage: {backgroundColor: 'transparent'},
   userWrap: {alignItems: 'center', justifyContent: 'center'},
   userHalo: {
     position: 'absolute',

@@ -41,6 +41,7 @@ import {
   UserLocationMarker,
 } from '../../../components/MapMarkers';
 import CardGradient from '../../../components/CardGradient';
+import {safeErrorMessage} from '../../../utils/safeErrorMessage';
 
 type RootStackParamList = {
   UserTracking: {
@@ -296,7 +297,7 @@ export default function TrackingScreen() {
             await cancelRide(rideId, 'User cancelled');
             navigation.navigate('UserHome');
           } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to cancel ride');
+            Alert.alert('Error', safeErrorMessage(error, 'Failed to cancel ride'));
           } finally {
             setCancelling(false);
           }

@@ -27,7 +27,7 @@ import {
   CheckCircle,
 } from 'lucide-react-native';
 import {colors, darkMapStyle, getVehicleImage, normalizeVehicleId} from '../theme';
-import {UserLocationMarker} from '../components/MapMarkers';
+import {ApproachingVehicleMarker, UserLocationMarker} from '../components/MapMarkers';
 import CardGradient from '../components/CardGradient';
 
 interface Booking {
@@ -356,22 +356,10 @@ const ActiveBookingScreen = () => {
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         }}>
-        <AnimatedMarker
-          coordinate={{
-            latitude: animatedLatitude,
-            longitude: animatedLongitude,
-          }}
-          title="Rider"
-          anchor={{x: 0.5, y: 0.62}}>
-          <View style={styles.vehicleMarkerWrap}>
-            <Image
-              source={getVehicleImage(vehicleId)}
-              style={styles.vehicleMarkerImg}
-              resizeMode="contain"
-            />
-            <View style={styles.vehicleMarkerShadow} />
-          </View>
-        </AnimatedMarker>
+        <ApproachingVehicleMarker
+          coordinate={riderLocation}
+          vehicleId={vehicleId}
+        />
 
         <UserLocationMarker
           coordinate={{

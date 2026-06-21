@@ -12,6 +12,7 @@ import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
 import {getRideBids, acceptBid} from '../../../services/rideService';
 import {colors} from '../../../theme';
 import CardGradient from '../../../components/CardGradient';
+import {safeErrorMessage} from '../../../utils/safeErrorMessage';
 import {
   ChevronLeft,
   Star,
@@ -264,17 +265,22 @@ export default function BidsScreen() {
 
     try {
       setAccepting(true);
-      const acceptedBooking = await acceptBid(rideId, String(bid.id));
+      const acceptedBooking: any = await acceptBid(rideId, String(bid.id));
 
       navigation.navigate('UserTracking', {
         rideId,
         rider: acceptedBooking?.rider || bid?.rider || bid,
         from: acceptedBooking?.pickupAddress || from,
         to: acceptedBooking?.dropAddress || to,
-        maxFare: Number(acceptedBooking?.finalFare || acceptedBooking?.estimatedFare || bid?.bidAmount || maxFare),
+        maxFare: Number(
+          acceptedBooking?.finalFare ||
+            acceptedBooking?.estimatedFare ||
+            bid?.bidAmount ||
+            maxFare,
+        ),
       });
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to accept bid');
+      Alert.alert('Error', safeErrorMessage(error, 'Failed to accept bid'));
     } finally {
       setAccepting(false);
     }

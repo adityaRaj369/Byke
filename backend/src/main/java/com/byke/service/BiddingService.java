@@ -53,6 +53,10 @@ public class BiddingService {
             throw new RuntimeException("You already have an active ride. Complete it before placing new bids.");
         }
 
+        if (!bookingService.vehicleTypesMatch(booking.getVehicleType(), rider.getVehicleType())) {
+            throw new RuntimeException("This booking requires a " + booking.getVehicleType() + " rider");
+        }
+
         // Max bid limit: Rider's bid can be at most ₹80 more than the user's entered amount
         Double userAmount = booking.getUserEnteredAmount() != null ? booking.getUserEnteredAmount() : booking.getEstimatedFare();
         if (bidAmount > (userAmount + 80.0)) {
@@ -198,21 +202,13 @@ public class BiddingService {
         
         List<Rider> nearbyRiders;
         String vehicleType = booking.getVehicleType();
-        if (vehicleType != null && !vehicleType.isEmpty()) {
+        if (vehicleType != null && !vehicleType.isBlank()) {
             nearbyRiders = riderService.getNearbyAvailableRidersByVehicleType(
                     booking.getPickupLatitude(),
                     booking.getPickupLongitude(),
                     10.0,
                     vehicleType
             );
-            // Fallback: if no riders with matching vehicle type, search all available riders
-            if (nearbyRiders.isEmpty()) {
-                nearbyRiders = riderService.getNearbyAvailableRiders(
-                        booking.getPickupLatitude(),
-                        booking.getPickupLongitude(),
-                        10.0
-                );
-            }
         } else {
             nearbyRiders = riderService.getNearbyAvailableRiders(
                     booking.getPickupLatitude(),

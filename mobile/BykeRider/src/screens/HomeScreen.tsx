@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSelector, useDispatch} from 'react-redux';
@@ -20,10 +21,8 @@ import {
 } from '../store/slices/riderSlice';
 import api from '../config/api';
 import {
-  clearLocationWatch,
   getCurrentLocation as fetchCurrentLocation,
   requestLocationPermission,
-  watchLocation,
 } from '../services/locationService';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -35,7 +34,12 @@ import {
   Shield,
   List,
 } from 'lucide-react-native';
-import {colors, darkMapStyle} from '../theme';
+import {
+  colors,
+  darkMapStyle,
+  getVehicleImage,
+  normalizeVehicleId,
+} from '../theme';
 import CardGradient from '../components/CardGradient';
 
 const HomeScreen = ({navigation}: any) => {
@@ -47,7 +51,6 @@ const HomeScreen = ({navigation}: any) => {
     (state: RootState) => state.rider,
   ) as any;
   const mapRef = useRef<MapView>(null);
-  const watchIdRef = useRef<number | null>(null);
 
   const [location, setLocation] = useState({
     latitude: 28.6139,
@@ -57,6 +60,7 @@ const HomeScreen = ({navigation}: any) => {
   });
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
 
   const getCurrentLocation = useCallback(async () => {
     try {
@@ -89,17 +93,16 @@ const HomeScreen = ({navigation}: any) => {
     }
 
     await getCurrentLocation();
-
-    if (watchIdRef.current === null) {
-      watchIdRef.current = watchLocation(loc => {
-        setLocation(prev => ({
-          ...prev,
-          latitude: loc.latitude,
-          longitude: loc.longitude,
-        }));
-      });
-    }
   }, [getCurrentLocation]);
+
+  const fetchRiderProfile = useCallback(async () => {
+    try {
+      const response = await api.get('/rider/profile');
+      setProfile(response.data || null);
+    } catch (error) {
+      console.log('Error fetching rider profile:', error);
+    }
+  }, []);
 
   const fetchRealEarnings = useCallback(async () => {
     try {
@@ -147,27 +150,32 @@ const HomeScreen = ({navigation}: any) => {
   useEffect(() => {
     requestAndLoadLocation();
     fetchRealEarnings();
+    fetchRiderProfile();
     checkActiveRide();
 
     const rideCheckInterval = setInterval(checkActiveRide, 5000);
     return () => {
       clearInterval(rideCheckInterval);
-      if (watchIdRef.current !== null) {
-        clearLocationWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
     };
-  }, [checkActiveRide, fetchRealEarnings, requestAndLoadLocation]);
+  }, [
+    checkActiveRide,
+    fetchRealEarnings,
+    fetchRiderProfile,
+    requestAndLoadLocation,
+  ]);
 
   useEffect(() => {
     if (isOnline && hasLocationPermission) {
       void startLocationTracking();
       const interval = setInterval(() => {
         void startLocationTracking();
-      }, 6000);
+      }, 30000);
       return () => clearInterval(interval);
     }
   }, [hasLocationPermission, isOnline, startLocationTracking]);
+
+  const vehicleType = profile?.vehicleType || 'Vehicle not set';
+  const vehicleId = normalizeVehicleId(vehicleType);
 
   const handleToggleOnline = async () => {
     try {
@@ -198,7 +206,7 @@ const HomeScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.mapContainer, {height: mapHeight}]}> 
+      <View style={[styles.mapContainer, {height: mapHeight}]}>
         <MapView
           ref={mapRef}
           provider={PROVIDER_GOOGLE}
@@ -210,17 +218,25 @@ const HomeScreen = ({navigation}: any) => {
           showsCompass={false}>
           <Marker coordinate={location}>
             <View style={styles.riderMarker}>
-              <Navigation size={20} color={colors.onAccent} fill={colors.onAccent} />
+              <Navigation
+                size={20}
+                color={colors.onAccent}
+                fill={colors.onAccent}
+              />
             </View>
           </Marker>
         </MapView>
 
-        <View style={[styles.headerOverlay, {top: insets.top + 8}]}> 
+        <View style={[styles.headerOverlay, {top: insets.top + 8}]}>
           <View style={styles.headerLeft}>
             <View
               style={[
                 styles.statusBadge,
-                {backgroundColor: isOnline ? colors.success : colors.surfaceAlt},
+                {
+                  backgroundColor: isOnline
+                    ? colors.success
+                    : colors.surfaceAlt,
+                },
               ]}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>
@@ -236,7 +252,9 @@ const HomeScreen = ({navigation}: any) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.recenterBtn} onPress={getCurrentLocation}>
+        <TouchableOpacity
+          style={styles.recenterBtn}
+          onPress={getCurrentLocation}>
           {locationLoading ? (
             <ActivityIndicator size="small" color={colors.text} />
           ) : (
@@ -255,7 +273,11 @@ const HomeScreen = ({navigation}: any) => {
         <View
           style={[
             styles.onlineCard,
-            {backgroundColor: isOnline ? colors.successSoft : colors.surfaceAlt},
+            {
+              backgroundColor: isOnline
+                ? colors.successSoft
+                : colors.surfaceAlt,
+            },
           ]}>
           <View style={styles.onlineCardLeft}>
             <Text style={styles.onlineLabel}>
@@ -273,6 +295,29 @@ const HomeScreen = ({navigation}: any) => {
           />
         </View>
 
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.vehicleIdentityCard}
+          onPress={() => navigation.navigate('Profile')}>
+          <CardGradient radius={24} />
+          <View style={styles.vehicleIconWrap}>
+            <Image
+              source={getVehicleImage(vehicleId)}
+              style={styles.vehicleIdentityImage}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.vehicleIdentityTextWrap}>
+            <Text style={styles.vehicleIdentityEyebrow}>
+              Your active vehicle
+            </Text>
+            <Text style={styles.vehicleIdentityTitle}>{vehicleType} Rider</Text>
+            <Text style={styles.vehicleIdentitySubtext}>
+              Only matching requests are shown for bidding.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
         <View style={styles.earningsCard}>
           <CardGradient radius={24} />
           <View style={styles.earningsHeader}>
@@ -289,7 +334,9 @@ const HomeScreen = ({navigation}: any) => {
             </View>
           </View>
           <View style={styles.earningsFooter}>
-            <Text style={styles.earningsWeekly}>Weekly: ₹{earnings.thisWeek}</Text>
+            <Text style={styles.earningsWeekly}>
+              Weekly: ₹{earnings.thisWeek}
+            </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Earnings')}>
               <Text style={styles.earningsLink}>View Details →</Text>
             </TouchableOpacity>
@@ -305,7 +352,10 @@ const HomeScreen = ({navigation}: any) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionBtn, {backgroundColor: 'rgba(59,130,246,0.16)'}]}
+            style={[
+              styles.actionBtn,
+              {backgroundColor: 'rgba(59,130,246,0.16)'},
+            ]}
             onPress={() => navigation.navigate('MyBids')}>
             <Clock size={22} color={colors.info} strokeWidth={2.5} />
             <Text style={styles.actionText}>My Bids</Text>
@@ -459,6 +509,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.textSub,
+  },
+  vehicleIdentityCard: {
+    backgroundColor: 'transparent',
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  vehicleIconWrap: {
+    width: 76,
+    height: 76,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  vehicleIdentityImage: {width: 68, height: 58},
+  vehicleIdentityTextWrap: {flex: 1},
+  vehicleIdentityEyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: colors.textMute,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  vehicleIdentityTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.text,
+    marginTop: 4,
+  },
+  vehicleIdentitySubtext: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSub,
+    marginTop: 4,
   },
   earningsCard: {
     backgroundColor: 'transparent',

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   Linking,
+  Image,
 } from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
 import {RootState, AppDispatch} from '../store';
@@ -21,7 +22,6 @@ import {
   HelpCircle,
   LogOut,
   ChevronRight,
-  FileText,
   Bike,
   ShieldCheck,
   Edit3,
@@ -29,8 +29,15 @@ import {
 } from 'lucide-react-native';
 import {useNavigation} from '@react-navigation/native';
 import api from '../config/api';
-import {colors} from '../theme';
+import {colors, getVehicleImage, normalizeVehicleId} from '../theme';
 import CardGradient from '../components/CardGradient';
+
+const RIDER_VEHICLE_TYPES = [
+  {id: 'bike', label: 'Bike'},
+  {id: 'auto', label: 'Auto'},
+  {id: 'cab', label: 'Cab'},
+  {id: 'parcel', label: 'Parcel'},
+];
 
 const ProfileScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -47,7 +54,7 @@ const ProfileScreen = () => {
     vehicleRegistrationNumber: '',
   });
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const response = await api.get('/rider/profile');
       const rider = response.data;
@@ -61,24 +68,28 @@ const ProfileScreen = () => {
     } catch {
       // ignore
     }
-  };
+  }, [user?.fullName]);
 
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [loadProfile]);
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout from Captain account?', [
-      {text: 'Cancel', style: 'cancel'},
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.clear();
-          dispatch(logout());
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout from Captain account?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await AsyncStorage.clear();
+            dispatch(logout());
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleSaveProfile = async () => {
@@ -98,11 +109,18 @@ const ProfileScreen = () => {
       await loadProfile();
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update profile');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to update profile',
+      );
     } finally {
       setSaving(false);
     }
   };
+
+  const vehicleId = normalizeVehicleId(
+    profile?.vehicleType || form.vehicleType,
+  );
 
   const menuItems = [
     {
@@ -139,7 +157,9 @@ const ProfileScreen = () => {
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {(profile?.user?.fullName || user?.fullName || 'C').charAt(0).toUpperCase()}
+                {(profile?.user?.fullName || user?.fullName || 'C')
+                  .charAt(0)
+                  .toUpperCase()}
               </Text>
             </View>
             <View style={styles.verifiedBadge}>
@@ -147,18 +167,37 @@ const ProfileScreen = () => {
             </View>
           </View>
 
-          <Text style={styles.name}>{profile?.user?.fullName || user?.fullName || 'BYKE Captain'}</Text>
-          <Text style={styles.phoneText}>{profile?.user?.mobileNumber || user?.mobileNumber || ''}</Text>
+          <Text style={styles.name}>
+            {profile?.user?.fullName || user?.fullName || 'BYKE Captain'}
+          </Text>
+          <Text style={styles.phoneText}>
+            {profile?.user?.mobileNumber || user?.mobileNumber || ''}
+          </Text>
 
           <View style={styles.vehicleCard}>
-            <CardGradient radius={12} />
-            <Text style={styles.vehicleTitle}>Vehicle Details</Text>
-            <Text style={styles.vehicleLine}>{profile?.vehicleType || 'Type not set'}</Text>
-            <Text style={styles.vehicleLine}>{profile?.vehicleModel || 'Model not set'}</Text>
-            <Text style={styles.vehicleLine}>{profile?.vehicleRegistrationNumber || 'Registration not set'}</Text>
+            <CardGradient radius={16} />
+            <Image
+              source={getVehicleImage(vehicleId)}
+              style={styles.vehicleImage}
+              resizeMode="contain"
+            />
+            <View style={styles.vehicleTextWrap}>
+              <Text style={styles.vehicleTitle}>Vehicle Details</Text>
+              <Text style={styles.vehicleLine}>
+                {profile?.vehicleType || 'Type not set'}
+              </Text>
+              <Text style={styles.vehicleLine}>
+                {profile?.vehicleModel || 'Model not set'}
+              </Text>
+              <Text style={styles.vehicleLine}>
+                {profile?.vehicleRegistrationNumber || 'Registration not set'}
+              </Text>
+            </View>
           </View>
 
-          <TouchableOpacity style={styles.editBtn} onPress={() => setEditVisible(true)}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => setEditVisible(true)}>
             <Edit3 size={16} color={colors.onAccent} />
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
@@ -176,7 +215,8 @@ const ProfileScreen = () => {
                   navigation.navigate(item.screen);
                   return;
                 }
-                const mail = 'mailto:support@byke.app?subject=BYKE Rider Support';
+                const mail =
+                  'mailto:support@byke.app?subject=BYKE Rider Support';
                 const canOpen = await Linking.canOpenURL(mail);
                 if (canOpen) {
                   await Linking.openURL(mail);
@@ -186,7 +226,8 @@ const ProfileScreen = () => {
               }}
               style={styles.menuItem}>
               <CardGradient radius={18} />
-              <View style={[styles.menuIcon, {backgroundColor: `${item.color}15`}]}>
+              <View
+                style={[styles.menuIcon, {backgroundColor: `${item.color}15`}]}>
                 <item.icon size={20} color={item.color} strokeWidth={2.5} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
@@ -194,7 +235,10 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity activeOpacity={0.7} onPress={handleLogout} style={styles.logoutBtn}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleLogout}
+            style={styles.logoutBtn}>
             <View style={styles.logoutIcon}>
               <LogOut size={20} color={colors.danger} strokeWidth={2.5} />
             </View>
@@ -215,17 +259,44 @@ const ProfileScreen = () => {
               placeholder="Full name"
               placeholderTextColor={colors.textMute}
             />
-            <TextInput
-              style={styles.input}
-              value={form.vehicleType}
-              onChangeText={vehicleType => setForm(prev => ({...prev, vehicleType}))}
-              placeholder="Vehicle type"
-              placeholderTextColor={colors.textMute}
-            />
+            <Text style={styles.vehiclePickerLabel}>Vehicle type</Text>
+            <View style={styles.vehiclePickerGrid}>
+              {RIDER_VEHICLE_TYPES.map(option => {
+                const selected =
+                  normalizeVehicleId(form.vehicleType) === option.id;
+                return (
+                  <TouchableOpacity
+                    key={option.id}
+                    activeOpacity={0.85}
+                    style={[
+                      styles.vehicleTypeChip,
+                      selected && styles.vehicleTypeChipActive,
+                    ]}
+                    onPress={() =>
+                      setForm(prev => ({...prev, vehicleType: option.label}))
+                    }>
+                    <Image
+                      source={getVehicleImage(option.id)}
+                      style={styles.vehicleTypeChipImage}
+                      resizeMode="contain"
+                    />
+                    <Text
+                      style={[
+                        styles.vehicleTypeChipText,
+                        selected && styles.vehicleTypeChipTextActive,
+                      ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
             <TextInput
               style={styles.input}
               value={form.vehicleModel}
-              onChangeText={vehicleModel => setForm(prev => ({...prev, vehicleModel}))}
+              onChangeText={vehicleModel =>
+                setForm(prev => ({...prev, vehicleModel}))
+              }
               placeholder="Vehicle model"
               placeholderTextColor={colors.textMute}
             />
@@ -240,11 +311,19 @@ const ProfileScreen = () => {
               placeholderTextColor={colors.textMute}
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setEditVisible(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-                {saving ? <CheckCircle2 size={16} color={colors.onAccent} /> : <Text style={styles.saveBtnText}>Save</Text>}
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleSaveProfile}>
+                {saving ? (
+                  <CheckCircle2 size={16} color={colors.onAccent} />
+                ) : (
+                  <Text style={styles.saveBtnText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -287,18 +366,37 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
   },
   name: {fontSize: 24, fontWeight: '900', color: colors.text},
-  phoneText: {fontSize: 12, fontWeight: '700', color: colors.textSub, marginTop: 5},
+  phoneText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSub,
+    marginTop: 5,
+  },
   vehicleCard: {
     marginTop: 12,
     backgroundColor: 'transparent',
     overflow: 'hidden',
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    minWidth: '78%',
+    paddingVertical: 12,
+    minWidth: '82%',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  vehicleTitle: {fontSize: 11, fontWeight: '900', color: colors.textMute, textTransform: 'uppercase'},
-  vehicleLine: {fontSize: 13, fontWeight: '700', color: colors.text, marginTop: 2},
+  vehicleImage: {width: 74, height: 58, marginRight: 12},
+  vehicleTextWrap: {flex: 1},
+  vehicleTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: colors.textMute,
+    textTransform: 'uppercase',
+  },
+  vehicleLine: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 2,
+  },
   editBtn: {
     marginTop: 12,
     flexDirection: 'row',
@@ -310,7 +408,12 @@ const styles = StyleSheet.create({
   },
   editBtnText: {marginLeft: 6, color: colors.onAccent, fontWeight: '800'},
   menuSection: {paddingHorizontal: 18, marginTop: 20, marginBottom: 34},
-  sectionTitle: {fontSize: 12, fontWeight: '900', color: colors.textMute, marginBottom: 14},
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.textMute,
+    marginBottom: 14,
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -362,7 +465,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  modalTitle: {fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 10},
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.text,
+    marginBottom: 10,
+  },
+  vehiclePickerLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.textMute,
+    marginTop: 12,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  vehiclePickerGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  },
+  vehicleTypeChip: {
+    width: '48%',
+    minHeight: 76,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+    margin: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  vehicleTypeChipActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  vehicleTypeChipImage: {width: 46, height: 34, marginBottom: 4},
+  vehicleTypeChipText: {fontSize: 12, fontWeight: '800', color: colors.textSub},
+  vehicleTypeChipTextActive: {color: colors.text},
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -374,7 +515,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     backgroundColor: colors.surfaceAlt,
   },
-  modalActions: {flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14},
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 14,
+  },
   cancelBtn: {
     paddingHorizontal: 14,
     paddingVertical: 10,

@@ -61,6 +61,23 @@ export const getVehicleImage = (id?: string) =>
 export const userMarkerImage = require('../../assets/icons/user.png');
 
 /**
+ * Top-down / bottom-view vehicle art used for the MOVING marker on the map.
+ * `baseAngle` = the compass direction the vehicle's FRONT points in the source
+ * image (0 = front faces up/north, 180 = front faces down/south). The marker
+ * rotates by (travelBearing - baseAngle) so the front always faces the road.
+ */
+export const mapVehicleIcons: Record<string, {source: any; baseAngle: number}> = {
+  bike: {source: require('../../assets/mapicons/BikeTopView.png'), baseAngle: 0},
+  cab: {source: require('../../assets/mapicons/cabTopView.png'), baseAngle: 0},
+  share: {source: require('../../assets/mapicons/cabTopView.png'), baseAngle: 0},
+  auto: {source: require('../../assets/mapicons/taxiBottomView.png'), baseAngle: 180},
+  parcel: {source: require('../../assets/mapicons/BikeWithParcelTopView.png'), baseAngle: 0},
+};
+
+export const getMapVehicle = (id?: string) =>
+  (id && mapVehicleIcons[id]) || mapVehicleIcons.bike;
+
+/**
  * Normalize any backend vehicle/service string (e.g. "BIKE", "Auto",
  * "CAR", "PARCEL") into one of our vehicle image ids.
  */

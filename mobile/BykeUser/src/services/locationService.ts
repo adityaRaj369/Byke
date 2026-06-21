@@ -63,13 +63,29 @@ const getCachedLocation = async (): Promise<Location | null> => {
   }
 };
 
-const getPositionOnce = (
-  options: {
-    enableHighAccuracy: boolean;
-    timeout: number;
-    maximumAge: number;
-  },
-): Promise<Location> =>
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error('Location timed out')),
+      timeoutMs,
+    );
+    promise.then(
+      value => {
+        clearTimeout(timeout);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+
+const getPositionOnce = (options: {
+  enableHighAccuracy: boolean;
+  timeout: number;
+  maximumAge: number;
+}): Promise<Location> =>
   new Promise((resolve, reject) => {
     Geolocation.getCurrentPosition(
       position => {
@@ -98,7 +114,9 @@ export const requestLocationPermission = async (): Promise<boolean> => {
 
   if (Platform.OS === 'android') {
     const [fineAlreadyGranted, coarseAlreadyGranted] = await Promise.all([
-      PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION),
+      PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      ),
       PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
       ),
@@ -111,7 +129,8 @@ export const requestLocationPermission = async (): Promise<boolean> => {
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
     ]);
-    const fine = permissionResult[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+    const fine =
+      permissionResult[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
     const coarse =
       permissionResult[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION];
     if (
@@ -144,48 +163,39 @@ export const requestLocationPermission = async (): Promise<boolean> => {
   return false;
 };
 
-export const getCurrentLocation = (): Promise<Location> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const highAccuracy = await Promise.race<Location>([
-        getPositionOnce({
-          enableHighAccuracy: true,
-          timeout: GEO_TIMEOUT_MS,
-          maximumAge: 5000,
-        }),
-        new Promise<Location>((_, timeoutReject) =>
-          setTimeout(() => timeoutReject(new Error('Location timed out')), GEO_TIMEOUT_MS + 1000),
-        ),
-      ]);
-      await cacheLocation(highAccuracy);
-      resolve(highAccuracy);
-      return;
-    } catch {}
+export const getCurrentLocation = async (): Promise<Location> => {
+  try {
+    const highAccuracy = await withTimeout(
+      getPositionOnce({
+        enableHighAccuracy: true,
+        timeout: GEO_TIMEOUT_MS,
+        maximumAge: 5000,
+      }),
+      GEO_TIMEOUT_MS + 1000,
+    );
+    await cacheLocation(highAccuracy);
+    return highAccuracy;
+  } catch {}
 
-    try {
-      const lowAccuracy = await Promise.race<Location>([
-        getPositionOnce({
-          enableHighAccuracy: false,
-          timeout: 7000,
-          maximumAge: 120000,
-        }),
-        new Promise<Location>((_, timeoutReject) =>
-          setTimeout(() => timeoutReject(new Error('Location timed out')), 8000),
-        ),
-      ]);
-      await cacheLocation(lowAccuracy);
-      resolve(lowAccuracy);
-      return;
-    } catch {}
+  try {
+    const lowAccuracy = await withTimeout(
+      getPositionOnce({
+        enableHighAccuracy: false,
+        timeout: 7000,
+        maximumAge: 120000,
+      }),
+      8000,
+    );
+    await cacheLocation(lowAccuracy);
+    return lowAccuracy;
+  } catch {}
 
-    const cached = await getCachedLocation();
-    if (cached) {
-      resolve(cached);
-      return;
-    }
+  const cached = await getCachedLocation();
+  if (cached) {
+    return cached;
+  }
 
-    reject(new Error('Unable to fetch current location'));
-  });
+  throw new Error('Unable to fetch current location');
 };
 
 export const watchLocation = (
@@ -194,11 +204,13 @@ export const watchLocation = (
 ): number => {
   return Geolocation.watchPosition(
     position => {
-      onLocationChange({
+      const location = toLocation({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        heading: position.coords.heading ?? undefined,
+        heading: position.coords.heading,
       });
+      cacheLocation(location).catch(() => undefined);
+      onLocationChange(location);
     },
     error => {
       if (onError) {
@@ -256,7 +268,6 @@ export const reverseGeocode = async (
     );
     const data = await response.json();
     if (data.status === 'OK' && data.results.length > 0) {
-      // Use the short formatted address (neighborhood + city level)
       const components = data.results[0].address_components as any[];
       const sub = components.find(
         (c: any) =>

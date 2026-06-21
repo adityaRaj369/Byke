@@ -576,7 +576,10 @@ const HomeScreen = ({navigation}: any) => {
               <TouchableOpacity
                 key={vehicle.id}
                 activeOpacity={0.9}
-                onPress={() => setSelectedVehicleId(vehicle.id)}
+                onPress={() => {
+                  setSelectedVehicleId(vehicle.id);
+                  setShowSearch(true);
+                }}
                 style={[
                   styles.vehicleHeroCard,
                   {width: width - 40},
@@ -592,11 +595,6 @@ const HomeScreen = ({navigation}: any) => {
                   <Text style={styles.vehicleHeroTitle}>{vehicle.label}</Text>
                   <Text style={styles.vehicleHeroSubtitle}>
                     {vehicle.desc} · {vehicle.etaMin} min away
-                  </Text>
-                </View>
-                <View style={styles.vehicleActivePill}>
-                  <Text style={styles.vehicleActiveText}>
-                    {active ? 'Selected' : 'Tap to select'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1006,22 +1004,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textSub,
     marginTop: 6,
-  },
-  vehicleActivePill: {
-    position: 'absolute',
-    right: 14,
-    bottom: 14,
-    borderRadius: 999,
-    backgroundColor: colors.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  vehicleActiveText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: colors.onAccent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   searchBar: {
     flexDirection: 'row',

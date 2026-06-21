@@ -244,8 +244,9 @@ const HomeScreen = ({navigation}: any) => {
       setNearbyRiders(
         riders.filter(
           rider =>
-            Number.isFinite(Number(rider.currentLatitude)) &&
-            Number.isFinite(Number(rider.currentLongitude)) &&
+            (Number.isFinite(Number(rider.currentLatitude)) &&
+              Number.isFinite(Number(rider.currentLongitude)) &&
+              selectedVehicleId === 'parcel') ||
             normalizeVehicleId(rider.vehicleType) === selectedVehicleId,
         ),
       );
@@ -667,6 +668,7 @@ const HomeScreen = ({navigation}: any) => {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          style={styles.vehicleCarouselScroll}
           contentContainerStyle={styles.vehicleCarousel}
           snapToInterval={width - 40}
           decelerationRate="fast"
@@ -1150,13 +1152,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 6,
+  },
+  vehicleCarouselScroll: {
+    height: 134,
+    maxHeight: 134,
   },
   vehicleCarousel: {
     paddingVertical: 2,
   },
   vehicleHeroCard: {
-    height: 150,
+    height: 128,
     borderRadius: 26,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.14)',
@@ -1181,8 +1187,8 @@ const styles = StyleSheet.create({
     top: -26,
   },
   vehicleHeroImage: {
-    width: 142,
-    height: 112,
+    width: 128,
+    height: 96,
     marginRight: 12,
   },
   vehicleHeroTextWrap: {
@@ -1190,7 +1196,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   vehicleHeroTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     color: colors.text,
   },
@@ -1204,8 +1210,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -8,
-    marginBottom: 4,
+    marginTop: -2,
+    marginBottom: 2,
   },
   vehicleSwipeHintText: {
     fontSize: 12,
@@ -1262,8 +1268,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 14,
+    paddingVertical: 10,
+    marginBottom: 10,
   },
   searchPlaceholder: {
     marginLeft: 12,

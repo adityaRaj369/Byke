@@ -12,8 +12,9 @@ import {
   PanResponder,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from 'react-native';
-import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
+import MapView, {Circle, Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSelector, useDispatch} from 'react-redux';
 import {RootState, AppDispatch} from '../store';
 import {
@@ -269,6 +270,7 @@ const HomeScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
       <View style={styles.mapContainer}>
         <MapView
           ref={mapRef}
@@ -276,10 +278,26 @@ const HomeScreen = ({navigation}: any) => {
           style={StyleSheet.absoluteFill}
           customMapStyle={darkMapStyle}
           region={location}
-          showsUserLocation
+          showsUserLocation={false}
           showsMyLocationButton={false}
-          showsCompass={false}
-        />
+          showsCompass={false}>
+          <Circle
+            center={location}
+            radius={40}
+            fillColor="rgba(66,133,244,0.1)"
+            strokeColor="rgba(66,133,244,0.25)"
+            strokeWidth={1}
+          />
+          <Marker
+            coordinate={location}
+            anchor={{x: 0.5, y: 0.5}}
+            flat
+            tracksViewChanges={false}>
+            <View style={styles.blueDotOuter}>
+              <View style={styles.blueDotInner} />
+            </View>
+          </Marker>
+        </MapView>
 
         <View style={[styles.headerOverlay, {top: insets.top + 8}]}>
           <View style={styles.headerLeft}>
@@ -447,6 +465,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   mapContainer: {...StyleSheet.absoluteFillObject, overflow: 'hidden'},
+  blueDotOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  blueDotInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4285F4',
+  },
   headerOverlay: {
     position: 'absolute',
     left: 20,

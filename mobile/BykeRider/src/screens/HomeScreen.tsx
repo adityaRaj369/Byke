@@ -8,10 +8,12 @@ import {
   StyleSheet,
   useWindowDimensions,
   ScrollView,
+  Animated,
+  PanResponder,
   ActivityIndicator,
   Image,
 } from 'react-native';
-import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
+import MapView, {PROVIDER_GOOGLE} from 'react-native-maps';
 import {useSelector, useDispatch} from 'react-redux';
 import {RootState, AppDispatch} from '../store';
 import {
@@ -42,15 +44,27 @@ import {
 } from '../theme';
 import CardGradient from '../components/CardGradient';
 
+const INITIAL_SHEET_VISIBLE_RATIO = 0.55;
+const EXPANDED_SHEET_VISIBLE_RATIO = 0.75;
+const COLLAPSED_SHEET_VISIBLE_RATIO = 0.28;
+
 const HomeScreen = ({navigation}: any) => {
   const {height} = useWindowDimensions();
-  const mapHeight = height * 0.58;
+  const maxSheetHeight = height * EXPANDED_SHEET_VISIBLE_RATIO;
+  const initialSheetOffset =
+    maxSheetHeight - height * INITIAL_SHEET_VISIBLE_RATIO;
+  const collapsedSheetOffset =
+    maxSheetHeight - height * COLLAPSED_SHEET_VISIBLE_RATIO;
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch<AppDispatch>();
   const {isOnline, earnings} = useSelector(
     (state: RootState) => state.rider,
   ) as any;
   const mapRef = useRef<MapView>(null);
+  const sheetTranslateY = useRef(
+    new Animated.Value(initialSheetOffset),
+  ).current;
+  const sheetOffsetRef = useRef(initialSheetOffset);
 
   const [location, setLocation] = useState({
     latitude: 28.6139,
@@ -61,6 +75,55 @@ const HomeScreen = ({navigation}: any) => {
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+
+  const snapSheetTo = useCallback(
+    (offset: number) => {
+      const nextOffset = Math.max(0, Math.min(collapsedSheetOffset, offset));
+      sheetOffsetRef.current = nextOffset;
+      Animated.spring(sheetTranslateY, {
+        toValue: nextOffset,
+        useNativeDriver: true,
+        damping: 24,
+        stiffness: 180,
+        mass: 0.8,
+      }).start();
+    },
+    [collapsedSheetOffset, sheetTranslateY],
+  );
+
+  useEffect(() => {
+    snapSheetTo(initialSheetOffset);
+  }, [initialSheetOffset, snapSheetTo]);
+
+  const sheetPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+        Math.abs(gestureState.dy) > 4,
+      onPanResponderMove: (_, gestureState) => {
+        const nextOffset = Math.max(
+          0,
+          Math.min(
+            collapsedSheetOffset,
+            sheetOffsetRef.current + gestureState.dy,
+          ),
+        );
+        sheetTranslateY.setValue(nextOffset);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const projectedOffset = sheetOffsetRef.current + gestureState.dy;
+        const snapPoints = [0, initialSheetOffset, collapsedSheetOffset];
+        const target = snapPoints.reduce((closest, point) =>
+          Math.abs(point - projectedOffset) <
+          Math.abs(closest - projectedOffset)
+            ? point
+            : closest,
+        );
+        snapSheetTo(target);
+      },
+    }),
+  ).current;
 
   const getCurrentLocation = useCallback(async () => {
     try {
@@ -206,7 +269,7 @@ const HomeScreen = ({navigation}: any) => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.mapContainer, {height: mapHeight}]}>
+      <View style={styles.mapContainer}>
         <MapView
           ref={mapRef}
           provider={PROVIDER_GOOGLE}
@@ -215,17 +278,8 @@ const HomeScreen = ({navigation}: any) => {
           region={location}
           showsUserLocation
           showsMyLocationButton={false}
-          showsCompass={false}>
-          <Marker coordinate={location}>
-            <View style={styles.riderMarker}>
-              <Navigation
-                size={20}
-                color={colors.onAccent}
-                fill={colors.onAccent}
-              />
-            </View>
-          </Marker>
-        </MapView>
+          showsCompass={false}
+        />
 
         <View style={[styles.headerOverlay, {top: insets.top + 8}]}>
           <View style={styles.headerLeft}>
@@ -253,7 +307,10 @@ const HomeScreen = ({navigation}: any) => {
         </View>
 
         <TouchableOpacity
-          style={styles.recenterBtn}
+          style={[
+            styles.recenterBtn,
+            {bottom: height * INITIAL_SHEET_VISIBLE_RATIO + 20},
+          ]}
           onPress={getCurrentLocation}>
           {locationLoading ? (
             <ActivityIndicator size="small" color={colors.text} />
@@ -263,112 +320,123 @@ const HomeScreen = ({navigation}: any) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.bottomSheet}
-        contentContainerStyle={[
-          styles.bottomSheetContent,
-          {paddingBottom: Math.max(insets.bottom + 84, 92)},
-        ]}
-        showsVerticalScrollIndicator={false}>
-        <View
-          style={[
-            styles.onlineCard,
-            {
-              backgroundColor: isOnline
-                ? colors.successSoft
-                : colors.surfaceAlt,
-            },
-          ]}>
-          <View style={styles.onlineCardLeft}>
-            <Text style={styles.onlineLabel}>
-              Go {isOnline ? 'Offline' : 'Online'}
-            </Text>
-            <Text style={styles.onlineSubtext}>
-              {isOnline ? 'Stop receiving orders' : 'Start accepting orders'}
-            </Text>
-          </View>
-          <Switch
-            value={isOnline}
-            onValueChange={handleToggleOnline}
-            trackColor={{false: colors.borderStrong, true: colors.success}}
-            thumbColor="#fff"
-          />
+      <Animated.View
+        style={[
+          styles.bottomSheet,
+          {height: maxSheetHeight, transform: [{translateY: sheetTranslateY}]},
+        ]}>
+        <CardGradient radius={32} />
+        <View {...sheetPanResponder.panHandlers} style={styles.sheetDragZone}>
+          <View style={styles.sheetHandle} />
         </View>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.vehicleIdentityCard}
-          onPress={() => navigation.navigate('Profile')}>
-          <CardGradient radius={24} />
-          <View style={styles.vehicleIconWrap}>
-            <Image
-              source={getVehicleImage(vehicleId)}
-              style={styles.vehicleIdentityImage}
-              resizeMode="contain"
+        <ScrollView
+          contentContainerStyle={[
+            styles.bottomSheetContent,
+            {paddingBottom: Math.max(insets.bottom + 84, 92)},
+          ]}
+          showsVerticalScrollIndicator={false}>
+          <View
+            style={[
+              styles.onlineCard,
+              {
+                backgroundColor: isOnline
+                  ? colors.successSoft
+                  : colors.surfaceAlt,
+              },
+            ]}>
+            <View style={styles.onlineCardLeft}>
+              <Text style={styles.onlineLabel}>
+                Go {isOnline ? 'Offline' : 'Online'}
+              </Text>
+              <Text style={styles.onlineSubtext}>
+                {isOnline ? 'Stop receiving orders' : 'Start accepting orders'}
+              </Text>
+            </View>
+            <Switch
+              value={isOnline}
+              onValueChange={handleToggleOnline}
+              trackColor={{false: colors.borderStrong, true: colors.success}}
+              thumbColor="#fff"
             />
           </View>
-          <View style={styles.vehicleIdentityTextWrap}>
-            <Text style={styles.vehicleIdentityEyebrow}>
-              Your active vehicle
-            </Text>
-            <Text style={styles.vehicleIdentityTitle}>{vehicleType} Rider</Text>
-            <Text style={styles.vehicleIdentitySubtext}>
-              Only matching requests are shown for bidding.
-            </Text>
-          </View>
-        </TouchableOpacity>
 
-        <View style={styles.earningsCard}>
-          <CardGradient radius={24} />
-          <View style={styles.earningsHeader}>
-            <View style={styles.earningsIcon}>
-              <Wallet size={18} color={colors.accent} />
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.vehicleIdentityCard}
+            onPress={() => navigation.navigate('Profile')}>
+            <CardGradient radius={24} />
+            <View style={styles.vehicleIconWrap}>
+              <Image
+                source={getVehicleImage(vehicleId)}
+                style={styles.vehicleIdentityImage}
+                resizeMode="contain"
+              />
             </View>
-            <Text style={styles.earningsTitle}>Today's Earnings</Text>
-          </View>
-          <View style={styles.earningsRow}>
-            <Text style={styles.earningsAmount}>₹{earnings.today}</Text>
-            <View style={styles.earningsBadge}>
-              <TrendingUp size={12} color={colors.success} />
-              <Text style={styles.earningsBadgeText}>+12%</Text>
+            <View style={styles.vehicleIdentityTextWrap}>
+              <Text style={styles.vehicleIdentityEyebrow}>
+                Your active vehicle
+              </Text>
+              <Text style={styles.vehicleIdentityTitle}>
+                {vehicleType} Rider
+              </Text>
+              <Text style={styles.vehicleIdentitySubtext}>
+                Only matching requests are shown for bidding.
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.earningsCard}>
+            <CardGradient radius={24} />
+            <View style={styles.earningsHeader}>
+              <View style={styles.earningsIcon}>
+                <Wallet size={18} color={colors.accent} />
+              </View>
+              <Text style={styles.earningsTitle}>Today's Earnings</Text>
+            </View>
+            <View style={styles.earningsRow}>
+              <Text style={styles.earningsAmount}>₹{earnings.today}</Text>
+              <View style={styles.earningsBadge}>
+                <TrendingUp size={12} color={colors.success} />
+                <Text style={styles.earningsBadgeText}>+12%</Text>
+              </View>
+            </View>
+            <View style={styles.earningsFooter}>
+              <Text style={styles.earningsWeekly}>
+                Weekly: ₹{earnings.thisWeek}
+              </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Earnings')}>
+                <Text style={styles.earningsLink}>View Details →</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.earningsFooter}>
-            <Text style={styles.earningsWeekly}>
-              Weekly: ₹{earnings.thisWeek}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Earnings')}>
-              <Text style={styles.earningsLink}>View Details →</Text>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.actionBtn, {backgroundColor: colors.accentSoft}]}
+              onPress={() => navigation.navigate('AvailableBookings')}>
+              <List size={22} color={colors.accent} strokeWidth={2.5} />
+              <Text style={styles.actionText}>Orders</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                {backgroundColor: 'rgba(59,130,246,0.16)'},
+              ]}
+              onPress={() => navigation.navigate('MyBids')}>
+              <Clock size={22} color={colors.info} strokeWidth={2.5} />
+              <Text style={styles.actionText}>My Bids</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionBtn, {backgroundColor: colors.successSoft}]}
+              onPress={() => navigation.navigate('Documents')}>
+              <Shield size={22} color={colors.success} strokeWidth={2.5} />
+              <Text style={styles.actionText}>Docs</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, {backgroundColor: colors.accentSoft}]}
-            onPress={() => navigation.navigate('AvailableBookings')}>
-            <List size={22} color={colors.accent} strokeWidth={2.5} />
-            <Text style={styles.actionText}>Orders</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              {backgroundColor: 'rgba(59,130,246,0.16)'},
-            ]}
-            onPress={() => navigation.navigate('MyBids')}>
-            <Clock size={22} color={colors.info} strokeWidth={2.5} />
-            <Text style={styles.actionText}>My Bids</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, {backgroundColor: colors.successSoft}]}
-            onPress={() => navigation.navigate('Documents')}>
-            <Shield size={22} color={colors.success} strokeWidth={2.5} />
-            <Text style={styles.actionText}>Docs</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </View>
   );
 };
@@ -378,24 +446,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  mapContainer: {
-    width: '100%',
-  },
-  riderMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.bg,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
+  mapContainer: {...StyleSheet.absoluteFillObject, overflow: 'hidden'},
   headerOverlay: {
     position: 'absolute',
     left: 20,
@@ -473,17 +524,33 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bottomSheet: {
-    flex: 1,
-    backgroundColor: colors.surface,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 12,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -4},
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
+  },
+  sheetDragZone: {
+    paddingTop: 4,
+    paddingBottom: 12,
+    alignItems: 'center',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: colors.borderStrong,
+    borderRadius: 3,
   },
   bottomSheetContent: {
     paddingBottom: 92,

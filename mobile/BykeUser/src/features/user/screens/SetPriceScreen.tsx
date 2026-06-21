@@ -14,6 +14,7 @@ import {ArrowLeft, Plus, Edit3} from 'lucide-react-native';
 import {createRideRequest} from '../../../services/rideService';
 import {colors} from '../../../theme';
 import CardGradient from '../../../components/CardGradient';
+import {safeErrorMessage} from '../../../utils/safeErrorMessage';
 
 const QUICK_INCREMENTS = [10, 20, 30];
 
@@ -22,7 +23,9 @@ const SetPriceScreen = ({navigation, route}: any) => {
     route.params;
 
   // Safely get vehicle label
+  const vehicleId = String(vehicle?.id || '').toLowerCase();
   const vehicleLabel = vehicle?.label || vehicle?.name || 'Auto';
+  const serviceType = vehicleId === 'parcel' ? 'PARCEL' : 'RIDE';
 
   const vehicleBaseMin = Number(vehicle?.baseMin) || 100;
   const vehicleBasePerKm = vehicleBaseMin / 18;
@@ -80,6 +83,7 @@ const SetPriceScreen = ({navigation, route}: any) => {
           longitude: dropCoords.longitude,
           address: drop,
         },
+        serviceType,
         vehicleType: vehicleLabel,
         userEnteredAmount: userAmount,
         distanceKm,
@@ -116,7 +120,10 @@ const SetPriceScreen = ({navigation, route}: any) => {
       }
     } catch (error: any) {
       console.error('Create ride failed:', error);
-      Alert.alert('Error', error.message || 'Failed to create ride request');
+      Alert.alert(
+        'Error',
+        safeErrorMessage(error, 'Failed to create ride request'),
+      );
     } finally {
       setLoading(false);
     }
@@ -231,7 +238,12 @@ const styles = StyleSheet.create({
   headerTitle: {fontSize: 18, fontWeight: '600', color: colors.text},
   content: {flex: 1, paddingHorizontal: 20},
   section: {marginTop: 24},
-  label: {fontSize: 14, fontWeight: '600', color: colors.textSub, marginBottom: 12},
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSub,
+    marginBottom: 12,
+  },
   baseFareCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,

@@ -91,9 +91,14 @@ public class BookingController {
     @GetMapping("/available")
     public ResponseEntity<?> getAvailableBookings(@RequestParam(required = false) Double latitude,
                                                    @RequestParam(required = false) Double longitude,
-                                                   @RequestParam(defaultValue = "50.0") Double radius) {
+                                                   @RequestParam(defaultValue = "50.0") Double radius,
+                                                   HttpServletRequest request) {
         try {
-            List<Booking> bookings = bookingService.getAvailableBookings(latitude, longitude, radius);
+            Long userId = (Long) request.getAttribute("userId");
+            String userRole = (String) request.getAttribute("userRole");
+            List<Booking> bookings = "RIDER".equalsIgnoreCase(userRole) && userId != null
+                    ? bookingService.getAvailableBookingsForRider(userId, latitude, longitude, radius)
+                    : bookingService.getAvailableBookings(latitude, longitude, radius);
             return ResponseEntity.ok(bookings);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

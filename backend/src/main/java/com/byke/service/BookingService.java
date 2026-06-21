@@ -270,28 +270,54 @@ public class BookingService {
     }
 
     public List<Booking> getAvailableBookings(Double latitude, Double longitude, Double radius) {
+        return filterAvailableBookings(null, latitude, longitude, radius);
+    }
+
+    public List<Booking> getAvailableBookingsForRider(Long userId, Double latitude, Double longitude, Double radius) {
+        Rider rider = riderService.getOrCreateRiderForUser(userId);
+        return filterAvailableBookings(rider, latitude, longitude, radius);
+    }
+
+    private List<Booking> filterAvailableBookings(Rider rider, Double latitude, Double longitude, Double radius) {
         List<Booking> allBiddingBookings = bookingRepository.findByStatus(BookingStatus.BIDDING);
-        
+
         // Default radius to 10km if not provided
         final double searchRadius = (radius != null) ? radius : 10.0;
-        
-        if (latitude == null || longitude == null) {
-            // Return most recent first
-            return allBiddingBookings.stream()
-                    .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
-                    .toList();
-        }
-        
+
         return allBiddingBookings.stream()
-                .filter(booking -> {
-                    double distance = calculateDistance(
-                            latitude, longitude,
-                            booking.getPickupLatitude(), booking.getPickupLongitude()
-                    );
-                    return distance <= searchRadius;
-                })
+                .filter(booking -> rider == null || vehicleTypesMatch(booking.getVehicleType(), rider.getVehicleType()))
+                .filter(booking -> latitude == null || longitude == null || calculateDistance(
+                        latitude, longitude,
+                        booking.getPickupLatitude(), booking.getPickupLongitude()
+                ) <= searchRadius)
                 .sorted((b1, b2) -> b2.getCreatedAt().compareTo(b1.getCreatedAt()))
                 .toList();
+    }
+
+    public boolean vehicleTypesMatch(String bookingVehicleType, String riderVehicleType) {
+        String bookingType = normalizeVehicleType(bookingVehicleType);
+        if (bookingType.isBlank()) {
+            return true;
+        }
+        String riderType = normalizeVehicleType(riderVehicleType);
+        return !riderType.isBlank() && bookingType.equals(riderType);
+    }
+
+    private String normalizeVehicleType(String value) {
+        String raw = value == null ? "" : value.trim().toLowerCase();
+        if (raw.contains("parcel") || raw.contains("courier") || raw.contains("delivery")) {
+            return "parcel";
+        }
+        if (raw.contains("auto") || raw.contains("rick") || raw.contains("tuk")) {
+            return "auto";
+        }
+        if (raw.contains("cab") || raw.contains("car") || raw.contains("taxi") || raw.contains("sedan")) {
+            return "cab";
+        }
+        if (raw.contains("bike") || raw.contains("moto") || raw.contains("scoot")) {
+            return "bike";
+        }
+        return raw;
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {

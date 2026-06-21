@@ -11,7 +11,12 @@ import {
   ScrollView,
 } from 'react-native';
 import MapView, {Marker, PROVIDER_GOOGLE, Polyline} from 'react-native-maps';
-import {colors, darkMapStyle} from '../theme';
+import {
+  colors,
+  darkMapStyle,
+  getVehicleImage,
+  normalizeVehicleId,
+} from '../theme';
 import {useSelector, useDispatch} from 'react-redux';
 import {RootState, AppDispatch} from '../store';
 import {setAvailableBookings, addBid} from '../store/slices/riderSlice';
@@ -92,6 +97,7 @@ const AvailableBookingsScreen = ({navigation}: any) => {
             return {
               id: String(booking.id),
               type: booking.serviceType?.toLowerCase() || 'ride',
+              vehicleType: booking.vehicleType || booking.serviceType || 'Bike',
               status: booking.status?.toLowerCase() || 'bidding',
               pickupLocation: {
                 address: booking.pickupAddress || 'Pickup location',
@@ -103,7 +109,8 @@ const AvailableBookingsScreen = ({navigation}: any) => {
                 latitude: dropLatitude,
                 longitude: dropLongitude,
               },
-              description: booking.errandDescription || booking.parcelDescription,
+              description:
+                booking.errandDescription || booking.parcelDescription,
               estimatedFare: booking.estimatedFare || 100,
               userAmount:
                 booking.userEnteredAmount || booking.estimatedFare || 100,
@@ -254,33 +261,15 @@ const AvailableBookingsScreen = ({navigation}: any) => {
     handleNext();
   };
 
-  const getServiceInfo = (type: string) => {
-    switch (type) {
-      case 'ride':
-        return {
-          icon: require('../../assets/icons/bike.png'),
-          color: colors.accent,
-          label: 'Ride Request',
-        };
-      case 'errand':
-        return {
-          icon: require('../../assets/icons/auto.png'),
-          color: colors.success,
-          label: 'Errand Task',
-        };
-      case 'parcel':
-        return {
-          icon: require('../../assets/icons/parcel.png'),
-          color: colors.info,
-          label: 'Parcel Delivery',
-        };
-      default:
-        return {
-          icon: require('../../assets/icons/bike.png'),
-          color: colors.textMute,
-          label: type,
-        };
-    }
+  const getServiceInfo = (type: string, vehicleType?: string) => {
+    const vehicleId = normalizeVehicleId(vehicleType || type);
+    const vehicleLabel = vehicleType || type;
+    const isParcel = vehicleId === 'parcel' || type === 'parcel';
+    return {
+      icon: getVehicleImage(vehicleId),
+      color: isParcel ? colors.info : colors.accent,
+      label: `${vehicleLabel} Request`,
+    };
   };
 
   if (loading && availableBookings.length === 0) {
@@ -344,7 +333,10 @@ const AvailableBookingsScreen = ({navigation}: any) => {
     );
   }
 
-  const serviceInfo = getServiceInfo(currentBooking.type);
+  const serviceInfo = getServiceInfo(
+    currentBooking.type,
+    currentBooking.vehicleType,
+  );
 
   return (
     <View style={styles.container}>
@@ -422,71 +414,90 @@ const AvailableBookingsScreen = ({navigation}: any) => {
             contentContainerStyle={styles.cardScrollContent}
             showsVerticalScrollIndicator={false}>
             <View style={styles.cardHeader}>
-            <View
-              style={[styles.serviceTag, {backgroundColor: serviceInfo.color}]}>
-              <Image
-                source={serviceInfo.icon}
-                style={{width: 16, height: 16, tintColor: colors.onAccent}}
-              />
-              <Text style={styles.serviceLabel}>{serviceInfo.label}</Text>
-            </View>
-            <View style={styles.userContainer}>
-              <User size={16} color={colors.textSub} />
-              <Text style={styles.userName}>{currentBooking.user.name}</Text>
-              <Text style={styles.userRating}>
-                ⭐ {currentBooking.user.rating}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.locationContainer}>
-            <View style={styles.locationRow}>
-              <View style={[styles.dot, {backgroundColor: colors.success}]} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {currentBooking.pickupLocation.address}
-              </Text>
-            </View>
-            <View style={styles.line} />
-            <View style={styles.locationRow}>
-              <View style={[styles.dot, {backgroundColor: colors.danger}]} />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {currentBooking.dropLocation.address}
-              </Text>
-            </View>
-          </View>
-
-          {currentBooking.description && (
-            <View style={styles.descriptionBox}>
-              <Info size={14} color={colors.textSub} />
-              <Text style={styles.descriptionText} numberOfLines={2}>
-                {currentBooking.description}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.fareContainer}>
-            <View>
-              <Text style={styles.fareLabel}>User's Price</Text>
-              <Text style={styles.fareAmount}>
-                ₹{currentBooking.userAmount}
-              </Text>
-            </View>
-            <View style={styles.bidInputContainer}>
-              <Text style={styles.bidLabel}>
-                Your Bid (Max ₹{currentBooking.userAmount + 80})
-              </Text>
-              <View style={styles.bidInputWrapper}>
-                <Text style={styles.currency}>₹</Text>
-                <TextInput
-                  style={styles.bidInput}
-                  value={bidAmount}
-                  onChangeText={setBidAmount}
-                  placeholder={String(currentBooking.userAmount)}
-                  keyboardType="numeric"
+              <View
+                style={[
+                  styles.serviceTag,
+                  {backgroundColor: serviceInfo.color},
+                ]}>
+                <Image
+                  source={serviceInfo.icon}
+                  style={{width: 16, height: 16, tintColor: colors.onAccent}}
                 />
+                <Text style={styles.serviceLabel}>{serviceInfo.label}</Text>
+              </View>
+              <View style={styles.userContainer}>
+                <User size={16} color={colors.textSub} />
+                <Text style={styles.userName}>{currentBooking.user.name}</Text>
+                <Text style={styles.userRating}>
+                  ⭐ {currentBooking.user.rating}
+                </Text>
               </View>
             </View>
-          </View>
+
+            <View style={styles.vehicleRequirementBox}>
+              <Image
+                source={serviceInfo.icon}
+                style={styles.vehicleRequirementImage}
+                resizeMode="contain"
+              />
+              <View style={styles.vehicleRequirementTextWrap}>
+                <Text style={styles.vehicleRequirementLabel}>
+                  Required vehicle
+                </Text>
+                <Text style={styles.vehicleRequirementTitle}>
+                  {currentBooking.vehicleType}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.locationContainer}>
+              <View style={styles.locationRow}>
+                <View style={[styles.dot, {backgroundColor: colors.success}]} />
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {currentBooking.pickupLocation.address}
+                </Text>
+              </View>
+              <View style={styles.line} />
+              <View style={styles.locationRow}>
+                <View style={[styles.dot, {backgroundColor: colors.danger}]} />
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {currentBooking.dropLocation.address}
+                </Text>
+              </View>
+            </View>
+
+            {currentBooking.description && (
+              <View style={styles.descriptionBox}>
+                <Info size={14} color={colors.textSub} />
+                <Text style={styles.descriptionText} numberOfLines={2}>
+                  {currentBooking.description}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.fareContainer}>
+              <View>
+                <Text style={styles.fareLabel}>User's Price</Text>
+                <Text style={styles.fareAmount}>
+                  ₹{currentBooking.userAmount}
+                </Text>
+              </View>
+              <View style={styles.bidInputContainer}>
+                <Text style={styles.bidLabel}>
+                  Your Bid (Max ₹{currentBooking.userAmount + 80})
+                </Text>
+                <View style={styles.bidInputWrapper}>
+                  <Text style={styles.currency}>₹</Text>
+                  <TextInput
+                    style={styles.bidInput}
+                    value={bidAmount}
+                    onChangeText={setBidAmount}
+                    placeholder={String(currentBooking.userAmount)}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </View>
 
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.skipBtn} onPress={handleSkip}>
@@ -686,6 +697,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginLeft: 8,
     color: colors.accent,
+  },
+  vehicleRequirementBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 18,
+    padding: 12,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  vehicleRequirementImage: {width: 58, height: 42, marginRight: 12},
+  vehicleRequirementTextWrap: {flex: 1},
+  vehicleRequirementLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: colors.textMute,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  vehicleRequirementTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: colors.text,
+    marginTop: 2,
   },
   locationContainer: {
     marginBottom: 20,

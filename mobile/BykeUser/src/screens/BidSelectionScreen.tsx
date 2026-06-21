@@ -14,6 +14,7 @@ import api from '../config/api';
 import {Star, User, Clock, CheckCircle} from 'lucide-react-native';
 import {colors} from '../theme';
 import CardGradient from '../components/CardGradient';
+import {safeErrorMessage} from '../utils/safeErrorMessage';
 
 interface Bid {
   id: number;
@@ -36,7 +37,7 @@ interface Bid {
 
 const BidSelectionScreen = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const bookingId = Number((route.params as any)?.bookingId);
 
   const [bids, setBids] = useState<Bid[]>([]);
@@ -102,15 +103,12 @@ const BidSelectionScreen = () => {
 
                   navigation.navigate('UserTracking', {
                     rideId: String(acceptedBookingId),
-                  } as never);
+                  });
                 },
               },
             ]);
           } catch (error: any) {
-            Alert.alert(
-              'Error',
-              error.response?.data?.message || 'Failed to accept bid',
-            );
+            Alert.alert('Error', safeErrorMessage(error, 'Failed to accept bid'));
           } finally {
             setAccepting(false);
           }

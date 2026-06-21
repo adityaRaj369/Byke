@@ -1,4 +1,5 @@
 import api from '../config/api';
+import {safeErrorMessage} from '../utils/safeErrorMessage';
 
 export interface RideRequest {
   pickupLocation: {
@@ -12,6 +13,7 @@ export interface RideRequest {
     address: string;
   };
   vehicleType: string;
+  serviceType?: string;
   maxFare?: number;
   userEnteredAmount?: number;
   distanceKm: number;
@@ -67,7 +69,7 @@ export const createRideRequest = async (
   try {
     // Backend expects BookingRequest at POST /api/bookings
     const response = await api.post('/bookings', {
-      serviceType: 'RIDE',
+      serviceType: request.serviceType || 'RIDE',
       vehicleType: request.vehicleType,
       pickupAddress: request.pickupLocation.address,
       pickupLatitude: request.pickupLocation.latitude,
@@ -99,16 +101,12 @@ export const createRideRequest = async (
     // BookingController returns created Booking object; return its id as rideId
     return {rideId: String(bookingId)};
   } catch (error: any) {
-    console.error(
-      'Error creating ride request:',
-      error?.response?.data || error.message || error,
-    );
-    // Surface backend message if available
-    const msg =
-      error?.response?.data?.message ||
-      error?.message ||
-      'Failed to create ride request';
-    throw new Error(msg);
+    console.error('Error creating ride request:', {
+      status: error?.response?.status,
+      code: error?.code,
+      message: error?.message,
+    });
+    throw new Error(safeErrorMessage(error, 'Failed to create ride request'));
   }
 };
 
@@ -134,7 +132,7 @@ export const acceptBid = async (
     return response.data;
   } catch (error: any) {
     console.error('Error accepting bid:', error);
-    throw new Error(error.response?.data?.message || 'Failed to accept bid');
+    throw new Error(safeErrorMessage(error, 'Failed to accept bid'));
   }
 };
 
@@ -145,9 +143,7 @@ export const getRideDetails = async (rideId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     console.error('Error fetching ride details:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to fetch ride details',
-    );
+    throw new Error(safeErrorMessage(error, 'Failed to fetch ride details'));
   }
 };
 
@@ -162,7 +158,7 @@ export const cancelRide = async (
     });
   } catch (error: any) {
     console.error('Error cancelling ride:', error);
-    throw new Error(error.response?.data?.message || 'Failed to cancel ride');
+    throw new Error(safeErrorMessage(error, 'Failed to cancel ride'));
   }
 };
 
@@ -172,9 +168,7 @@ export const getRideHistory = async (): Promise<Ride[]> => {
     return response.data;
   } catch (error: any) {
     console.error('Error fetching ride history:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to fetch ride history',
-    );
+    throw new Error(safeErrorMessage(error, 'Failed to fetch ride history'));
   }
 };
 
@@ -192,6 +186,6 @@ export const rateRide = async (
     });
   } catch (error: any) {
     console.error('Error rating ride:', error);
-    throw new Error(error.response?.data?.message || 'Failed to rate ride');
+    throw new Error(safeErrorMessage(error, 'Failed to rate ride'));
   }
 };

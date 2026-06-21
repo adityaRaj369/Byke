@@ -20,9 +20,9 @@ const AppContent = () => {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#fff',
+          backgroundColor: '#000',
         }}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
         <ActivityIndicator size="large" color="#EAB308" />
       </View>
     );
@@ -30,7 +30,7 @@ const AppContent = () => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <AppNavigator />
     </>
   );

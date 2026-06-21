@@ -202,7 +202,8 @@ public class BiddingService {
         
         List<Rider> nearbyRiders;
         String vehicleType = booking.getVehicleType();
-        if (vehicleType != null && !vehicleType.isBlank()) {
+        if (vehicleType != null && !vehicleType.isBlank() &&
+                !bookingService.vehicleTypesMatch(vehicleType, "Parcel")) {
             nearbyRiders = riderService.getNearbyAvailableRidersByVehicleType(
                     booking.getPickupLatitude(),
                     booking.getPickupLongitude(),

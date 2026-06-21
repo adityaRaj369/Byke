@@ -37,7 +37,6 @@ const RIDER_VEHICLE_TYPES = [
   {id: 'bike', label: 'Bike', desc: 'Two-wheeler rides'},
   {id: 'auto', label: 'Auto', desc: 'Auto rickshaw rides'},
   {id: 'cab', label: 'Cab', desc: 'Car ride requests'},
-  {id: 'parcel', label: 'Parcel', desc: 'Parcel delivery requests'},
 ];
 
 const ProfileScreen = () => {

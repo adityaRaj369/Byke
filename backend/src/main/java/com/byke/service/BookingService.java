@@ -317,7 +317,7 @@ public class BookingService {
 
     public boolean vehicleTypesMatch(String bookingVehicleType, String riderVehicleType) {
         String bookingType = normalizeVehicleType(bookingVehicleType);
-        if (bookingType.isBlank()) {
+        if (bookingType.isBlank() || "parcel".equals(bookingType)) {
             return true;
         }
         String riderType = normalizeVehicleType(riderVehicleType);

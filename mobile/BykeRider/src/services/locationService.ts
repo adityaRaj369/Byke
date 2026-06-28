@@ -59,8 +59,8 @@ const getPositionOnce = (options: {
       error => reject(error),
       {
         ...options,
-        showLocationDialog: true,
-        forceRequestLocation: true,
+        showLocationDialog: false,
+        forceRequestLocation: false,
       },
     );
   });
@@ -171,11 +171,11 @@ export const watchLocation = (
     },
     {
       enableHighAccuracy: true,
-      distanceFilter: 10,
-      interval: 7000,
-      fastestInterval: 5000,
-      showLocationDialog: true,
-      forceRequestLocation: true,
+      distanceFilter: 50,
+      interval: 30000,
+      fastestInterval: 15000,
+      showLocationDialog: false,
+      forceRequestLocation: false,
     },
   );
 

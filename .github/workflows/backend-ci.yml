@@ -7,8 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-
-  # ─── Stage 1: Build ───────────────────────────────────────────────────────
   build:
     name: 1. Build (Compile)
     runs-on: ubuntu-latest
@@ -38,7 +36,6 @@ jobs:
           path: backend/build/libs/*.jar
           retention-days: 1
 
-  # ─── Stage 2: Dockerize ───────────────────────────────────────────────────
   dockerize:
     name: 2. Dockerize (Build & Push Image)
     runs-on: ubuntu-latest
@@ -72,7 +69,6 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/byke-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/byke-backend:buildcache,mode=max
 
-  # ─── Stage 3: Deploy ──────────────────────────────────────────────────────
   deploy:
     name: 3. Deploy (EC2 Production)
     runs-on: ubuntu-latest
@@ -82,6 +78,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Verify GitHub deploy-key fingerprint
+        env:
+          DEPLOY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          KEY_FILE="$(mktemp)"
+          printf '%s\n' "$DEPLOY_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          ssh-keygen -lf "$KEY_FILE"
+          rm -f "$KEY_FILE"
+
       - name: Copy docker-compose.yml to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -89,8 +95,7 @@ jobs:
           username: ${{ secrets.PRODUCTION_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml"
-          # copy to the SSH user's home directory first (no sudo required for scp)
-          target: "/home/${{ secrets.PRODUCTION_USER }}/docker-compose.yml"
+          target: "/home/${{ secrets.PRODUCTION_USER }}"
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.0
@@ -110,18 +115,13 @@ jobs:
             sudo mkdir -p /opt/byke
             cd /opt/byke
 
-            # Move docker-compose.yml into the app directory (scp copied it to user's home)
             if [ -f "/home/${{ secrets.PRODUCTION_USER }}/docker-compose.yml" ]; then
               sudo mv "/home/${{ secrets.PRODUCTION_USER }}/docker-compose.yml" ./docker-compose.yml || true
             fi
 
-            # Write the .env file from GitHub Secret
             echo "$PRODUCTION_ENV_FILE" | sudo tee .env > /dev/null
-
-            # Write the Firebase service account JSON from GitHub Secret
             echo "$FIREBASE_SERVICE_ACCOUNT_JSON" | sudo tee firebase-service-account.json > /dev/null
 
-            # Login to Docker Hub on the server (needed if image is private)
             if [ -n "${DOCKER_USERNAME:-}" ] && [ -n "${DOCKER_PASSWORD:-}" ]; then
               echo "Logging in to Docker Hub as $DOCKER_USERNAME"
               echo "$DOCKER_PASSWORD" | sudo docker login -u "$DOCKER_USERNAME" --password-stdin || true
@@ -129,7 +129,6 @@ jobs:
               echo "DOCKER_USERNAME/DOCKER_PASSWORD not provided; attempting anonymous pull"
             fi
 
-            # Choose compose command depending on what's available on the server
             if sudo docker compose version >/dev/null 2>&1; then
               COMPOSE_CMD="sudo docker compose"
             elif command -v docker-compose >/dev/null 2>&1; then
@@ -140,12 +139,7 @@ jobs:
 
             echo "Using compose command: $COMPOSE_CMD"
 
-            # Pull latest image for backend and force recreate to ensure new image is used
             $COMPOSE_CMD pull backend || { echo "docker pull failed"; $COMPOSE_CMD images; exit 1; }
             $COMPOSE_CMD up -d --force-recreate backend || { echo "docker compose up failed"; $COMPOSE_CMD logs backend --tail=200 || true; exit 1; }
 
-            # Optionally restart other services (uncomment if needed)
-            # $COMPOSE_CMD up -d --force-recreate
-
-            # Clean up old images to save disk space
             sudo docker system prune -f || true
